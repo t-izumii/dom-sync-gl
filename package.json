@@ -1,6 +1,6 @@
 {
   "name": "dom-sync-gl",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "domSyncGL — DOM ↔ WebGL synchronization with composable post effects, rAF-synced scroll, and touch inertia.",
   "type": "module",
   "license": "MIT",
@@ -33,8 +33,12 @@
     "stats.js": ">=0.17.0"
   },
   "peerDependenciesMeta": {
-    "lil-gui": { "optional": true },
-    "stats.js": { "optional": true }
+    "lil-gui": {
+      "optional": true
+    },
+    "stats.js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/stats.js": "^0.17.4",
