@@ -1,0 +1,13 @@
+# package.json の files: ["dist"] で対象を絞っているため、
+# このファイルはバックアップ兼ねた明示的な除外指定。
+src
+examples
+coverage
+node_modules
+__tests__
+*.test.ts
+*.log
+.DS_Store
+tsconfig*.json
+vite.config.ts
+vitest.config.ts

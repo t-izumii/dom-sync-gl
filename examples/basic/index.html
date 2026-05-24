@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>domSyncGL — A field manual</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #ece3cf;
+        --bg-deep: #ddcfb1;
+        --ink: #1a1612;
+        --ink-soft: #4d4536;
+        --ink-faint: #847962;
+        --accent: #c13a1b;
+        --accent-soft: #da7251;
+        --moss: #4a5938;
+        --rule: rgba(26, 22, 18, 0.16);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Fraunces", serif;
+        font-optical-sizing: auto;
+      }
+
+      body {
+        font-feature-settings: "ss01";
+        overflow-x: hidden;
+      }
+
+      ::selection {
+        background: var(--accent);
+        color: var(--bg);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      /* === Decorative overlays === */
+      /* 12-col grid + horizontal rules, baked in via CSS so it's free */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 100;
+        background:
+          repeating-linear-gradient(
+            to right,
+            transparent 0,
+            transparent calc(100% / 12 - 1px),
+            var(--rule) calc(100% / 12 - 1px),
+            var(--rule) calc(100% / 12)
+          ),
+          repeating-linear-gradient(
+            to bottom,
+            transparent,
+            transparent 119px,
+            var(--rule) 119px,
+            var(--rule) 120px
+          );
+        opacity: 0.4;
+        mix-blend-mode: multiply;
+      }
+
+      /* Paper grain, applied to everything (canvas + DOM) */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 101;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='2.6' numOctaves='2'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+        opacity: 0.32;
+        mix-blend-mode: multiply;
+      }
+
+      /* === Canvas slot (ScrollSync mounts here) === */
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 0;
+        width: 100vw;
+        height: 100svh;
+        pointer-events: none;
+      }
+
+      .layout {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* === Top bar === */
+      .topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        padding: 22px 36px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        mix-blend-mode: multiply;
+        pointer-events: none;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+      .topbar > * {
+        pointer-events: auto;
+      }
+      .topbar .mark {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-weight: 500;
+        font-size: 1.05rem;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--ink);
+      }
+      .topbar .mark span {
+        font-family: "JetBrains Mono", monospace;
+        font-style: normal;
+        font-size: 0.7rem;
+        color: var(--ink-faint);
+        margin-left: 10px;
+        vertical-align: 0.18em;
+        letter-spacing: 0.06em;
+      }
+      .topbar nav {
+        display: flex;
+        gap: 28px;
+      }
+
+      /* === Hero === */
+      .hero {
+        /* 100svh: iOS Safari でアドレスバー込みの小さい viewport を基準にする (canvas と一致) */
+        min-height: 100svh;
+        padding: 0 36px 56px;
+        padding-top: 110px;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 0;
+      }
+
+      .hero .eyebrow {
+        grid-column: 1 / span 5;
+        grid-row: 1;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.74rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+      .hero .eyebrow b {
+        color: var(--accent);
+        font-weight: 400;
+      }
+
+      .hero .ed {
+        grid-column: 9 / span 4;
+        grid-row: 1;
+        text-align: right;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        color: var(--ink-faint);
+        text-transform: uppercase;
+      }
+      .hero .ed b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .hero .title {
+        grid-column: 1 / span 12;
+        grid-row: 2;
+        align-self: end;
+        font-family: "Fraunces", serif;
+        font-weight: 300;
+        font-style: italic;
+        font-variation-settings:
+          "opsz" 144,
+          "SOFT" 0,
+          "WONK" 1;
+        font-size: clamp(4rem, 17.5vw, 18rem);
+        line-height: 0.84;
+        letter-spacing: -0.045em;
+        margin-bottom: -0.06em;
+        position: relative;
+      }
+      .hero .title em {
+        font-style: normal;
+        font-weight: 600;
+      }
+      .hero .title .dot {
+        color: var(--accent);
+        font-style: normal;
+      }
+      .hero .title .gloss {
+        position: absolute;
+        right: 0;
+        top: -0.4em;
+        font-family: "JetBrains Mono", monospace;
+        font-style: normal;
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        color: var(--ink-soft);
+        font-weight: 400;
+        line-height: 1.4;
+        text-align: right;
+        max-width: 220px;
+      }
+
+      .hero .sub {
+        grid-column: 1 / span 6;
+        grid-row: 3;
+        font-size: 1.06rem;
+        line-height: 1.55;
+        margin-top: 40px;
+        max-width: 540px;
+        color: var(--ink-soft);
+      }
+      .hero .sub strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .hero .meta {
+        grid-column: 9 / span 4;
+        grid-row: 3;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.74rem;
+        line-height: 1.65;
+        letter-spacing: 0.04em;
+        margin-top: 40px;
+        align-self: end;
+      }
+      .hero .meta dt {
+        color: var(--accent);
+        text-transform: uppercase;
+      }
+      .hero .meta dd {
+        color: var(--ink-soft);
+        margin-bottom: 14px;
+      }
+
+      /* === Sections === */
+      .section {
+        padding: 200px 36px;
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 24px;
+      }
+
+      .section-num {
+        grid-column: 1 / span 1;
+        font-family: "Fraunces", serif;
+        font-weight: 300;
+        font-style: italic;
+        font-variation-settings: "opsz" 144;
+        font-size: 7.5rem;
+        line-height: 0.9;
+        color: var(--accent);
+      }
+
+      .section-kicker {
+        grid-column: 2 / span 5;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.74rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--ink-soft);
+        padding-top: 14px;
+      }
+      .section-kicker::before {
+        content: "▮ ";
+        color: var(--accent);
+      }
+
+      .section h2 {
+        grid-column: 2 / span 9;
+        font-family: "Fraunces", serif;
+        font-weight: 400;
+        font-style: italic;
+        font-variation-settings: "opsz" 144;
+        font-size: clamp(2.6rem, 5.3vw, 5rem);
+        line-height: 1.03;
+        margin-top: 28px;
+        letter-spacing: -0.025em;
+        text-wrap: balance;
+      }
+      .section h2 em {
+        font-style: normal;
+        font-weight: 600;
+      }
+      .section h2 .acc {
+        color: var(--accent);
+        font-style: italic;
+      }
+
+      .section .lead {
+        grid-column: 2 / span 5;
+        font-size: 1.08rem;
+        line-height: 1.6;
+        margin-top: 36px;
+        color: var(--ink-soft);
+      }
+      .section .lead code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.88em;
+        color: var(--ink);
+        background: rgba(26, 22, 18, 0.06);
+        padding: 1px 6px;
+        border-radius: 2px;
+      }
+
+      .section .annot {
+        grid-column: 8 / span 4;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        line-height: 1.7;
+        margin-top: 36px;
+        color: var(--ink-faint);
+        align-self: start;
+      }
+      .section .annot b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      /* === Plane figures === */
+      /* WebGL plane が DOM 要素の bbox 位置に「下から」描画されるので、
+         figure 自体は背景を持たず単なる位置/サイズの容器として置く。
+         (var(--bg-deep) を当てると WebGL render が完全に隠れる)
+         reveal は GLSL 側の alpha マスクで行うので CSS の outline は付けない
+         (旧版の「印刷ガイド風 dashed」はインク滲み演出に置き換わったため不要)。 */
+      .plane {
+        position: relative;
+        background: transparent;
+        overflow: hidden;
+      }
+      .plane figcaption {
+        position: absolute;
+        bottom: 10px;
+        left: 12px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.66rem;
+        color: rgba(237, 229, 213, 0.92);
+        letter-spacing: 0.1em;
+        z-index: 2;
+        mix-blend-mode: difference;
+        text-transform: uppercase;
+      }
+      .plane figcaption::before {
+        content: "▸ ";
+        color: var(--accent-soft);
+      }
+
+      /* Section 01 layout */
+      .compose {
+        grid-column: 7 / span 6;
+        margin-top: -120px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .compose .plane {
+        aspect-ratio: 4 / 5;
+      }
+      .compose .plane:last-child {
+        transform: translateY(40px);
+      }
+
+      /* Section 02 layout */
+      .stack {
+        grid-column: 1 / span 12;
+        margin-top: 100px;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+      }
+      .stack .plane.lg {
+        grid-column: span 8;
+        aspect-ratio: 16 / 9;
+      }
+      .stack .plane.md {
+        grid-column: span 4;
+        aspect-ratio: 4 / 5;
+      }
+      .stack .row {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .stack .row .plane.sm {
+        grid-column: span 4;
+        aspect-ratio: 5 / 4;
+      }
+
+      /* Section 03 layout */
+      .grid-mouse {
+        grid-column: 2 / span 10;
+        margin-top: 100px;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+      }
+      .grid-mouse .plane {
+        aspect-ratio: 1;
+        /* WebGL plane が見えるように透明。outline は共通 .plane から継承 */
+        background: transparent;
+      }
+      .grid-mouse .plane figcaption {
+        display: none;
+      }
+
+      /* Section 04 — large feature
+         <figure class="plane featured"> 1 要素に両クラスが付くので、
+         descendant `.featured .plane` ではなく compound `.plane.featured` で当てる
+         (これが旧版で section 04 の rift plane が高さ 0 になっていた原因) */
+      .plane.featured {
+        grid-column: 1 / -1;
+        margin-top: 100px;
+        aspect-ratio: 21 / 9;
+        width: 100%;
+      }
+
+      /* === Colophon === */
+      .colophon {
+        padding: 220px 36px 120px;
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 24px;
+        align-items: end;
+      }
+      .colophon .sig {
+        grid-column: 1 / span 6;
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-weight: 300;
+        font-variation-settings: "opsz" 144;
+        font-size: clamp(3rem, 8vw, 7rem);
+        line-height: 0.9;
+        letter-spacing: -0.035em;
+      }
+      .colophon .sig em {
+        color: var(--accent);
+        font-style: normal;
+        font-weight: 600;
+      }
+
+      .colophon pre {
+        grid-column: 7 / span 6;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.82rem;
+        line-height: 1.7;
+        padding: 26px 28px;
+        background: var(--ink);
+        color: var(--bg);
+        white-space: pre;
+        overflow-x: auto;
+        position: relative;
+      }
+      .colophon pre::before {
+        content: "FRAGMENT · entry.ts";
+        position: absolute;
+        top: -10px;
+        left: 14px;
+        font-size: 0.62rem;
+        letter-spacing: 0.16em;
+        color: var(--bg);
+        background: var(--accent);
+        padding: 2px 8px;
+      }
+      .colophon pre .c {
+        color: rgba(236, 227, 207, 0.45);
+      }
+      .colophon pre .k {
+        color: var(--accent-soft);
+      }
+      .colophon pre .s {
+        color: #d9a23b;
+      }
+
+      .colophon .credit {
+        grid-column: 1 / -1;
+        margin-top: 120px;
+        display: flex;
+        justify-content: space-between;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        border-top: 1px solid var(--rule);
+        padding-top: 28px;
+      }
+
+      /* === Reveal: text 側は opacity フェードだけ。GLSL の uProgress で巻物演出 === */
+      [data-reveal] {
+        opacity: 0;
+        transition: opacity 0.9s cubic-bezier(0.5, 0.05, 0.2, 1);
+      }
+      [data-reveal].in {
+        opacity: 1;
+      }
+      [data-reveal][data-delay="1"] {
+        transition-delay: 0.08s;
+      }
+      [data-reveal][data-delay="2"] {
+        transition-delay: 0.16s;
+      }
+      [data-reveal][data-delay="3"] {
+        transition-delay: 0.24s;
+      }
+
+      /* Live mouse readout — debug-as-design */
+      .readout {
+        position: fixed;
+        bottom: 22px;
+        left: 36px;
+        z-index: 60;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        color: var(--ink-soft);
+        mix-blend-mode: multiply;
+        pointer-events: none;
+      }
+      .readout b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      @media (max-width: 900px) {
+        body::before {
+          background:
+            repeating-linear-gradient(
+              to right,
+              transparent 0,
+              transparent calc(100% / 6 - 1px),
+              var(--rule) calc(100% / 6 - 1px),
+              var(--rule) calc(100% / 6)
+            ),
+            repeating-linear-gradient(
+              to bottom,
+              transparent,
+              transparent 88px,
+              var(--rule) 88px,
+              var(--rule) 89px
+            );
+        }
+        /* paper grain は mix-blend-mode で iOS で重いので opacity を下げて軽量化 */
+        body::after {
+          opacity: 0.18;
+        }
+        .topbar {
+          padding: 14px 18px;
+          font-size: 0.66rem;
+        }
+        .topbar nav {
+          gap: 14px;
+        }
+        .topbar nav span:nth-child(2) {
+          display: none; /* "↘ DOM × WebGL" は省略 */
+        }
+        .topbar .mark {
+          font-size: 0.95rem;
+        }
+        .hero,
+        .section {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+        .hero {
+          /* mobile では 12-col grid を解いて DOM 順 (eyebrow → ed → title → sub → meta)
+             の縦並びに切り替える。grid のままだと desktop の grid-row 指定 (eyebrow/ed が
+             row1、sub/meta が row3) でセルが衝突して要素が重なってしまう。 */
+          display: flex;
+          flex-direction: column;
+          padding-top: 80px;
+          padding-bottom: 48px;
+          row-gap: 8px;
+          min-height: 100svh;
+        }
+        .section {
+          padding-top: 120px;
+          padding-bottom: 120px;
+        }
+        .hero .eyebrow,
+        .hero .ed,
+        .hero .sub,
+        .hero .meta {
+          /* flex に切り替えたので grid 関連の指定は無効化 (text-align も左揃えに統一) */
+          text-align: left;
+          width: 100%;
+        }
+        .hero .ed {
+          margin-top: 4px;
+        }
+        .hero .title {
+          /* desktop は grid の align-self: end で title を下端揃えしていたが flex 縦並びでは
+             cross-axis (= 横方向) の右寄せに化けるので明示的に解除 */
+          align-self: stretch;
+          width: 100%;
+          font-size: clamp(3rem, 14vw, 6rem);
+          line-height: 0.88;
+          margin-top: 24px;
+          /* desktop の負 margin (-0.06em) は line-height 0.88 と合わせて descender が
+             下の sub に被るので 0 に戻す */
+          margin-bottom: 0;
+        }
+        .hero .title .gloss {
+          /* inline span だと巨大 serif italic title の中に tiny monospace text が
+             埋もれて読めない。block にして title の下にキッカー行として独立配置 */
+          display: block;
+          position: static;
+          margin-top: 18px;
+          font-size: 0.74rem;
+          text-align: left;
+          max-width: none;
+        }
+        .hero .sub {
+          font-size: 0.98rem;
+          margin-top: 24px;
+        }
+        .hero .meta {
+          margin-top: 24px;
+          font-size: 0.7rem;
+        }
+        .section-num {
+          font-size: 5rem;
+        }
+        .section h2 {
+          font-size: clamp(2rem, 8.5vw, 3.6rem);
+          margin-top: 20px;
+        }
+        .section .lead {
+          font-size: 0.98rem;
+          margin-top: 22px;
+        }
+        .section .annot {
+          margin-top: 22px;
+        }
+        .compose,
+        .stack .plane.lg,
+        .stack .plane.md,
+        .stack .row .plane.sm,
+        .grid-mouse,
+        .section h2,
+        .section .lead,
+        .section .annot,
+        .hero .sub,
+        .hero .meta,
+        .hero .eyebrow,
+        .hero .ed,
+        .colophon .sig,
+        .colophon pre {
+          grid-column: 1 / -1 !important;
+        }
+        .compose {
+          margin-top: 40px;
+        }
+        .stack {
+          margin-top: 40px;
+        }
+        .stack .row {
+          /* mobile では row も 1 列 (sm が縦並び) */
+          grid-template-columns: 1fr;
+        }
+        .grid-mouse {
+          /* mobile は JS 側で 5x5=25 cell を生成しているので 5 列で割り切れる */
+          grid-template-columns: repeat(5, 1fr);
+          margin-top: 40px;
+        }
+        .plane.featured {
+          margin-top: 60px;
+          aspect-ratio: 4 / 3;
+        }
+        .colophon {
+          padding: 140px 18px 80px;
+        }
+        .colophon pre {
+          font-size: 0.72rem;
+          padding: 22px 18px;
+          /* iOS で横スクロールするとき body スクロール巻き込みを防ぐ */
+          overscroll-behavior-x: contain;
+        }
+        .colophon .credit {
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 80px;
+          font-size: 0.62rem;
+        }
+        /* readout は mobile で邪魔になりやすいので隠す */
+        .readout {
+          display: none;
+        }
+      }
+
+      /* === Phone portrait (≤ 480px) === */
+      @media (max-width: 480px) {
+        .hero .title {
+          font-size: clamp(2.6rem, 16vw, 5rem);
+        }
+        .section {
+          padding-top: 80px;
+          padding-bottom: 80px;
+        }
+        .section-num {
+          font-size: 4rem;
+        }
+        .grid-mouse {
+          /* phone で 5 列だと各セルが小さすぎるので 4 列に */
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      /* iOS Safari の rubber-band / overscroll を抑制し、ScrollSync の transform が
+         document 範囲外にはみ出さないようにする */
+      html, body {
+        overscroll-behavior-y: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas"></div>
+
+    <header class="topbar">
+      <div class="mark">domSyncGL<span>v0.0.1</span></div>
+      <nav>
+        <span>2026 · field manual</span>
+        <span>↘ DOM × WebGL</span>
+      </nav>
+    </header>
+
+    <div class="readout">
+      mouse <b id="mx">0.500</b> / <b id="my">0.500</b> &nbsp;·&nbsp; scroll
+      <b id="sy">0</b> px
+    </div>
+
+    <main class="layout">
+      <!-- ========== HERO ========== -->
+      <header class="hero">
+        <div class="eyebrow" data-reveal>
+          <b>▮</b> A library in four movements
+        </div>
+        <div class="ed" data-reveal data-delay="1">
+          No.&nbsp;01 · printed <b>05.2026</b>
+        </div>
+
+        <h1 class="title" data-reveal data-delay="1">
+          A <em>field</em><br />
+          manual<span class="dot">.</span>
+          <span class="gloss">
+            on building DOM-locked<br />WebGL scenes with<br />composable post
+            effects
+          </span>
+        </h1>
+
+        <p class="sub" data-reveal data-delay="2">
+          <strong>domSyncGL</strong> is a small Three.js companion that binds
+          shader planes to DOM elements, locks the canvas to native scroll
+          without desync, and lets you compose post-processing chains by
+          extending a single base class.
+        </p>
+
+        <dl class="meta" data-reveal data-delay="3">
+          <dt>Modules</dt>
+          <dd>
+            WebGLApp · DomPlane · Dom3DObject<br />
+            ScrollSync · RafScroll · BaseEffect
+          </dd>
+          <dt>Bundle</dt>
+          <dd>~18 kB gzipped · ESM + CJS</dd>
+          <dt>Peers</dt>
+          <dd>three · lil-gui · stats.js</dd>
+        </dl>
+      </header>
+
+      <!-- ========== 01 COMPOSITION ========== -->
+      <section class="section" data-section="01">
+        <div class="section-num" data-reveal>01</div>
+        <div class="section-kicker" data-reveal>Composition</div>
+        <h2 data-reveal>
+          Two shaders, one frame, <span class="acc">DOM-locked</span> to their
+          host elements.
+        </h2>
+        <p class="lead" data-reveal data-delay="1">
+          Each <code>DomPlane</code> reads its hosting element's bounding box
+          every frame and writes itself into a Three.js scene at the
+          corresponding world position. The handoff between layout engine and
+          WebGL is silent — the planes are simply <em>there</em>.
+        </p>
+        <p class="annot" data-reveal data-delay="2">
+          <b>RAYCAST</b><br />
+          element-bound planes participate in pointer raycast and receive
+          <code>uIsHovered</code> + <code>uMouseUV</code> automatically.
+        </p>
+
+        <div class="compose">
+          <figure
+            class="plane"
+            data-variant="mercury"
+            data-reveal
+            data-delay="2"
+          >
+            <figcaption>mercury · hot-foil · uMouseUV</figcaption>
+          </figure>
+          <figure
+            class="plane"
+            data-variant="thermal"
+            data-reveal
+            data-delay="3"
+          >
+            <figcaption>contour · fwidth-AA · time</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ========== 02 SCROLL ========== -->
+      <section class="section" data-section="02">
+        <div class="section-num" data-reveal>02</div>
+        <div class="section-kicker" data-reveal>Scroll synchronization</div>
+        <h2 data-reveal>
+          The page <em>and</em> the canvas scroll
+          <span class="acc">as one frame.</span>
+        </h2>
+        <p class="lead" data-reveal data-delay="1">
+          <code>ScrollSync</code> pins the canvas container to the document with
+          a single rAF-driven transform. There is no parallax desync, no late
+          frame: every plane rides the same scroll snapshot that the page does,
+          every tick.
+        </p>
+        <p class="annot" data-reveal data-delay="2">
+          <b>INVARIANT</b><br />
+          rAF reads <code>window.scrollY</code> once per tick and dispatches the
+          value to (a) container transform, (b) per-plane scene position, (c)
+          effect local-UV calc — never independently.
+        </p>
+
+        <div class="stack" data-reveal data-delay="1">
+          <figure class="plane lg" data-variant="aurora">
+            <figcaption>current · 2-stage warp · silk threads</figcaption>
+          </figure>
+          <figure class="plane md" data-variant="dither">
+            <figcaption>dither · bayer 4×4</figcaption>
+          </figure>
+          <div class="row">
+            <figure class="plane sm" data-variant="oxide">
+              <figcaption>oxide · patina</figcaption>
+            </figure>
+            <figure class="plane sm" data-variant="chrome">
+              <figcaption>iris · interference</figcaption>
+            </figure>
+            <figure class="plane sm" data-variant="moire">
+              <figcaption>moiré · fwidth-AA</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== 03 POINTER FIELD ========== -->
+      <section class="section" data-section="03">
+        <div class="section-num" data-reveal>03</div>
+        <div class="section-kicker" data-reveal>Pointer field</div>
+        <h2 data-reveal>
+          Forty-nine planes,<br />
+          <span class="acc">one shared</span> mouse.
+        </h2>
+        <p class="lead" data-reveal data-delay="1">
+          Each plane receives global pointer position raycast through the scene.
+          A single hover ripples through the whole field — handled per-plane,
+          without per-element listeners, without per-element state.
+        </p>
+        <p class="annot" data-reveal data-delay="2">
+          <b>COST</b><br />
+          one raycast / frame against 49 meshes &nbsp;·&nbsp; ~0.4ms on mid
+          mobile &nbsp;·&nbsp; uniforms updated only on hover transition (no
+          churn).
+        </p>
+
+        <div class="grid-mouse" data-reveal data-delay="1">
+          <!-- cells appended by JS -->
+        </div>
+      </section>
+
+      <!-- ========== 04 EFFECTS ========== -->
+      <section class="section" data-section="04">
+        <div class="section-num" data-reveal>04</div>
+        <div class="section-kicker" data-reveal>Extending BaseEffect</div>
+        <h2 data-reveal>
+          A post-process,<br />
+          <span class="acc">twenty lines.</span>
+        </h2>
+        <p class="lead" data-reveal data-delay="1">
+          Effects are extensions, not the library. Subclass
+          <code>BaseEffect</code>, return your fragment shader, and pass an
+          instance to <code>webgl.addEffect()</code>. The composer wires it into
+          a ping-pong chain automatically — <em>this very page</em> is running
+          one.
+        </p>
+        <p class="annot" data-reveal data-delay="2">
+          <b>RUNNING</b><br />
+          <code>PaperEffect</code>: subtle chromatic aberration, warm grade,
+          vignette &nbsp;·&nbsp; 1 pass, ~0.2ms.
+        </p>
+
+        <figure
+          class="plane featured"
+          data-variant="rift"
+          data-reveal
+          data-delay="1"
+        >
+          <figcaption>rift · curl-noise · vortex on hover</figcaption>
+        </figure>
+      </section>
+
+      <!-- ========== COLOPHON ========== -->
+      <footer class="colophon">
+        <div class="sig" data-reveal>
+          Build the <em>scene</em>,<br />
+          ship the <em>page</em>.
+        </div>
+
+        <pre
+          data-reveal
+          data-delay="1"
+        ><span class="k">import</span> { WebGLApp, BaseEffect } <span class="k">from</span> <span class="s">"dom-sync-gl"</span>;
+
+<span class="c">// canvas, scroll-locked to native scroll</span>
+<span class="k">const</span> app = <span class="k">new</span> WebGLApp(<span class="s">"#canvas"</span>, {
+  scrollSync: <span class="k">true</span>,
+});
+
+<span class="c">// shader plane bound to a DOM element</span>
+app.createPlane(<span class="s">".hero-plane"</span>, {
+  fragmentShader: myShader,
+});
+
+<span class="c">// custom post-process by extension</span>
+app.addEffect(<span class="k">new</span> MyGrainEffect());</pre>
+
+        <div class="credit">
+          <span>domSyncGL · field manual no. 01</span>
+          <span id="time">--:--:--</span>
+          <span>set in Fraunces &amp; JetBrains Mono</span>
+        </div>
+      </footer>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
