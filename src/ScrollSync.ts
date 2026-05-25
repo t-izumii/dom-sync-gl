@@ -1,40 +1,36 @@
 /**
- * ScrollSync — WebGL スクロール同期。
+ * ScrollSync — WebGL canvas を viewport に固定する薄いレイヤ。
  *
- * container 要素を `position: absolute; top: 0; left: 0` で document に貼り、毎 rAF で
- * 1 回読んだ `scrollX/Y` を transform に流す。**同じ scrollX/Y を DomPlane の sceneY 計算
- * にも渡してもらう**ことで、paint 時に scroll が進んで rAF↔paint Δ が出ても container と
- * plane が一緒にズレる → 視覚的に DOM ↔ mesh は完璧に一致する。
+ * container 要素を `position: fixed; inset: 0` で viewport にロックし、canvas のサイズを
+ * window 寸法に合わせて保つだけ。per-frame の transform 適用は持たない。
  *
- * **scrollHeight 非侵襲**:
- * 単純に `height = viewport * (1 + 2*padding)` を貼ると、container の layout box が
- * `1 + 2*padding` 倍の高さを占有し、body の scrollHeight を底上げしてしまう
- * （コンテンツが短いページや、スクロール末尾で「実コンテンツを越えて余白までスクロール」
- *  できる現象）。
+ * **なぜ fixed か**:
+ * 旧実装では container を `position: absolute` で document に貼り、毎 rAF で
+ * `translate3d(0, scrollY, 0)` を当てて「視覚的には viewport 固定だが layout 上は scroll
+ * と一緒に動く」状態を作っていた。これは rAF↔paint Δ を吸収する狙いだったが、iOS Safari の
+ * 上端 rubber-band / pull-to-refresh と相性が悪い:
  *
- * 対策として **毎フレ effective padding を `body.scrollHeight - scrollY - viewport`
- * でクランプ**する（`#updateCanvasSize` と同じ formula）。
- *   - 長いページ + 上の方にいる: requested = effective（フル padding）
- *   - 末尾に近づく: max が縮み effective も縮む → container も縮む
- *   - 末尾ぴったり: effective = 0 → container = viewport ぴったり
+ *   1. rubber-band 中、body は視覚的に下にスライド (=absolute の container も一緒に滑る)
+ *   2. `getBoundingClientRect()` は visual viewport 基準で返るので DOM 要素も視覚オフセット
+ *      込みの top を返す
+ *   3. plane 位置を BCR から計算する以上、plane 自体も視覚オフセット分ずれる
+ *   4. **container 自体も同じだけ滑っているので、plane は二重に下にズレて見える**
  *
- * canvas drawing buffer も同期して resize する必要があるため、resize 通知 callback を
- * `setResizeCallback()` で受け取る。Core 側でこの callback に `renderer.setSize` /
- * `camera.resize` / `postEffect.resize` を繋ぐ。
+ * fixed なら container が rubber-band で動かない (= viewport に固定) ので、plane が BCR の
+ * 視覚オフセットを取り込んでも canvas 側にはそのオフセットがなく、結果として DOM 要素と
+ * plane が同じ位置に揃う。
  *
+ * **rAF↔paint Δ の扱い**:
+ * fixed container では canvas 自体は scroll で動かないので、rAF tick 上で読んだ scrollY を
+ * plane の位置計算に使うとき、paint までに native scroll が進んでも plane 位置 (= scrollY 由来
+ * の補正量) と DOM の見た目 (= native scroll で進んだ位置) が 1 frame ずれる。これを完璧に
+ * 揃えたい場合は `RafScroll` を併用する (wheel/touch を rAF tick に集約 → JS と paint の
+ * scrollY が同値になる)。 RafScroll なしでも体感的なズレは小さい。
  */
 
 export interface ScrollSyncOptions {
   /**
-   * 上下パディング比率（0〜1）。canvas の高さを viewport * (1 + padding * 2) にし、
-   * rAF↔paint 間の scroll 進行で canvas が viewport から欠ける現象を吸収する。
-   * 末尾に近づくと effective 値は自動でクランプされ、body.scrollHeight を底上げしない。
-   * @default 0
-   */
-  padding?: number;
-
-  /**
-   * スクロール強度（速度）を strength getter で提供するか。
+   * スクロール強度 (速度) を strength getter で提供するか。
    * @default false
    */
   trackStrength?: boolean;
@@ -48,7 +44,6 @@ export interface ScrollSyncOptions {
 
 export class ScrollSync {
   private container: HTMLElement;
-  private _padding: number;
   private _trackStrength: boolean;
   private _strengthDecay: number;
   private _strength: number = 0;
@@ -58,43 +53,18 @@ export class ScrollSync {
   private _viewportHeight: number = 0;
   private _enabled: boolean = true;
 
-  /**
-   * container の **元 CSS 指定** を window に対する比率として保持する。
-   *
-   * 例: container の CSS が `width: 100vw; height: 110vh` なら
-   *   _widthRatio = 1.0, _heightRatio = 1.1
-   *
-   * `applyContainerStyles()` で container は `position: absolute; width/height = JS制御`
-   * に書き換えられて以降「元の CSS による intrinsic size」は測れなくなる。よって
-   * **constructor 進入時** に getBoundingClientRect から ratio を snapshot し、以降の
-   * resize ではこの ratio を window 寸法に掛けて canvas 物理サイズを決める。
-   *
-   * これにより `#canvas { width: 100vw; height: 110vh; }` のような CSS が
-   * window resize / orientation 変更後も「100vw × 110vh」相当を保ち続ける。
-   */
-  private _widthRatio: number = 1;
-  private _heightRatio: number = 1;
-
-  /**
-   * 現在 transform / canvas 寸法に反映している padding 値（px）。
-   * クランプの出力。`_padding * viewportHeight` の上限と、document の余り
-   * 領域の最小から決まる。
-   */
-  private _effectivePaddingPx: number = 0;
-
-  /** 計算用の canvas rect（scroll transform を含まない論理 rect、effective padding 基準） */
+  /** viewport そのままの logical rect。canvas drawing buffer のサイズに使う。 */
   private _logicalRect: DOMRect = new DOMRect();
 
   /**
-   * effective padding が変わって canvas drawing buffer の resize が必要な時に呼ぶ callback。
-   * 引数は `{ width, height }`（drawing buffer の新サイズ = container の新サイズ）。
+   * canvas drawing buffer の resize が必要な時に呼ぶ callback。
    * Core 側でこれに `renderer.setSize` / `camera.resize` / `postEffect.resize` をぶら下げる。
    */
   private _onResize: ((size: { width: number; height: number }) => void) | null = null;
 
   /**
-   * destroy 時の復元用に、constructor 進入時の inline style を退避しておく。
-   * ユーザーが先に `container.style.position = 'relative'` などを当てていた場合に、
+   * destroy 時の復元用に、constructor 進入時の inline style を退避する。
+   * ユーザーが先に `container.style.position = 'relative'` 等を当てていた場合に、
    * destroy で「空文字に潰す」ではなく元の値に戻すために必要。
    */
   private _originalStyles: {
@@ -104,20 +74,16 @@ export class ScrollSync {
     width: string;
     height: string;
     overflow: string;
-    transform: string;
     pointerEvents: string;
-    willChange: string;
   };
 
   constructor(container: HTMLElement, options: ScrollSyncOptions = {}) {
     this.container = container;
-    this._padding = options.padding ?? 0;
     this._trackStrength = options.trackStrength ?? false;
     this._strengthDecay = options.strengthDecay ?? 10;
     this._prevScrollY = window.scrollY;
     this._prevTime = performance.now() / 1000;
 
-    // 元 inline style を snapshot（destroy 時に復元するため）。
     const s = container.style;
     this._originalStyles = {
       position: s.position,
@@ -126,123 +92,54 @@ export class ScrollSync {
       width: s.width,
       height: s.height,
       overflow: s.overflow,
-      transform: s.transform,
       pointerEvents: s.pointerEvents,
-      willChange: s.willChange,
     };
-
-    // applyContainerStyles 前に container の CSS-computed rect を測り、window 寸法に
-    // 対する比率を snapshot する。CSS の vw/vh 等で書かれた指定はこの時点で window に
-    // 応じた px 値として評価済みなので、ratio として保存しておけば後の resize でも
-    // 「同じ CSS 指定」を再現できる。
-    //
-    // container がまだ layout されていない (display:none / jsdom 環境 / size 未指定で
-    // 0px 扱い) ケースでは ratio = 0 になって canvas が潰れるので、その場合は default 1.0
-    // (= window 寸法そのまま) のまま落とす。
-    const initialRect = container.getBoundingClientRect();
-    if (window.innerWidth > 0 && initialRect.width > 0) {
-      this._widthRatio = initialRect.width / window.innerWidth;
-    }
-    if (window.innerHeight > 0 && initialRect.height > 0) {
-      this._heightRatio = initialRect.height / window.innerHeight;
-    }
 
     this.applyContainerStyles();
     this.updateSize();
   }
 
   private applyContainerStyles(): void {
-    this.container.style.position = 'absolute';
+    this.container.style.position = 'fixed';
     this.container.style.left = '0';
     this.container.style.top = '0';
-    // 子の canvas overflow を視覚的にクリップ。drawing buffer を resize していない瞬間に
-    // visual artifact が出ないようにするため。
+    // 子の canvas が描画 buffer resize 直後に visual artifact を出さないようクリップ。
     this.container.style.overflow = 'hidden';
+    // canvas が viewport を覆うので、下にある DOM 要素のクリックを透過させる。
     this.container.style.pointerEvents = 'none';
-    this.container.style.willChange = 'transform';
   }
 
   /**
-   * ビューポートサイズが変わった時に呼ぶ。effective padding は requested で初期化し、
-   * 次の update() 呼び出しでクランプが効く。
-   *
-   * 引数を省略した場合は、constructor で snapshot した container の CSS ratio を
-   * window 寸法に掛けて自動算出する。明示的に値を渡せば override 可能（scrollbar を
-   * 差し引いた幅にしたい等のケース）。
+   * viewport サイズが変わった時に呼ぶ。引数省略で window 寸法から自動算出。
+   * 明示的に値を渡せば override 可能 (scrollbar 差し引いた幅にしたい等)。
    */
   updateSize(wrapperWidth?: number, wrapperHeight?: number): void {
-    this._viewportWidth = wrapperWidth ?? window.innerWidth * this._widthRatio;
-    this._viewportHeight =
-      wrapperHeight ?? window.innerHeight * this._heightRatio;
-
-    // resize 直後は full padding で開始（次の update() でクランプされる）。
-    const requestedPaddingPx = this._viewportHeight * this._padding;
-    this._effectivePaddingPx = requestedPaddingPx;
-
-    const canvasHeight = this._viewportHeight + 2 * requestedPaddingPx;
+    this._viewportWidth = wrapperWidth ?? window.innerWidth;
+    this._viewportHeight = wrapperHeight ?? window.innerHeight;
 
     this.container.style.width = `${this._viewportWidth}px`;
-    this.container.style.height = `${canvasHeight}px`;
+    this.container.style.height = `${this._viewportHeight}px`;
 
     this._logicalRect = new DOMRect(
       0,
-      -requestedPaddingPx,
+      0,
       this._viewportWidth,
-      canvasHeight,
+      this._viewportHeight,
     );
 
-    // resize callback を発火（Core 側で renderer.setSize 等を呼ばせる）
-    this._onResize?.({ width: this._viewportWidth, height: canvasHeight });
-
-    // 現在のスクロール位置で transform を即時反映（初期化・リサイズ直後の表示崩れ防止）
-    this.applyTransform(window.scrollX, window.scrollY);
+    this._onResize?.({ width: this._viewportWidth, height: this._viewportHeight });
   }
 
   /**
-   * 毎 rAF で呼ぶ。**plane の sceneY 計算と同一の scrollX/Y を渡すこと**。
-   * これが cancel の不変条件。
-   *
-   * padding clamp:
-   *   maxPaddingY = body.scrollHeight - scrollY - viewportHeight
-   *   effective   = clamp(requested, 0, maxPaddingY)
-   * effective が変わったら canvas drawing buffer も同期して resize する。
+   * 毎 rAF で呼ぶ。fixed container 化で transform 操作は不要になったため、
+   * このメソッドの実体は strength tracking のみ。`scrollX` は将来の拡張用に残してある
+   * (現在は未使用)。
    */
-  update(scrollX: number, scrollY: number): void {
+  update(_scrollX: number, scrollY: number): void {
     if (!this._enabled) return;
-
-    // === per-frame padding clamp　===
-    const requestedPaddingPx = this._viewportHeight * this._padding;
-    const maxPaddingPx = Math.max(
-      0,
-      document.body.scrollHeight - scrollY - this._viewportHeight,
-    );
-    const effective = Math.min(requestedPaddingPx, maxPaddingPx);
-
-    if (effective !== this._effectivePaddingPx) {
-      this._effectivePaddingPx = effective;
-      const newHeight = this._viewportHeight + 2 * effective;
-      this.container.style.height = `${newHeight}px`;
-      this._logicalRect = new DOMRect(
-        0,
-        -effective,
-        this._viewportWidth,
-        newHeight,
-      );
-      this._onResize?.({ width: this._viewportWidth, height: newHeight });
-    }
-
-    this.applyTransform(scrollX, scrollY);
     if (this._trackStrength) {
       this.updateStrength(scrollY);
     }
-  }
-
-  private applyTransform(scrollX: number, scrollY: number): void {
-    // formula。effective padding を使うことで「末尾で padding が縮んだ時に
-    // canvas が消えそうな位置にずれる」現象も自然に解決する（padding=0 なら canvas は
-    // viewport にぴったり）。
-    this.container.style.transform =
-      `translate3d(${scrollX}px, ${scrollY - this._effectivePaddingPx}px, 0)`;
   }
 
   /** スクロール速度ベースの strength 値を更新。 */
@@ -271,24 +168,15 @@ export class ScrollSync {
   }
 
   /**
-   * DomPositionCalculator 用の **論理** rect。
-   *
-   * **注意**: これは「ブラウザ上での canvas の getBoundingClientRect」ではない。
-   * `top = -effectivePadding`, `height = viewport + 2 * effectivePadding` で、
-   * scroll に追従して動く container 内のローカル座標系を表す。effective padding は
-   * 末尾近くで自動的に縮む。
+   * DomPositionCalculator 用の論理 rect。viewport ぴったりの (0, 0, vw, vh)。
+   * fixed container 化により scroll で変動しない。
    */
   get logicalRect(): DOMRect {
     return this._logicalRect;
   }
 
-  /** 現在の effective padding（px）。テスト・デバッグ用。 */
-  get effectivePadding(): number {
-    return this._effectivePaddingPx;
-  }
-
   /**
-   * 現在のスクロール速度（0〜1 にクランプ）。
+   * 現在のスクロール速度 (0〜1 にクランプ)。
    *
    * **`trackStrength: false` で構築している場合は常に 0 を返す**。値を使いたい場合は
    * options で trackStrength を true にして構築すること。DEV では誤用防止のため
@@ -309,17 +197,11 @@ export class ScrollSync {
   }
   private _warnedStrength: boolean = false;
 
-  get padding(): number {
-    return this._padding;
-  }
-
   /**
    * 入力受付の有効/無効。
    *
-   * disable 中は `update()` が no-op になり container の transform は触らない（disable 直前の
-   * 位置で固定される）。enable に戻したフレから transform 更新が再開する。
-   *
-   * disable で「container を素の状態に戻したい」場合は `destroy()` を呼ぶこと。
+   * disable 中は `update()` が no-op になり strength tracking が止まる。container は
+   * fixed のまま動かない (transform を持たないため freezing は不要)。
    */
   set enabled(value: boolean) {
     this._enabled = value;
@@ -330,7 +212,6 @@ export class ScrollSync {
   }
 
   destroy(): void {
-    // constructor で snapshot した元 inline style に戻す。
     const o = this._originalStyles;
     const s = this.container.style;
     s.position = o.position;
@@ -339,8 +220,6 @@ export class ScrollSync {
     s.width = o.width;
     s.height = o.height;
     s.overflow = o.overflow;
-    s.transform = o.transform;
     s.pointerEvents = o.pointerEvents;
-    s.willChange = o.willChange;
   }
 }

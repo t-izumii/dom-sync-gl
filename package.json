@@ -19,7 +19,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "dev": "vite serve examples/basic",
+    "dev": "vite serve examples/basic --host",
     "build": "vite build",
     "build:watch": "vite build --watch",
     "test": "vitest run",

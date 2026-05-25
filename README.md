@@ -87,19 +87,25 @@ shader 側では以下の uniform が宣言だけで使える (更新は自動):
 
 ### Scroll sync
 
-`scrollSync: true` を渡すと、スクロール中も DOM 要素と plane の位置が完璧に揃う。
+`scrollSync: true` を渡すと、container を `position: fixed; inset: 0` で viewport に
+ロックし、canvas が常に viewport を覆う形で固定される。DOM-locked plane は
+`getBoundingClientRect()` で毎フレ位置を取り直すので、native scroll と一緒にスムーズに動く。
+
+iOS Safari の上端 rubber-band / pull-to-refresh のときも、canvas (fixed) と DOM の両方が
+同じ視覚オフセットを共有して揃うため、ネイティブの引っ張ってリロードを殺さない。
 
 ```ts
 const app = new WebGLApp("#canvas", {
   scrollSync: true,
 });
-// または細かい指定
+// strength tracking を有効化
 const app = new WebGLApp("#canvas", {
-  scrollSync: { padding: 0.05, trackStrength: true },
+  scrollSync: { trackStrength: true },
 });
 ```
 
-`RafScroll` を併用すると、wheel / touch の入力を rAF tick に集約して、スクロールが完全に paint と同期する:
+`RafScroll` を併用すると、wheel / touch の入力を rAF tick に集約して、scrollY が JS と
+paint で完全に同値になる (= plane 位置と DOM の見た目が 1 frame もズレない):
 
 ```ts
 import { RafScroll } from "dom-sync-gl";
@@ -108,6 +114,9 @@ new RafScroll({
   touchFriction: 0.95,  // タッチリリース後の慣性 (0 で慣性なし)
 });
 ```
+
+RafScroll はモバイル上端での下方向 swipe を検出すると preventDefault せず native に委ねる
+ので、`overscroll-behavior` を `none/contain` にしなければ pull-to-refresh はそのまま使える。
 
 ### Post effects
 
@@ -174,7 +183,6 @@ app.addEffect(new GrainEffect());
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `padding` | `number` | `0` | canvas 高に追加する上下余白比率 (`viewport × (1 + 2·padding)`)。`0` で CSS 指定そのまま |
 | `trackStrength` | `boolean` | `false` | スクロール速度の getter を有効化 |
 | `strengthDecay` | `number` | `10` | strength の指数減衰係数 |
 

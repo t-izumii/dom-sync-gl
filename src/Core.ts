@@ -48,9 +48,8 @@ export class WebGLApp {
    * canvas の viewport 上の矩形をキャッシュ。mousemove ごとに `getBoundingClientRect`
    * を呼ぶと layout 強制が走るため、resize 時 + (ScrollSync 無効時の) scroll 時に
    * invalidate する形にしてフィールドアクセスで済むようにする。
-   * ScrollSync 有効時は canvas viewport rect が固定 (RafScroll が同 rAF tick で
-   * scrollTo するため paint 時 actual と JS rAF が一致 → 動かない) なので
-   * scroll 時の invalidate は不要。
+   * ScrollSync 有効時は container を `position: fixed` で viewport にロックしているので
+   * scroll で動かず、invalidate 不要。
    */
   private _canvasRect: DOMRect | null = null;
   private mouse: THREE.Vector2;
@@ -134,10 +133,10 @@ export class WebGLApp {
       this.scrollSync = new ScrollSync(this.container, syncOptions);
       // ScrollSync有効時はlogicalRectを使用
       this.rect = this.scrollSync.logicalRect;
-      // 動的 padding clamp で canvas サイズが変わったら renderer / camera / 全体 RT を
-      // 同期 resize する。これをやらないと canvas drawing buffer と container の CSS 寸法
-      // が乖離して overflow:hidden で view が欠ける / 引き伸びる。
-      this.scrollSync.setResizeCallback(() => this._onScrollSyncResize());
+      // 旧 architecture では `setResizeCallback` 経由で padding clamp 起因の canvas
+      // resize を Core に通知していたが、fixed container 化で canvas サイズは window
+      // resize 以外で変わらない。window resize は Core 側で直接 handle するので
+      // ここで callback を繋ぐ必要は無い。
     }
 
     // renderer/cameraを正しいrectでセットアップ
@@ -560,8 +559,9 @@ export class WebGLApp {
       { signal },
     );
 
-    // ScrollSync 無効時は scroll で canvas viewport rect が変わるので invalidate。
-    // 有効時は RafScroll により JS rAF と paint が一致するため不要。
+    // ScrollSync 無効時はユーザー任せの canvas styling なので scroll で動く前提で
+    // invalidate する。有効時は `position: fixed` で viewport に固定されており動かない
+    // ので invalidate 不要 (mousemove ごとの bcr 読みも消える)。
     if (!this.scrollSync) {
       window.addEventListener('scroll', this.invalidateCanvasRect, {
         signal,
@@ -606,47 +606,6 @@ export class WebGLApp {
 
   private invalidateCanvasRect = (): void => {
     this._canvasRect = null;
-  };
-
-  /**
-   * ScrollSync の動的 padding clamp で canvas 寸法が変わった時に呼ばれる。
-   *
-   * window resize（onResize）と違い、DOM の位置や element 側の bbox は変わっていない。
-   * 必要なのは「canvas drawing buffer のサイズに依存するもの」だけ:
-   *   - renderer.setSize（drawing buffer + canvas.style.{width,height}）
-   *   - camera の aspect / distance（rect.height に応じて変わる）
-   *   - postEffect の RT サイズ
-   *   - 各 effect の RT サイズ
-   *
-   * DomPlane の DOM 連動 plane は positionCalculator の bbox に依存していて canvas 高さに
-   * 依存しないので触らない（calculateWebGLPosition の数式が padding を相殺するため不変）。
-   * フルスクリーン plane（element=null）は canvasRect.width/height をスケールに使うので、
-   * その分だけ canvasRect 参照を更新する。
-   */
-  private _onScrollSyncResize = (): void => {
-    if (this.destroyed || !this.scrollSync) return;
-    this.rect = this.scrollSync.logicalRect;
-    if (this.rect.width <= 0 || this.rect.height <= 0) return;
-    this.camera.resize(this.rect);
-    this.renderer.setSize(this.rect.width, this.rect.height);
-    for (let i = 0, n = this.domPlanes.length; i < n; i++) {
-      const plane = this.domPlanes[i];
-      plane.setCanvasRect(this.rect);
-      // フルスクリーン plane (element=null) は mesh.scale / uResolution が canvasRect 基準。
-      // canvas サイズが変わったら同期して更新しないと camera 投影とズレて「カタカタ」する。
-      // DOM 連動 plane は bbox が変わらないので skip（layout 強制を避ける）。
-      if (!plane.element) {
-        plane.resize();
-      }
-    }
-    for (let i = 0, n = this.dom3DObjects.length; i < n; i++) {
-      this.dom3DObjects[i].setCanvasRect(this.rect);
-    }
-    this.postEffect?.resize(this.rect.width, this.rect.height);
-    const effects = this.effects;
-    for (let i = 0, n = effects.length; i < n; i++) {
-      effects[i].resize?.(this.rect.width, this.rect.height);
-    }
   };
 
   /** mousemove 等で頻繁に必要な canvas viewport rect を遅延 + キャッシュで返す。 */

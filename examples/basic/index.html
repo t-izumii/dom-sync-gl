@@ -742,11 +742,10 @@
         }
       }
 
-      /* iOS Safari の rubber-band / overscroll を抑制し、ScrollSync の transform が
-         document 範囲外にはみ出さないようにする */
-      html, body {
-        overscroll-behavior-y: none;
-      }
+      /* ScrollSync は container を position: fixed で viewport にロックするので
+         iOS Safari の rubber-band / pull-to-refresh があっても canvas と DOM は同じ
+         視覚オフセットを共有する形で揃う。よって overscroll-behavior-y は指定せず、
+         native pull-to-refresh を活かす。 */
     </style>
   </head>
   <body>
