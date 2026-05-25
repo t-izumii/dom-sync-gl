@@ -806,8 +806,17 @@ export class WebGLApp {
     //   (c) effect update 内の local-UV 算出（plane.updateEffects → window 読みを禁ずる）
     // Phase A 内で effect.update / plane.updateEffects が global mouse から
     // plane-local UV を再構成する際にも、ここで取った scrollX/Y を使う。
+    //
+    // **scrollY は `ScrollSync.computeEffectiveScrollY()` を使う**:
+    // 通常スクロール時は `window.scrollY` と同値だが、iOS Safari の上端 rubber-band /
+    // pull-to-refresh 中は visual viewport 分マイナスに振れる。この差を container の
+    // transform と plane 位置計算に同値で配ることで、rubber-band 中も canvas と DOM が
+    // 同じ視覚オフセットで揃う (= 二重オフセットでズレない)。
+    // ScrollSync を使っていない場合は visual_offset の補正は不要なので window.scrollY。
     const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
+    const scrollY = this.scrollSync
+      ? ScrollSync.computeEffectiveScrollY()
+      : window.scrollY;
 
     // === Phase A: ユーザー callback + マウス hover 確定 + エフェクト update ===
     // raycaster + setHoverInfo を rAF tick 内で呼ぶことで uMouseUV / uIsHovered の

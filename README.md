@@ -87,12 +87,14 @@ shader 側では以下の uniform が宣言だけで使える (更新は自動):
 
 ### Scroll sync
 
-`scrollSync: true` を渡すと、container を `position: fixed; inset: 0` で viewport に
-ロックし、canvas が常に viewport を覆う形で固定される。DOM-locked plane は
-`getBoundingClientRect()` で毎フレ位置を取り直すので、native scroll と一緒にスムーズに動く。
+`scrollSync: true` を渡すと、container を `position: absolute` で document に貼り、毎 rAF
+で実効 scrollY を transform に流して viewport に追従させる。
 
-iOS Safari の上端 rubber-band / pull-to-refresh のときも、canvas (fixed) と DOM の両方が
-同じ視覚オフセットを共有して揃うため、ネイティブの引っ張ってリロードを殺さない。
+実効 scrollY は `-document.documentElement.getBoundingClientRect().top` から算出する。
+通常スクロール中は `window.scrollY` と一致するが、iOS Safari の上端 rubber-band /
+pull-to-refresh 中は visual viewport offset を取り込んで負に振れる。同じ実効 scrollY を
+container transform と plane 位置計算に同値で流すことで、rubber-band 中も canvas と DOM
+が同じ視覚オフセットを共有して揃い、ネイティブの引っ張ってリロードを殺さない。
 
 ```ts
 const app = new WebGLApp("#canvas", {

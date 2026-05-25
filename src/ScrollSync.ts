@@ -1,31 +1,26 @@
 /**
- * ScrollSync — WebGL canvas を viewport に固定する薄いレイヤ。
+ * ScrollSync — WebGL canvas を絶対配置で document に貼り、毎 rAF で
+ * 実効 scrollY を transform に流して viewport に追従させる薄いレイヤ。
  *
- * container 要素を `position: fixed; inset: 0` で viewport にロックし、canvas のサイズを
- * window 寸法に合わせて保つだけ。per-frame の transform 適用は持たない。
+ * **container は position: absolute (絶対条件)**:
+ * iframe 内 / `<dialog>` 内 / 祖先に transform を持つ要素がある等、`position: fixed` が
+ * 期待通りに viewport に固定されない / 別の containing block に張り付くケースがあるため、
+ * 本ライブラリは absolute を採用する。
  *
- * **なぜ fixed か**:
- * 旧実装では container を `position: absolute` で document に貼り、毎 rAF で
- * `translate3d(0, scrollY, 0)` を当てて「視覚的には viewport 固定だが layout 上は scroll
- * と一緒に動く」状態を作っていた。これは rAF↔paint Δ を吸収する狙いだったが、iOS Safari の
- * 上端 rubber-band / pull-to-refresh と相性が悪い:
+ * **実効 scrollY = `-document.documentElement.getBoundingClientRect().top`**:
+ * 通常スクロール中は `documentElement.BCR.top = -window.scrollY` なので
+ * `effectiveScrollY === window.scrollY` で従来挙動と一致する。iOS Safari の上端
+ * rubber-band / pull-to-refresh 中だけは visual viewport が下にずれて
+ * `documentElement.BCR.top = visual_offset (>0)` となり、`effectiveScrollY` は負に振れる。
  *
- *   1. rubber-band 中、body は視覚的に下にスライド (=absolute の container も一緒に滑る)
- *   2. `getBoundingClientRect()` は visual viewport 基準で返るので DOM 要素も視覚オフセット
- *      込みの top を返す
- *   3. plane 位置を BCR から計算する以上、plane 自体も視覚オフセット分ずれる
- *   4. **container 自体も同じだけ滑っているので、plane は二重に下にズレて見える**
+ * これを transform に当てると container が visual_offset 分だけ上に押し戻されるため、
+ * body 全体が rubber-band で下にスライドしても canvas 描画域は視覚的に layout viewport
+ * 上端に留まる。DOM-locked plane は BCR ベースの位置計算で同じ visual_offset を取り込む
+ * ので、両者は同じ視覚オフセットを持たず → DOM ↔ mesh の位置が rubber-band 中も揃う。
  *
- * fixed なら container が rubber-band で動かない (= viewport に固定) ので、plane が BCR の
- * 視覚オフセットを取り込んでも canvas 側にはそのオフセットがなく、結果として DOM 要素と
- * plane が同じ位置に揃う。
- *
- * **rAF↔paint Δ の扱い**:
- * fixed container では canvas 自体は scroll で動かないので、rAF tick 上で読んだ scrollY を
- * plane の位置計算に使うとき、paint までに native scroll が進んでも plane 位置 (= scrollY 由来
- * の補正量) と DOM の見た目 (= native scroll で進んだ位置) が 1 frame ずれる。これを完璧に
- * 揃えたい場合は `RafScroll` を併用する (wheel/touch を rAF tick に集約 → JS と paint の
- * scrollY が同値になる)。 RafScroll なしでも体感的なズレは小さい。
+ * **同じ effectiveScrollY を plane の sceneY 計算にも渡してもらう**ことで、paint 時に
+ * scroll が進んで rAF↔paint Δ が出ても container と plane が一緒にズレる → 視覚的に
+ * DOM ↔ mesh は完璧に一致する (これは旧設計から引き続き成立)。
  */
 
 export interface ScrollSyncOptions {
@@ -53,7 +48,7 @@ export class ScrollSync {
   private _viewportHeight: number = 0;
   private _enabled: boolean = true;
 
-  /** viewport そのままの logical rect。canvas drawing buffer のサイズに使う。 */
+  /** viewport そのままの logical rect (0, 0, vw, vh)。canvas drawing buffer のサイズに使う。 */
   private _logicalRect: DOMRect = new DOMRect();
 
   /**
@@ -74,7 +69,9 @@ export class ScrollSync {
     width: string;
     height: string;
     overflow: string;
+    transform: string;
     pointerEvents: string;
+    willChange: string;
   };
 
   constructor(container: HTMLElement, options: ScrollSyncOptions = {}) {
@@ -92,7 +89,9 @@ export class ScrollSync {
       width: s.width,
       height: s.height,
       overflow: s.overflow,
+      transform: s.transform,
       pointerEvents: s.pointerEvents,
+      willChange: s.willChange,
     };
 
     this.applyContainerStyles();
@@ -100,13 +99,14 @@ export class ScrollSync {
   }
 
   private applyContainerStyles(): void {
-    this.container.style.position = 'fixed';
+    this.container.style.position = 'absolute';
     this.container.style.left = '0';
     this.container.style.top = '0';
     // 子の canvas が描画 buffer resize 直後に visual artifact を出さないようクリップ。
     this.container.style.overflow = 'hidden';
     // canvas が viewport を覆うので、下にある DOM 要素のクリックを透過させる。
     this.container.style.pointerEvents = 'none';
+    this.container.style.willChange = 'transform';
   }
 
   /**
@@ -128,18 +128,44 @@ export class ScrollSync {
     );
 
     this._onResize?.({ width: this._viewportWidth, height: this._viewportHeight });
+
+    // 初期化・リサイズ直後の表示崩れ防止: 現在の scroll 位置で即座に transform を反映
+    this.applyTransform(window.scrollX, ScrollSync.computeEffectiveScrollY());
   }
 
   /**
-   * 毎 rAF で呼ぶ。fixed container 化で transform 操作は不要になったため、
-   * このメソッドの実体は strength tracking のみ。`scrollX` は将来の拡張用に残してある
-   * (現在は未使用)。
+   * 毎 rAF で呼ぶ。**plane の sceneY 計算と同一の effectiveScrollY を渡すこと**。
+   * これが「rAF↔paint Δ で container と plane が一緒にズレる」不変条件を満たすキー。
+   *
+   * effectiveScrollY は Core 側で `ScrollSync.computeEffectiveScrollY()` を 1 回呼んで
+   * scrollSync.update / plane._tickApply / dom3D._tickApply に同値で配ること。
    */
-  update(_scrollX: number, scrollY: number): void {
+  update(scrollX: number, scrollY: number): void {
     if (!this._enabled) return;
+    this.applyTransform(scrollX, scrollY);
     if (this._trackStrength) {
       this.updateStrength(scrollY);
     }
+  }
+
+  private applyTransform(scrollX: number, scrollY: number): void {
+    this.container.style.transform =
+      `translate3d(${scrollX}px, ${scrollY}px, 0)`;
+  }
+
+  /**
+   * 実効 scrollY を返す。
+   *
+   * `-document.documentElement.getBoundingClientRect().top` を返すことで、通常スクロール時は
+   * `window.scrollY` と一致し、iOS Safari の rubber-band / pull-to-refresh 中は visual
+   * viewport の offset を取り込んだ値 (top の rubber-band 中は負) を返す。
+   *
+   * このメソッドを Core.animate の 1 frame で 1 回呼び、scrollSync.update / plane._tickApply
+   * など全位置計算に同値で配ることで、rubber-band 中も container と plane が同じ視覚オフセット
+   * を共有して DOM と揃う。
+   */
+  static computeEffectiveScrollY(): number {
+    return -document.documentElement.getBoundingClientRect().top;
   }
 
   /** スクロール速度ベースの strength 値を更新。 */
@@ -169,7 +195,8 @@ export class ScrollSync {
 
   /**
    * DomPositionCalculator 用の論理 rect。viewport ぴったりの (0, 0, vw, vh)。
-   * fixed container 化により scroll で変動しない。
+   * container の transform は毎 rAF で applyTransform が当てるので、ここでは scroll 補正
+   * を入れない (transform 経由で吸収される)。
    */
   get logicalRect(): DOMRect {
     return this._logicalRect;
@@ -200,8 +227,10 @@ export class ScrollSync {
   /**
    * 入力受付の有効/無効。
    *
-   * disable 中は `update()` が no-op になり strength tracking が止まる。container は
-   * fixed のまま動かない (transform を持たないため freezing は不要)。
+   * disable 中は `update()` が no-op になり container の transform は触らない (disable 直前の
+   * 位置で固定される)。enable に戻したフレから transform 更新が再開する。
+   *
+   * disable で「container を素の状態に戻したい」場合は `destroy()` を呼ぶこと。
    */
   set enabled(value: boolean) {
     this._enabled = value;
@@ -220,6 +249,8 @@ export class ScrollSync {
     s.width = o.width;
     s.height = o.height;
     s.overflow = o.overflow;
+    s.transform = o.transform;
     s.pointerEvents = o.pointerEvents;
+    s.willChange = o.willChange;
   }
 }

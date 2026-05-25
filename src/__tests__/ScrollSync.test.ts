@@ -29,6 +29,11 @@ describe('ScrollSync', () => {
       writable: true,
       configurable: true,
     });
+    // documentElement.getBoundingClientRect は通常スクロール時 top=-scrollY を返す。
+    // ScrollSync.computeEffectiveScrollY が更新後の updateSize で読むので mock しておく。
+    vi.spyOn(document.documentElement, 'getBoundingClientRect').mockImplementation(
+      () => new DOMRect(0, -window.scrollY, 1000, 3000),
+    );
 
     mockNow = 0;
     vi.spyOn(performance, 'now').mockImplementation(() => mockNow);
@@ -39,13 +44,14 @@ describe('ScrollSync', () => {
     vi.restoreAllMocks();
   });
 
-  it('コンストラクタで container を fixed inset:0 + overflow:hidden で viewport にロックする', () => {
+  it('コンストラクタで container を absolute inset:0 + overflow:hidden で document に貼る', () => {
     new ScrollSync(container);
-    expect(container.style.position).toBe('fixed');
+    expect(container.style.position).toBe('absolute');
     expect(container.style.left).toBe('0px');
     expect(container.style.top).toBe('0px');
     expect(container.style.overflow).toBe('hidden');
     expect(container.style.pointerEvents).toBe('none');
+    expect(container.style.willChange).toBe('transform');
   });
 
   it('container 寸法は viewport と一致する (initial)', () => {
@@ -82,11 +88,31 @@ describe('ScrollSync', () => {
     expect(cb).toHaveBeenCalledWith({ width: 1200, height: 900 });
   });
 
-  it('update() は transform を触らない (fixed container なので per-frame 補正は不要)', () => {
+  it('update(scrollX, scrollY) で container transform に scroll が反映される', () => {
     const sync = new ScrollSync(container);
-    const before = container.style.transform;
     sync.update(0, 400);
-    expect(container.style.transform).toBe(before);
+    expect(container.style.transform).toBe('translate3d(0px, 400px, 0)');
+  });
+
+  it('update に負の scrollY (rubber-band 想定) を渡すと負方向に transform される', () => {
+    const sync = new ScrollSync(container);
+    // pull-to-refresh で visual_offset=80 のとき effectiveScrollY = -80
+    sync.update(0, -80);
+    expect(container.style.transform).toBe('translate3d(0px, -80px, 0)');
+  });
+
+  it('computeEffectiveScrollY: 通常スクロール時は window.scrollY と一致する', () => {
+    Object.defineProperty(window, 'scrollY', { value: 500, configurable: true });
+    expect(ScrollSync.computeEffectiveScrollY()).toBe(500);
+  });
+
+  it('computeEffectiveScrollY: rubber-band 中は visual_offset 分マイナスに振れる', () => {
+    // iOS 上端 rubber-band: scrollY=0 のままで documentElement.BCR.top が +visual_offset
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+    vi.spyOn(document.documentElement, 'getBoundingClientRect').mockReturnValueOnce(
+      new DOMRect(0, 80, 1000, 3000), // visual_offset = 80
+    );
+    expect(ScrollSync.computeEffectiveScrollY()).toBe(-80);
   });
 
   it('trackStrength=true でスクロール時に strength が増加する', () => {
@@ -127,18 +153,15 @@ describe('ScrollSync', () => {
     expect(sync.strength).toBe(0);
   });
 
-  it('enabled=false にすると update() が no-op になり strength tracking が止まる', () => {
-    const sync = new ScrollSync(container, { trackStrength: true });
-    mockNow = 16;
-    sync.update(0, 500);
-    const s1 = sync.strength;
-    expect(s1).toBeGreaterThan(0);
+  it('enabled=false にすると update() が no-op になり transform は disable 直前の値で固定', () => {
+    const sync = new ScrollSync(container);
+    sync.update(0, 100);
+    const frozen = container.style.transform;
+    expect(frozen).not.toBe('');
 
     sync.enabled = false;
-    mockNow = 32;
-    sync.update(0, 1000);
-    // disable 中は strength が更新されないので s1 のまま (時間 t が進んでいないので decay も発火しない)
-    expect(sync.strength).toBe(s1);
+    sync.update(0, 500);
+    expect(container.style.transform).toBe(frozen);
   });
 
   it('destroy() で container のスタイルが「ScrollSync 前の inline 値」(空) に復元される', () => {
@@ -151,7 +174,9 @@ describe('ScrollSync', () => {
     expect(container.style.width).toBe('');
     expect(container.style.height).toBe('');
     expect(container.style.overflow).toBe('');
+    expect(container.style.transform).toBe('');
     expect(container.style.pointerEvents).toBe('');
+    expect(container.style.willChange).toBe('');
   });
 
   it('destroy(): ScrollSync 前に当たっていた inline style は復元される', () => {
@@ -160,7 +185,7 @@ describe('ScrollSync', () => {
     container.style.overflow = 'auto';
 
     const sync = new ScrollSync(container);
-    expect(container.style.position).toBe('fixed');
+    expect(container.style.position).toBe('absolute');
     expect(container.style.pointerEvents).toBe('none');
     expect(container.style.overflow).toBe('hidden');
 
