@@ -20,6 +20,13 @@
  * - `touchend` 時点の velocity を初速として rAF tick 上で指数減衰させて scrollY に積む
  * - 端到達 (clamp) / 次の touchstart / wheel 入力で慣性は即キャンセル
  *
+ * **native pull-to-refresh / overscroll**: 全 touchmove を preventDefault するとモバイル
+ * 上端での「下方向 swipe でリロード」のような OS / ブラウザ標準のジェスチャーまで殺して
+ * しまう。これを救うため、`touchstart` 時点で `scrollY <= 0` (= ページ最上部) かつ最初の
+ * touchmove が下方向の場合だけ preventDefault せず native に任せる。逆方向に動いた瞬間
+ * (= 普通の下スクロール) は内部処理に取り込み、以降そのジェスチャーが終わるまでは native
+ * へ戻さない。
+ *
  * @see https://github.com/darkroomengineering/lenis (元設計)
  */
 
@@ -65,6 +72,13 @@ export class RafScroll {
   /** 直近の touch velocity (px/ms)。touchend 後はこの値を初速に慣性が走る。 */
   private _velocityY: number = 0;
   private _isTouching: boolean = false;
+  /**
+   * このタッチシーケンスで native pull-to-refresh を許可するか。
+   * `touchstart` 時点で `scrollY <= 0` なら true。最初の touchmove が上方向に動いた
+   * (= 内部 scroll を進める意図) 時点で false に落として、以降このタッチ中はずっと
+   * preventDefault する。
+   */
+  private _allowNativePull: boolean = false;
   /** tick() の dt 計算用。0 のとき初回 tick (dt は FRAME_MS で初期化)。 */
   private _lastTickTime: number = 0;
   private _eventAbort: AbortController = new AbortController();
@@ -154,17 +168,37 @@ export class RafScroll {
     this._isTouching = true;
     this._touchPrevY = e.touches[0].clientY;
     this._touchPrevTime = performance.now();
+    // ページ最上部で始まったタッチは、最初の動きが下方向なら native pull-to-refresh
+    // (iOS Safari / Android Chrome) を許可する候補。touchmove で方向を見て確定する。
+    this._allowNativePull = this._scrollY <= 0;
   };
 
   private onTouchMove = (e: TouchEvent): void => {
     if (!this._enabled) return;
     if (e.touches.length === 0) return;
-    e.preventDefault();
 
     const y = e.touches[0].clientY;
     const now = performance.now();
     const dy = this._touchPrevY - y;
     const dt = now - this._touchPrevTime;
+
+    // 最上部 + 下方向 swipe (または無方向) なら native pull-to-refresh に委ねる。
+    // preventDefault せず、内部 scroll / velocity も更新しないことで、ブラウザの
+    // 標準ジェスチャー (リロード等) をそのまま発火させる。
+    // dy === 0 (= 動いていない) も含める: 1 frame 目に finger jitter で 0 が来ても
+    // preventDefault してしまうと iOS Safari がそのジェスチャーで pull-to-refresh
+    // を発火しなくなる。
+    if (this._allowNativePull && dy <= 0) {
+      this._touchPrevY = y;
+      this._touchPrevTime = now;
+      return;
+    }
+
+    // 一度でも内部スクロールに取り込んだら、このタッチが終わるまで native へは戻さない
+    // (途中で「下方向に折り返したら急に native pull が起動する」のを防ぐ)。
+    this._allowNativePull = false;
+
+    e.preventDefault();
 
     this._scrollY = this.clamp(this._scrollY + dy);
 
