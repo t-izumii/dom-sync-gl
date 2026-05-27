@@ -10,6 +10,9 @@ hero:
       text: Get Started
       link: /guide/getting-started
     - theme: alt
+      text: Demos
+      link: /demos/
+    - theme: alt
       text: API
       link: /api/webgl-app
     - theme: alt
@@ -30,6 +33,8 @@ features:
 DOM 要素にロックした plane に shader を流し込んだ例。
 
 <DemoPlane />
+
+→ コード付きの一覧は [Demos](/demos/) を参照。
 
 ## Install
 

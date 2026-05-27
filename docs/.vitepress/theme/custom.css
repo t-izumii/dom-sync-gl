@@ -18,6 +18,11 @@
 .demo-frame__stage {
   position: relative;
   width: 100%;
+  overflow: hidden;
+}
+
+.demo-frame__stage > canvas {
+  display: block;
 }
 
 .demo-frame__controls {

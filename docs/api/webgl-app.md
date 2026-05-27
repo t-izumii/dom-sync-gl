@@ -34,9 +34,9 @@ new WebGLApp(selector: string | HTMLElement, options?: WebGLAppOptions)
 
 ## Methods
 
-### `createPlane(selector, options?)`
+### `createPlane(selector, options?)` / `removePlane(plane)`
 
-DOM 要素にロックした plane を生成する。`selector` に `null` を渡すと全画面背景になる。
+DOM 要素にロックした plane を生成 / 削除する。`selector` に `null` を渡すと全画面背景になる。
 返り値は [`DomPlane`](/api/dom-plane)。
 
 ```ts
@@ -45,17 +45,19 @@ const plane = app.createPlane('.card', {
   updateRectEveryFrame: true,
   onInView: (p) => (p.material.uniforms.uIntensity.value = 1),
 });
+app.removePlane(plane); // 1 つだけ取り外して destroy
 ```
 
-### `create3DObject(selector, options)`
+### `create3DObject(selector, options)` / `remove3DObject(obj)`
 
-GLTF モデルを DOM 要素の bbox にフィットさせる。
+GLTF モデルを DOM 要素の bbox にフィットさせる。返り値は `Dom3DObject`（`getModel()` / `resize()` / `destroy()` を持つ）。
 
 ```ts
-app.create3DObject('.product', {
+const obj = app.create3DObject('.product', {
   modelPath: '/models/shoe.gltf',
   fitMode: 'maxSide',
 });
+app.remove3DObject(obj);
 ```
 
 | option | type | default | 説明 |
@@ -69,6 +71,16 @@ app.create3DObject('.product', {
 ### `addEffect(effect)` / `removeEffect(effect)` / `clearEffects()`
 
 フルスクリーンチェーンの管理。詳細は [BaseEffect](/api/base-effect)。
+
+### `setPostEffect(effectLike)`
+
+`EffectLike` (= `render` / `resize` / `dispose` を実装) を渡して、ポストエフェクト
+パイプライン全体を独自実装に差し替える低レベル API。通常は `addEffect()` を使う。
+
+::: warning addEffect と併用しない
+`addEffect()` で追加済みのエフェクトがある状態で呼ぶと内部 EffectComposer を破棄して
+差し替える。事前に `clearEffects()` を呼ぶこと（DEV では throw する）。
+:::
 
 ### `addObject(obj3d)` / `removeObject(obj3d)`
 
@@ -87,13 +99,27 @@ off(); // unsubscribe
 
 mousemove listener の動的 ON/OFF。重い UI を開いている間など、hover 判定を止めたいときに。
 
-### `getScene()` / `getCamera()` / `getRenderer()` / `getLight()` / `getMouse()` / `getControls()`
+### Getters
 
-内部インスタンスへのアクセス。Three.js の生 API を直接触りたいときに使う。
+| getter | 返り値 | 用途 |
+|---|---|---|
+| `getScene()` | `THREE.Scene` | Three.js の生 scene |
+| `getCamera()` | `Camera` | カメララッパー（`.instance` で `THREE.PerspectiveCamera`） |
+| `getRenderer()` | `THREE.WebGLRenderer` | renderer |
+| `getLight()` | `Light` | ambient + directional のラッパー |
+| `getViewPort()` | `DOMRect` | canvas の logical rect（ScrollSync 有効時は viewport ぴったり） |
+| `getMouse()` | `THREE.Vector2` | 現フレの canvas UV (0..1, Y-up) |
+| `getPrevMouse()` | `THREE.Vector2` | 前フレの UV |
+| `getMouseDelta()` | `THREE.Vector2` | `current - prev`（毎フレ scratch なので保持したいときは clone） |
+| `getControls()` | `OrbitControls \| null` | `enableOrbitControls()` 後のインスタンス |
+| `getScrollSync()` | `ScrollSync \| null` | `scrollSync: true` で構築した場合の内部インスタンス |
+| `getGUI()` | `GUI \| null` | lil-gui のルート（load 完了前は null） |
+| `getGUIAsync()` | `Promise<GUI \| null>` | lil-gui を必要に応じて load してから返す |
 
 ### `enableOrbitControls()`
 
-three の `OrbitControls` を canvas に紐付けて返す。
+three の `OrbitControls` を canvas に紐付けて返す。`scrollSync: true` のとき、
+container に当てている `pointer-events: none` を canvas だけ復活させて入力を通す。
 
 ### `destroy()`
 

@@ -60,6 +60,4 @@ RafScroll はモバイル上端の下方向 swipe を検出したら `preventDef
 
 ## Demo
 
-ローカル overflow scroll でも `updateRectEveryFrame: true` を渡せば DOM 移動に追従する。
-
-<DemoScrollSync />
+→ [Demos / Scroll Sync](/demos/scroll-sync) に動くサンプルとコードを置いている。

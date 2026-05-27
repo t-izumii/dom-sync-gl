@@ -14,6 +14,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'Demos', link: '/demos/' },
       { text: 'API', link: '/api/webgl-app' },
       { text: 'GitHub', link: 'https://github.com/t-izumii/dom-sync-gl' },
     ],
@@ -25,6 +26,17 @@ export default defineConfig({
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Scroll Sync', link: '/guide/scroll-sync' },
             { text: 'Post Effects', link: '/guide/post-effects' },
+          ],
+        },
+      ],
+      '/demos/': [
+        {
+          text: 'Demos',
+          items: [
+            { text: 'Overview', link: '/demos/' },
+            { text: 'DOM-locked Plane', link: '/demos/plane' },
+            { text: 'Scroll Sync', link: '/demos/scroll-sync' },
+            { text: 'Post Effect', link: '/demos/post-effect' },
           ],
         },
       ],

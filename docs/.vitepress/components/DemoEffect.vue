@@ -71,17 +71,15 @@ function toggleGrain() {
 </script>
 
 <template>
-  <ClientOnly>
-    <div class="demo-frame">
-      <div
-        ref="stage"
-        class="demo-frame__stage"
-        style="height: 280px;"
-      ></div>
-      <div class="demo-frame__controls">
-        <button @click="toggleGrain">grain: {{ grainOn ? 'ON' : 'OFF' }}</button>
-        <span>背景 plane + Grain ポストエフェクト。<code>effect.enabled</code> でパスをスキップできる。</span>
-      </div>
+  <div class="demo-frame">
+    <div
+      ref="stage"
+      class="demo-frame__stage"
+      style="height: 280px;"
+    ></div>
+    <div class="demo-frame__controls">
+      <button @click="toggleGrain">grain: {{ grainOn ? 'ON' : 'OFF' }}</button>
+      <span>背景 plane + Grain ポストエフェクト。<code>effect.enabled</code> でパスをスキップできる。</span>
     </div>
-  </ClientOnly>
+  </div>
 </template>

@@ -59,42 +59,40 @@ function scrollDown() {
 </script>
 
 <template>
-  <ClientOnly>
-    <div class="demo-frame">
+  <div class="demo-frame">
+    <div
+      ref="stage"
+      class="demo-frame__stage"
+      style="height: 360px;"
+    >
       <div
-        ref="stage"
-        class="demo-frame__stage"
-        style="height: 360px;"
+        ref="scroller"
+        style="
+          position: absolute;
+          inset: 0;
+          overflow-y: auto;
+          padding: 16px;
+          scrollbar-gutter: stable;
+        "
       >
-        <div
-          ref="scroller"
-          style="
-            position: absolute;
-            inset: 0;
-            overflow-y: auto;
-            padding: 16px;
-            scrollbar-gutter: stable;
-          "
-        >
-          <div ref="inner" style="display: grid; gap: 24px; padding: 40px 0;">
-            <div
-              v-for="i in cards"
-              :key="i"
-              :data-card="i"
-              style="
-                height: 140px;
-                border-radius: 12px;
-                background: rgba(255,255,255,0.04);
-              "
-            ></div>
-          </div>
+        <div ref="inner" style="display: grid; gap: 24px; padding: 40px 0;">
+          <div
+            v-for="i in cards"
+            :key="i"
+            :data-card="i"
+            style="
+              height: 140px;
+              border-radius: 12px;
+              background: rgba(255,255,255,0.04);
+            "
+          ></div>
         </div>
       </div>
-      <div class="demo-frame__controls">
-        <button @click="scrollUp">▲ scroll</button>
-        <button @click="scrollDown">▼ scroll</button>
-        <span>updateRectEveryFrame: true なので、カードの位置に毎フレ追従する。</span>
-      </div>
     </div>
-  </ClientOnly>
+    <div class="demo-frame__controls">
+      <button @click="scrollUp">▲ scroll</button>
+      <button @click="scrollDown">▼ scroll</button>
+      <span>updateRectEveryFrame: true なので、カードの位置に毎フレ追従する。</span>
+    </div>
+  </div>
 </template>

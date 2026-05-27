@@ -33,7 +33,7 @@ class GrainEffect extends BaseEffect {
 app.addEffect(new GrainEffect());
 ```
 
-<DemoEffect />
+→ ON/OFF できる動くデモは [Demos / Post Effect](/demos/post-effect) を参照。
 
 ## plane 単位のチェーン
 

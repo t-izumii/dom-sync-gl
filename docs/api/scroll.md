@@ -24,9 +24,19 @@
 `-document.documentElement.getBoundingClientRect().top` を返す。通常は `window.scrollY`
 と同値だが、iOS Safari の上端 rubber-band 中は visual viewport offset を取り込んで負に振れる。
 
-### `instance.strength` / `instance.logicalRect`
+### Instance members
 
-`trackStrength: true` のときの瞬間速度 getter と、viewport の logical rect。
+| member | 型 | 説明 |
+|---|---|---|
+| `logicalRect` | `DOMRect` (getter) | viewport ぴったりの `(0, 0, vw, vh)`。canvas drawing buffer サイズに使う |
+| `strength` | `number` (getter) | スクロール速度 (0〜1)。`trackStrength: false` の時は常に 0 |
+| `enabled` | `boolean` (getter/setter) | `false` にすると `update()` が no-op になり transform 更新が止まる |
+| `update(scrollX, scrollY)` | `void` | 毎 rAF で呼ぶ。**plane と同一の effectiveScrollY を渡すこと** |
+| `updateSize(width?, height?)` | `void` | viewport サイズが変わった時に呼ぶ。引数省略で `window.innerWidth/Height` |
+| `destroy()` | `void` | container の inline style を構築前の値に復元する |
+
+通常は `WebGLApp(..., { scrollSync: true })` 経由で使い、`update` / `updateSize` /
+`destroy` は Core 側が自動で呼ぶ。直接 `new ScrollSync()` した場合のみ自前で繋ぐ。
 
 ## RafScroll
 
@@ -44,6 +54,14 @@ new RafScroll({
 |---|---|---|---|
 | `lineHeight` | `number` | `16` | `WheelEvent.deltaMode=LINE` 時の 1 行 px |
 | `touchFriction` | `number` | `0.95` | タッチリリース後の慣性減衰率。`0` で慣性無効 |
+
+### Instance members
+
+| member | 型 | 説明 |
+|---|---|---|
+| `scrollY` | `number` (getter) | 内部の virtual scrollY |
+| `enabled` | `boolean` (getter/setter) | `false` で wheel/touch を素通しさせて native スクロール復活。再 enable 時は `window.scrollY` に再同期 |
+| `destroy()` | `void` | rAF・listener・ResizeObserver をすべて解放 |
 
 ### 挙動メモ
 
