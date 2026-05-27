@@ -41,31 +41,29 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ClientOnly>
-    <div class="demo-frame">
+  <div class="demo-frame">
+    <div
+      ref="stage"
+      class="demo-frame__stage"
+      style="height: 320px;"
+    >
       <div
-        ref="stage"
-        class="demo-frame__stage"
-        style="height: 320px;"
-      >
-        <div
-          ref="card"
-          style="
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            width: 60%;
-            max-width: 360px;
-            aspect-ratio: 16 / 9;
-            transform: translate(-50%, -50%);
-            border-radius: 12px;
-            pointer-events: auto;
-          "
-        ></div>
-      </div>
-      <div class="demo-frame__controls">
-        <span>カードの位置にロックした plane に shader を流し込んでいる。hover で色が変わる。</span>
-      </div>
+        ref="card"
+        style="
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 60%;
+          max-width: 360px;
+          aspect-ratio: 16 / 9;
+          transform: translate(-50%, -50%);
+          border-radius: 12px;
+          pointer-events: auto;
+        "
+      ></div>
     </div>
-  </ClientOnly>
+    <div class="demo-frame__controls">
+      <span>カードの位置にロックした plane に shader を流し込んでいる。hover で色が変わる。</span>
+    </div>
+  </div>
 </template>

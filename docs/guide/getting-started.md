@@ -38,7 +38,7 @@ app.createPlane('.hero-card', {
 
 `.hero-card` の位置・サイズに plane が貼り付き、CSS で要素が動いてもピクセル単位で追従する。
 
-<DemoPlane />
+→ 動くデモ・コード・解説は [Demos / DOM-locked Plane](/demos/plane) を参照。
 
 ## Shader で使える uniform
 
@@ -62,6 +62,7 @@ app.createPlane(null, { fragmentShader: bgShader });
 
 ## 次に
 
+- [Demos](/demos/) — 動くサンプル + コピペ可能なコード
 - [Scroll Sync](/guide/scroll-sync) — スクロールと canvas を 1 frame で揃える
 - [Post Effects](/guide/post-effects) — `BaseEffect` でエフェクトを書く
 - [API: WebGLApp](/api/webgl-app) — 全オプション
