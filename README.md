@@ -3,16 +3,16 @@
 [![npm](https://img.shields.io/npm/v/dom-sync-gl.svg)](https://www.npmjs.com/package/dom-sync-gl)
 [![license](https://img.shields.io/npm/l/dom-sync-gl.svg)](./LICENSE)
 
-DOM 要素にロックした Three.js plane / 3D オブジェクトを描画し、スクロールに完璧同期させて、ポストエフェクトをチェーンする — そのための薄いレイヤーです。
+DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、スクロールに同期させつつポストエフェクトを重ねるための薄いラッパー。
 
 ## Features
 
-- **DOM-locked plane / 3D object** — 任意の DOM 要素の bbox に追従する Three.js mesh を 1 行で生成
-- **スクロール同期** — ネイティブスクロールと canvas が 1 frame もズレない
-- **タッチ慣性スクロール** — モバイルでも native 感覚の慣性が効く
-- **チェーン可能なポストエフェクト** — `BaseEffect` を継承するだけで ping-pong 合成
-- **iOS Safari 対応** — 動的アドレスバーで canvas 高がずれない
-- **lil-gui / stats.js は optional** — 使うときだけ install すれば良い
+- DOM 要素の bbox に追従する Three.js mesh を `createPlane(selector)` で作れる
+- ネイティブスクロールと canvas のズレを毎フレーム補正する
+- モバイルのタッチ慣性スクロールに対応
+- `BaseEffect` を継承するだけでポストエフェクトを ping-pong で連結
+- iOS Safari の動的アドレスバーに canvas 高を追従させる
+- lil-gui / stats.js は optional（使うときだけ install）
 
 ## Install
 
@@ -20,7 +20,7 @@ DOM 要素にロックした Three.js plane / 3D オブジェクトを描画し�
 npm install dom-sync-gl three
 ```
 
-`three` のみ必須。GUI パネルや FPS パネルを使う場合のみ追加:
+必須は `three` だけ。GUI パネルや FPS パネルを出したいときだけ追加:
 
 ```bash
 npm install lil-gui stats.js
@@ -62,7 +62,7 @@ app.createPlane(null, {
 
 ### DOM-locked plane
 
-`createPlane(selector)` で指定した DOM 要素の位置・サイズに追従する Three.js mesh を作る。CSS で要素が動いてもピクセル単位で追従する。
+`createPlane(selector)` に渡した DOM 要素の位置・サイズに追従する Three.js mesh を作る。CSS で要素が動いてもピクセル単位で付いてくる。
 
 ```ts
 const plane = app.createPlane(".card", {
@@ -76,7 +76,7 @@ const plane = app.createPlane(".card", {
 });
 ```
 
-shader 側では以下の uniform が宣言だけで使える (更新は自動):
+shader 側は次の uniform を宣言するだけで使える（値の更新は内部でやる）:
 
 | uniform | 型 | 内容 |
 |---|---|---|
@@ -87,14 +87,14 @@ shader 側では以下の uniform が宣言だけで使える (更新は自動):
 
 ### Scroll sync
 
-`scrollSync: true` を渡すと、container を `position: absolute` で document に貼り、毎 rAF
+`scrollSync: true` を渡すと container を `position: absolute` で document に貼り、毎 rAF
 で実効 scrollY を transform に流して viewport に追従させる。
 
-実効 scrollY は `-document.documentElement.getBoundingClientRect().top` から算出する。
-通常スクロール中は `window.scrollY` と一致するが、iOS Safari の上端 rubber-band /
-pull-to-refresh 中は visual viewport offset を取り込んで負に振れる。同じ実効 scrollY を
-container transform と plane 位置計算に同値で流すことで、rubber-band 中も canvas と DOM
-が同じ視覚オフセットを共有して揃い、ネイティブの引っ張ってリロードを殺さない。
+実効 scrollY は `-document.documentElement.getBoundingClientRect().top` から取る。普段は
+`window.scrollY` と同じ値になるが、iOS Safari の上端 rubber-band / pull-to-refresh 中は
+visual viewport の offset が乗って負に振れる。この同じ値を container の transform と plane
+の位置計算の両方に流しているので、rubber-band 中も canvas と DOM が同じ分だけズレて見た目が
+揃う。pull-to-refresh も殺さずに済む。
 
 ```ts
 const app = new WebGLApp("#canvas", {
@@ -106,8 +106,9 @@ const app = new WebGLApp("#canvas", {
 });
 ```
 
-`RafScroll` を併用すると、wheel / touch の入力を rAF tick に集約して、scrollY が JS と
-paint で完全に同値になる (= plane 位置と DOM の見た目が 1 frame もズレない):
+`RafScroll` を併用すると wheel / touch の入力を rAF tick にまとめて発火させるので、
+JS が読む scrollY と paint された位置がフレーム内で揃う（plane と DOM がフレーム境界で
+ズレにくくなる）:
 
 ```ts
 import { RafScroll } from "dom-sync-gl";
@@ -117,12 +118,12 @@ new RafScroll({
 });
 ```
 
-RafScroll はモバイル上端での下方向 swipe を検出すると preventDefault せず native に委ねる
-ので、`overscroll-behavior` を `none/contain` にしなければ pull-to-refresh はそのまま使える。
+RafScroll はモバイル上端の下方向 swipe を検出したら preventDefault せず native に任せるので、
+`overscroll-behavior` を `none/contain` にしていなければ pull-to-refresh はそのまま動く。
 
 ### Post effects
 
-`BaseEffect` を継承して fragment shader を返すだけ。`app.addEffect()` でフルスクリーンチェーンに自動配線される。
+`BaseEffect` を継承して fragment shader を返すだけ。あとは `app.addEffect()` に渡すとフルスクリーンチェーンに繋がる。
 
 ```ts
 import { BaseEffect, type BaseEffectConfig } from "dom-sync-gl";
@@ -152,8 +153,8 @@ class GrainEffect extends BaseEffect {
 app.addEffect(new GrainEffect());
 ```
 
-`plane.addEffect(effect)` で plane 単位のエフェクトチェーンにもできる。
-`setupGUI(gui)` を実装したエフェクトは、`showGUI: true` のとき lil-gui に自動でコントロールが出る。
+`plane.addEffect(effect)` で plane 単位のチェーンにもできる。
+`setupGUI(gui)` を実装しておくと、`showGUI: true` のときに lil-gui へコントロールが出る。
 
 ## API reference
 
@@ -244,9 +245,9 @@ import type {
 
 ## Browser support
 
-- Modern evergreen (Chrome / Edge / Firefox / Safari の各最新 2 バージョン)
+- Chrome / Edge / Firefox / Safari の最新 2 バージョン
 - iOS Safari 15.4+
-- IE11 等のレガシーブラウザは対象外
+- IE11 などは対象外
 
 ## Bundle
 
@@ -255,7 +256,7 @@ import type {
 | ESM (`dist/index.js`) | 73.1 kB | **20.2 kB** |
 | CJS (`dist/index.cjs`) | 39.4 kB | **10.1 kB** |
 
-`three` / `lil-gui` / `stats.js` はバンドルされない (peer dependency)。`sideEffects: false` で tree-shaking 可。
+`three` / `lil-gui` / `stats.js` はバンドルしていない（peer dependency）。`sideEffects: false` なので tree-shaking も効く。
 
 ## Develop
 
