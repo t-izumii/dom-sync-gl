@@ -103,10 +103,10 @@ export class Dom3DObject {
    *  になっていたため明示フラグ駆動に変更)
    * @internal Core.animate から呼ばれる。
    */
-  public _tickRead(): void {
+  public _tickRead(scrollX: number, scrollY: number): void {
     if (!this.model || !this.isVisible || !this.positionCalculator) return;
     if (this.updateRectEveryFrame) {
-      this.positionCalculator.updatePositionInfo();
+      this.positionCalculator.updatePositionInfo(scrollX, scrollY);
     }
   }
 
@@ -155,7 +155,7 @@ export class Dom3DObject {
       // DomPositionCalculator constructor で遅延した位置タイプ判定 (getComputedStyle)
       // をここで実行 + rect 再取得。load 完了後の初期化なので layout 1 回。
       this.positionCalculator.refreshPositionType();
-      this.positionCalculator.updatePositionInfo();
+      this.positionCalculator.updatePositionInfo(window.scrollX, window.scrollY);
 
       const box = new THREE.Box3().setFromObject(this.model);
       const size = new THREE.Vector3();
@@ -229,7 +229,7 @@ export class Dom3DObject {
       return;
     }
     this.positionCalculator.refreshPositionType();
-    this.positionCalculator.updatePositionInfo();
+    this.positionCalculator.updatePositionInfo(window.scrollX, window.scrollY);
     this.applyScale();
     this.setPosition(window.scrollX, window.scrollY);
   }

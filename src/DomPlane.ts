@@ -166,10 +166,10 @@ export class DomPlane {
    *  layout 強制になっていたため明示フラグ駆動に変更)
    * @internal Core.animate から呼ばれる。
    */
-  public _tickRead(): void {
+  public _tickRead(scrollX: number, scrollY: number): void {
     if (!this.isVisible || !this.positionCalculator) return;
     if (this.updateRectEveryFrame) {
-      this.positionCalculator.updatePositionInfo();
+      this.positionCalculator.updatePositionInfo(scrollX, scrollY);
     }
   }
 
@@ -270,11 +270,11 @@ export class DomPlane {
 
   public resize() {
     if (this.positionCalculator) {
-      this.positionCalculator.refreshPositionType();
-      this.positionCalculator.updatePositionInfo();
-
-      const scrollY = window.scrollY;
       const scrollX = window.scrollX;
+      const scrollY = window.scrollY;
+
+      this.positionCalculator.refreshPositionType();
+      this.positionCalculator.updatePositionInfo(scrollX, scrollY);
 
       this.updateSize();
       this.setPosition(scrollX, scrollY);

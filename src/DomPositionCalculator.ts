@@ -25,17 +25,16 @@ export class DomPositionCalculator {
     // 多数 plane / object 構築時の reflow 累積コストが大きくなる。
     // 位置タイプ判定は利用側 (DomPlane の init→resize / Dom3DObject の setupModel)
     // で初期化される。
-    this.updatePositionInfo();
+    this.updatePositionInfo(window.scrollX, window.scrollY);
   }
 
   /**
-   * DOM要素の位置情報を更新（毎フレーム呼ばれる）
+   * DOM要素の位置情報を更新（毎フレーム呼ばれる）。
+   * scroll 値は Core が rAF tick で確定した 1 組（ScrollSync 有効時は effectiveScrollY）を
+   * 引数で受け取る。window 直読みは行わない（scene 座標算出と同一スクロール源にするため）。
    */
-  updatePositionInfo(): void {
+  updatePositionInfo(scrollX: number, scrollY: number): void {
     this.rect = this.element.getBoundingClientRect();
-
-    const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
 
     if (this.positionInfo.isFixed) {
       this.positionInfo.pageTop = this.rect.top;

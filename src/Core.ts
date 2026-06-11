@@ -852,10 +852,10 @@ export class WebGLApp {
     //     鮮度を最大化しつつ、複数 plane 間で強制リフローを起こさない。
     this.scrollSync?.update(scrollX, scrollY);
     for (let i = 0, n = planes.length; i < n; i++) {
-      planes[i]._tickRead();
+      planes[i]._tickRead(scrollX, scrollY);
     }
     for (let i = 0, n = objects.length; i < n; i++) {
-      objects[i]._tickRead();
+      objects[i]._tickRead(scrollX, scrollY);
     }
     for (let i = 0, n = planes.length; i < n; i++) {
       planes[i].updateEffects(elapsed, this.mouse, scrollX, scrollY);

@@ -77,7 +77,7 @@ describe('DomPositionCalculator', () => {
     // constructor では getComputedStyle (refreshPositionType) を呼ばない仕様に変更
     // されたため、明示的に呼ぶ
     calc.refreshPositionType();
-    calc.updatePositionInfo();
+    calc.updatePositionInfo(0, 0);
 
     const pos1 = { ...calc.calculateWebGLPosition(0, 0) };
     const pos2 = { ...calc.calculateWebGLPosition(500, 999) };
@@ -127,10 +127,88 @@ describe('DomPositionCalculator', () => {
       toJSON: () => ({}),
     } as DOMRect);
 
-    calc.updatePositionInfo();
+    calc.updatePositionInfo(0, 0);
     const after = { ...calc.calculateWebGLPosition(0, 0) };
 
     expect(after.x).not.toBe(before.x);
     expect(after.y).not.toBe(before.y);
+  });
+
+  // S-1: scroll スナップショット不変条件が updateRectEveryFrame 経路で破れる問題の回帰テスト。
+  // updatePositionInfo(scrollX, scrollY) を必須引数化し、window.scrollX/Y 直読みを排除する。
+  // rect 算出のスクロール源と座標変換のスクロール源を Core 確定値で一致させる。
+  describe('updatePositionInfo の scroll 引数 (S-1 回帰)', () => {
+    it('isFixed=false: pageTop/pageLeft は引数 scroll を反映する', () => {
+      // Given: canvas 中央付近に置かれた非 fixed 要素
+      const el = makeElement({ top: 100, left: 50, width: 100, height: 100 });
+      const calc = new DomPositionCalculator(el, new DOMRect(0, 0, 1000, 1000));
+
+      // When: Core が確定した scroll 値を引数で渡す（scrollX=200, scrollY=300）
+      calc.updatePositionInfo(200, 300);
+
+      // Then: pageTop = rect.top(100) + scrollY(300), pageLeft = rect.left(50) + scrollX(200)
+      expect(calc.pageTop).toBe(400);
+      expect(calc.pageLeft).toBe(250);
+    });
+
+    it('引数 scroll が window.scrollX/Y と乖離しても pageTop/pageLeft は引数に従う（rubber-band 相当）', () => {
+      // Given: iOS rubber-band 中を模し window.scroll* を引数とは別の値に固定
+      const el = makeElement({ top: 100, left: 50, width: 100, height: 100 });
+      const calc = new DomPositionCalculator(el, new DOMRect(0, 0, 1000, 1000));
+      Object.defineProperty(window, 'scrollX', {
+        value: 8888,
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'scrollY', {
+        value: 9999,
+        writable: true,
+        configurable: true,
+      });
+
+      // When: Core 確定の effectiveScroll（200, 300）を引数で渡す
+      calc.updatePositionInfo(200, 300);
+
+      // Then: window.scroll*（8888/9999）ではなく引数（200/300）が使われる
+      expect(calc.pageTop).toBe(400);
+      expect(calc.pageLeft).toBe(250);
+    });
+
+    it('isFixed=true: 引数 scroll を無視して rect 値をそのまま使う', () => {
+      // Given: position: fixed 要素
+      const el = makeElement({ top: 100, left: 50, width: 100, height: 100 });
+      vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+        position: 'fixed',
+      } as CSSStyleDeclaration);
+      const calc = new DomPositionCalculator(el, new DOMRect(0, 0, 1000, 1000));
+      calc.refreshPositionType();
+
+      // When: 引数 scroll を渡しても
+      calc.updatePositionInfo(200, 300);
+
+      // Then: fixed 分岐は引数を参照せず rect.top/left をそのまま使う
+      expect(calc.pageTop).toBe(100);
+      expect(calc.pageLeft).toBe(50);
+    });
+
+    it('updateRectEveryFrame 経路: WebGL 位置は window.scrollY ではなく引数 scroll に従う', () => {
+      // Given: rubber-band 中で window.scrollY が effectiveScrollY と乖離
+      const el = makeElement({ top: 100, left: 100, width: 100, height: 100 });
+      const calc = new DomPositionCalculator(el, new DOMRect(0, 0, 1000, 1000));
+      Object.defineProperty(window, 'scrollY', {
+        value: 9999,
+        writable: true,
+        configurable: true,
+      });
+
+      // When: Core 確定の effectiveScrollY(200) を rect 算出と座標算出の両方に同値で渡す
+      calc.updatePositionInfo(0, 200);
+      const pos = calc.calculateWebGLPosition(0, 200);
+
+      // Then: window.scrollY(9999) に依存せず一貫した位置になる
+      // pageTop = 100 + 200 = 300, 要素中心 Y = 350
+      // canvasCenterY = 0 + 200 + 500 = 700, y = -(350 - 700) = 350
+      expect(pos.y).toBe(350);
+    });
   });
 });
