@@ -43,6 +43,20 @@ export interface RafScrollOptions {
    * @default 0.95
    */
   touchFriction?: number;
+  /**
+   * 自前の `requestAnimationFrame` ループを起動するか。
+   *
+   * - `true`（既定 / スタンドアロン利用）: 内部で rAF ループを回し、毎フレーム
+   *   `window.scrollTo()` を確定させる。
+   * - `false`（管理モード）: 内部ループを起動せず、所有者が毎フレーム {@link RafScroll.advance}
+   *   を呼んで 1 歩進める。`WebGLApp({ rafScroll })` がこのモードで構築し、Core の **単一**
+   *   rAF ループ内で `advance()`（= scrollTo）を `scroll 読み取り` より前に走らせることで、
+   *   「RafScroll と Core が別々の rAF ループを持ち、生成順しだいで scroll が 1 フレームずれる」
+   *   問題を構造的に排除する。
+   *
+   * @default true
+   */
+  autoStart?: boolean;
 }
 
 /** 慣性を停止する velocity の閾値 (px/ms)。これを下回ったら 0 に丸める。 */
@@ -67,6 +81,8 @@ export class RafScroll {
   private _enabled: boolean = true;
   private _lineHeight: number;
   private _friction: number;
+  /** 自前 rAF ループを起動するか（false = 所有者が advance() で駆動する管理モード）。 */
+  private _autoStart: boolean;
   private _touchPrevY: number = 0;
   private _touchPrevTime: number = 0;
   /** 直近の touch velocity (px/ms)。touchend 後はこの値を初速に慣性が走る。 */
@@ -88,13 +104,17 @@ export class RafScroll {
   constructor(options: RafScrollOptions = {}) {
     this._lineHeight = options.lineHeight ?? 16;
     this._friction = options.touchFriction ?? 0.95;
+    this._autoStart = options.autoStart ?? true;
     this._scrollY = window.scrollY;
     this._lastAppliedY = this._scrollY;
     this._maxScroll = this.calcMaxScroll();
 
     this.setupEventListeners();
     this.setupResizeObserver();
-    this._rafId = requestAnimationFrame(this.tick);
+    // 管理モード (autoStart: false) では所有者が advance() で駆動するので自前ループは回さない。
+    if (this._autoStart) {
+      this._rafId = requestAnimationFrame(this.tick);
+    }
   }
 
   private calcMaxScroll(): number {
@@ -243,10 +263,14 @@ export class RafScroll {
    * touch リリース後の慣性: `_velocityY` が閾値以上ある間、毎 tick で
    * `scrollY += velocity * dt` を積みつつ `velocity *= friction^(dt/FRAME_MS)` で減衰。
    */
-  private tick = (now: number = performance.now()): void => {
+  /**
+   * 1 フレーム分の積分 + `window.scrollTo`。rAF ループの有無に依存しない純粋な「1 歩」。
+   * 自前ループ ({@link RafScroll.tick}) と管理モード ({@link RafScroll.advance}) の両方から呼ぶ。
+   */
+  private step(now: number): void {
     if (this._destroyed) return;
 
-    // dt 正規化 (frame rate 非依存)。初回 tick は基準フレーム時間で扱う。
+    // dt 正規化 (frame rate 非依存)。初回は基準フレーム時間で扱う。
     const dt = this._lastTickTime === 0 ? FRAME_MS : now - this._lastTickTime;
     this._lastTickTime = now;
 
@@ -268,8 +292,28 @@ export class RafScroll {
       window.scrollTo(0, this._scrollY);
       this._lastAppliedY = this._scrollY;
     }
+  }
+
+  /** autoStart: true のときの自前 rAF ループ。 */
+  private tick = (now: number = performance.now()): void => {
+    if (this._destroyed) return;
+    this.step(now);
     this._rafId = requestAnimationFrame(this.tick);
   };
+
+  /**
+   * 外部の rAF ループから 1 フレーム進める（管理モード用）。
+   *
+   * `autoStart: false` で構築し、`WebGLApp` 等の **単一** rAF ループ内で毎フレーム呼ぶことで、
+   * `scrollTo`（このメソッド）→ `scroll 読み取り` の順序を呼び出し側が決定論的に固定できる。
+   * これにより 2 つの独立 rAF ループの登録順依存（背景が 1 フレームずれる問題）を排除する。
+   *
+   * `autoStart: true`（自前ループ稼働中）のときは二重進行を避けるため no-op。
+   */
+  advance(now: number = performance.now()): void {
+    if (this._autoStart) return;
+    this.step(now);
+  }
 
   /** 現在の virtual scrollY。 */
   get scrollY(): number {

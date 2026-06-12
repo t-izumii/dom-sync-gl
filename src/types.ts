@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { ScrollSyncOptions } from "./ScrollSync";
+import type { RafScrollOptions } from "./RafScroll";
 
 // 共通の型定義
 export interface Offset3D {
@@ -23,6 +24,21 @@ export interface WebGLAppOptions {
    * @default false
    */
   scrollSync?: boolean | ScrollSyncOptions;
+  /**
+   * RafScroll（rAF 同期 virtual scroll + touch 慣性）を Core 管理下で有効化する。
+   * `true` または {@link RafScrollOptions} を渡すと、Core が `autoStart: false` の
+   * RafScroll を構築し、自身の rAF ループ内で `advance()`(= scrollTo) を scroll 読み取りの
+   * **前** に駆動する。
+   *
+   * `new RafScroll()` を別途生成して併用する方法でも動くが、その場合は **WebGLApp より先に**
+   * 生成しないと 2 つの rAF ループの登録順しだいで scroll が 1 フレームずれる。この
+   * オプション経由なら単一ループに統合されるため、その順序依存を気にしなくてよい（推奨）。
+   *
+   * 通常 `scrollSync` と併用する。
+   *
+   * @default false
+   */
+  rafScroll?: boolean | RafScrollOptions;
   /**
    * stats.js の FPS パネルを画面左上に表示する（開発用）。
    * クリックで FPS / ms / MB を切り替え可能。

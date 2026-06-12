@@ -106,20 +106,30 @@ const app = new WebGLApp("#canvas", {
 });
 ```
 
-`RafScroll` を併用すると wheel / touch の入力を rAF tick にまとめて発火させるので、
-JS が読む scrollY と paint された位置がフレーム内で揃う（plane と DOM がフレーム境界で
-ズレにくくなる）:
+`RafScroll`（rAF 同期 virtual scroll + touch 慣性）を併用すると wheel / touch の入力を rAF
+tick にまとめて発火させるので、JS が読む scrollY と paint された位置がフレーム内で揃う（plane
+と DOM がフレーム境界でズレにくくなる）。
+
+**推奨は `rafScroll` オプション**。Core が RafScroll を管理下に置き、自身の単一 rAF ループ内で
+`scrollTo` → `scroll 読み取り` の順に駆動するので、背景・plane が 1 フレームずれない:
 
 ```ts
-import { RafScroll } from "dom-sync-gl";
-
-new RafScroll({
-  touchFriction: 0.95,  // タッチリリース後の慣性 (0 で慣性なし)
+const app = new WebGLApp("#canvas", {
+  scrollSync: true,
+  rafScroll: {
+    touchFriction: 0.95,  // タッチリリース後の慣性 (0 で慣性なし)
+  },
 });
 ```
 
 RafScroll はモバイル上端の下方向 swipe を検出したら preventDefault せず native に任せるので、
 `overscroll-behavior` を `none/contain` にしていなければ pull-to-refresh はそのまま動く。
+
+> ⚠️ `new RafScroll()` を**自前で生成して併用する**こともできるが、その場合 RafScroll と Core が
+> **別々の rAF ループ**を持つ。ブラウザは rAF を登録順に実行するため、`WebGLApp` より**後に**生成
+> すると Core が 1 フレーム古い scrollY を読み、背景 canvas がスクロール中だけズレる。自前生成する
+> なら必ず `WebGLApp` より**先に**生成すること。順序を気にしたくなければ上記の `rafScroll` オプション
+> を使う。
 
 ### Post effects
 
@@ -163,6 +173,7 @@ app.addEffect(new GrainEffect());
 | option | type | default | 説明 |
 |---|---|---|---|
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
+| `rafScroll` | `boolean \| RafScrollOptions` | `false` | RafScroll を Core 管理下で有効化（単一 rAF に統合・順序依存なし） |
 | `enableMouseTracking` | `boolean` | `true` | マウス座標と hover 判定を更新 |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限 (モバイルは `1.5` 推奨) |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
@@ -195,6 +206,7 @@ app.addEffect(new GrainEffect());
 |---|---|---|---|
 | `lineHeight` | `number` | `16` | `WheelEvent.deltaMode=LINE` 時の 1 行 px |
 | `touchFriction` | `number` | `0.95` | タッチリリース後の慣性減衰率。`0` で慣性無効 |
+| `autoStart` | `boolean` | `true` | 自前 rAF ループを起動するか。`false` は管理モード（所有者が `advance()` で駆動）。`WebGLApp({ rafScroll })` 経由なら自動で `false` |
 
 ### `CreatePlaneOptions`
 

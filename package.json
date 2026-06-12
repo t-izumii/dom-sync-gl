@@ -20,6 +20,8 @@
   "sideEffects": false,
   "scripts": {
     "dev": "npm run docs:dev",
+    "example": "vite --config example/vite.config.ts",
+    "example:build": "vite build --config example/vite.config.ts",
     "build": "vite build",
     "build:watch": "vite build --watch",
     "test": "vitest run",
@@ -31,9 +33,9 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "three": ">=0.160.0",
     "lil-gui": ">=0.19.0",
-    "stats.js": ">=0.17.0"
+    "stats.js": ">=0.17.0",
+    "three": ">=0.160.0"
   },
   "peerDependenciesMeta": {
     "lil-gui": {
@@ -48,6 +50,7 @@
     "@types/three": "^0.182.0",
     "jsdom": "^27.0.1",
     "lil-gui": "^0.21.0",
+    "playwright": "^1.60.0",
     "stats.js": "^0.17.0",
     "three": "^0.182.0",
     "typescript": "^5.6.0",

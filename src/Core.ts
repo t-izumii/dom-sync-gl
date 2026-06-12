@@ -10,9 +10,11 @@ import { Light } from './Light';
 import { DomPlane } from './DomPlane';
 import { Dom3DObject } from './Dom3DObject';
 import { ScrollSync } from './ScrollSync';
+import { RafScroll } from './RafScroll';
 import { EffectComposer } from './EffectComposer';
 import type { EffectLike } from './EffectComposer';
 import type { ScrollSyncOptions } from './ScrollSync';
+import type { RafScrollOptions } from './RafScroll';
 import type { BaseEffect } from './effects/BaseEffect';
 import type {
   CreatePlaneOptions,
@@ -35,6 +37,11 @@ export class WebGLApp {
   dom3DObjects: Dom3DObject[];
   clock: THREE.Clock;
   scrollSync: ScrollSync | null = null;
+  /**
+   * `rafScroll` オプションで構築した管理下の RafScroll（autoStart: false）。
+   * animate() の rAF ループ内で advance() を駆動する。未指定なら null。
+   */
+  private rafScroll: RafScroll | null = null;
   private options: WebGLAppOptions;
   private rafId: number = 0;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -148,6 +155,16 @@ export class WebGLApp {
       // ここで callback を繋ぐ必要は無い。
     }
 
+    // RafScroll（rAF 同期 virtual scroll）を Core 管理下で構築する。
+    // autoStart: false で自前ループは持たせず、animate() の単一 rAF 内で advance() を
+    // refreshScrollCache() より前に駆動する。これで「RafScroll を別 new して別 rAF ループに
+    // した場合に生成順しだいで scroll が 1 フレームずれる」問題を構造的に排除する。
+    if (options.rafScroll) {
+      const rafScrollOptions: RafScrollOptions =
+        typeof options.rafScroll === 'object' ? options.rafScroll : {};
+      this.rafScroll = new RafScroll({ ...rafScrollOptions, autoStart: false });
+    }
+
     // スクロールキャッシュを種付け（ScrollSync 初期化後）。以降は animate の rAF tick で更新。
     this.refreshScrollCache();
 
@@ -230,6 +247,11 @@ export class WebGLApp {
   // 保持する場合は呼び出し側で clone すること。
   getScroll(): Readonly<{ x: number; y: number }> {
     return this._scroll;
+  }
+
+  // rafScroll オプションで構築した管理下の RafScroll を取得（未指定なら null）。
+  getRafScroll(): RafScroll | null {
+    return this.rafScroll;
   }
 
   // 確定スクロール値を _scroll キャッシュへ書き込む唯一の経路。
@@ -805,6 +827,9 @@ export class WebGLApp {
     this.scrollSync?.destroy();
     this.scrollSync = null;
 
+    this.rafScroll?.destroy();
+    this.rafScroll = null;
+
     for (const effect of this.effects) {
       effect.dispose?.();
     }
@@ -849,6 +874,11 @@ export class WebGLApp {
     // Phase A 内で effect.update / plane.updateEffects が global mouse から
     // plane-local UV を再構成する際にも、ここで取った scrollX/Y を使う。
     // scrollY に effectiveScrollY を使う理由は refreshScrollCache を参照。
+    //
+    // ⚠️ 順序が重要: RafScroll(管理モード) の advance() を refreshScrollCache() の **前** に
+    // 走らせる。advance() が window.scrollTo を確定 → 直後の refreshScrollCache() が同一
+    // フレームの最新 scrollY を読む。単一 rAF ループ内なので登録順依存は発生しない。
+    this.rafScroll?.advance();
     this.refreshScrollCache();
     const scrollX = this._scroll.x;
     const scrollY = this._scroll.y;
