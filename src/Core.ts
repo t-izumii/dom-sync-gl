@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-// `stats.js` / `lil-gui` は optional peer。runtime では `showStats` / `showGUI` が
-// 有効な時だけ dynamic import するので、ここは type-only import で .d.ts のみに残す
-// (tree-shaking で本体 bundle に含まれない)。
-import type Stats from 'stats.js';
+// `lil-gui` は optional peer。GUI 連携の戻り値型としてのみ参照するので type-only import に
+// 留める（runtime の dynamic import は DevTools 側、本体 bundle には含まれない）。
 import type GUI from 'lil-gui';
 import { Camera } from './Camera';
 import { Light } from './Light';
@@ -11,11 +9,13 @@ import { DomPlane } from './DomPlane';
 import { Dom3DObject } from './Dom3DObject';
 import { ScrollSync } from './ScrollSync';
 import { RafScroll } from './RafScroll';
-import { EffectComposer } from './EffectComposer';
 import type { EffectLike } from './EffectComposer';
 import type { ScrollSyncOptions } from './ScrollSync';
 import type { RafScrollOptions } from './RafScroll';
 import type { BaseEffect } from './effects/BaseEffect';
+import { PointerController } from './PointerController';
+import { EffectManager } from './EffectManager';
+import { DevTools } from './DevTools';
 import type {
   CreatePlaneOptions,
   Create3DObjectOptions,
@@ -46,21 +46,12 @@ export class WebGLApp {
   private rafId: number = 0;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private eventAbort: AbortController = new AbortController();
-  /**
-   * mousemove listener 専用の AbortController。`setMouseTrackingEnabled()` で動的に
-   * detach 可能にするため `eventAbort` とは別に持つ。null の時は attach 済みでない。
-   */
-  private _mouseAbort: AbortController | null = null;
-  /**
-   * canvas の viewport 上の矩形をキャッシュ。mousemove ごとに `getBoundingClientRect`
-   * を呼ぶと layout 強制が走るため、resize 時 + (ScrollSync 無効時の) scroll 時に
-   * invalidate する形にしてフィールドアクセスで済むようにする。
-   * ScrollSync 有効時は container を `position: fixed` で viewport にロックしているので
-   * scroll で動かず、invalidate 不要。
-   */
-  private _canvasRect: DOMRect | null = null;
-  private mouse: THREE.Vector2;
-  private prevMouse: THREE.Vector2;
+  /** マウス入力 / hover(raycast) を担うコントローラ（PointerController に分離）。 */
+  private pointer!: PointerController;
+  /** フルスクリーン post effect 群を集約管理する（EffectManager に分離）。 */
+  private effectManager!: EffectManager;
+  /** GUI / stats の lazy dynamic import を担う（DevTools に分離）。 */
+  private devTools!: DevTools;
   /**
    * DOM 位置計算に使う確定スクロール値のキャッシュ。
    * 更新源は rAF tick（animate）で Core が 1 frame に 1 回確定する値。
@@ -71,34 +62,10 @@ export class WebGLApp {
    */
   private readonly _scroll: { x: number; y: number } = { x: 0, y: 0 };
   /**
-   * マウスが canvas 矩形の内側に居るか。mousemove イベントごとに更新し、
-   * rAF tick 内の raycaster はこのフラグで実行を決める。
-   * (uMouseUV の更新を完全に rAF 駆動にすることで paint と同期させ、
-   *  「mousemove 非同期発火による uniform のちらつき」を消す)
+   * raycast 対象の plane mesh 群。element 付き plane だけが入る（背景 plane は除外）。
+   * createPlane/removePlane で出し入れし、PointerController に live 参照として共有する。
    */
-  private _mouseInside: boolean = false;
-  /** raycaster で使う NDC バッファ (毎フレ allocate を避ける) */
-  private _ndcBuf: THREE.Vector2 = new THREE.Vector2();
-  /** getMouseDelta の戻り値スクラッチ (毎フレ clone を避ける) */
-  private _mouseDeltaBuf: THREE.Vector2 = new THREE.Vector2();
-  private raycaster: THREE.Raycaster;
-  private hoveredPlane: DomPlane | null;
   private domPlaneMeshes: THREE.Mesh[] = [];
-  private postEffect: EffectLike | null = null;
-  private internalComposer: EffectComposer | null = null;
-  private effects: BaseEffect[] = [];
-  private stats: Stats | null = null;
-  /**
-   * lil-gui の root インスタンス。
-   * showGUI が false なら null のまま。最初の `setupGUI` を持つ effect が
-   * `addEffect()` 経由で登録された瞬間に生成する（lazy + dynamic import）。
-   */
-  private gui: GUI | null = null;
-  /**
-   * lil-gui の dynamic import promise。複数 effect の addEffect が同時に来た時、
-   * 二重 load を防ぐ。一度 resolve したら次回以降は `this.gui` を直接返す。
-   */
-  private _guiLoadPromise: Promise<GUI> | null = null;
   /**
    * destroy 済みフラグ。animate() 実行中に user callback から destroy() が
    * 呼ばれると、renderer.dispose() 後の続きで renderer.render() を呼んで
@@ -137,10 +104,29 @@ export class WebGLApp {
     this.dom3DObjects = [];
     this.clock = new THREE.Clock();
     this.options = { enableMouseTracking: true, showGUI: true, ...options };
-    this.mouse = new THREE.Vector2(0.5, 0.5);
-    this.prevMouse = new THREE.Vector2(0.5, 0.5);
-    this.raycaster = new THREE.Raycaster();
-    this.hoveredPlane = null;
+
+    // 関心ごとに分離したコラボレータを構築する。WebGLApp 本体はライフサイクルと rAF
+    // オーケストレーションに専念し、入力/hover・effect・devtools は各クラスへ委譲する。
+    const showGUI = this.options.showGUI !== false;
+    this.devTools = new DevTools({
+      showStats: !!options.showStats,
+      statsParent: options.statsParent ?? document.body,
+      showGUI,
+      guiTitle: options.guiTitle ?? 'Effects',
+      isDestroyed: () => this.destroyed,
+    });
+    this.effectManager = new EffectManager({
+      renderer: this.renderer,
+      showGUI,
+      ensureGUI: () => this.devTools.ensureGUI(),
+      isDestroyed: () => this.destroyed,
+    });
+    this.pointer = new PointerController({
+      canvas: this.canvas,
+      camera: this.camera,
+      planeMeshes: this.domPlaneMeshes,
+      planes: this.domPlanes,
+    });
 
     // ScrollSync の初期化（renderer/camera生成後、init前に実行）
     if (options.scrollSync) {
@@ -171,25 +157,9 @@ export class WebGLApp {
     // renderer/cameraを正しいrectでセットアップ
     this.init();
 
-    // stats.js の FPS パネル (optional peer)。dynamic import なので
-    // showStats: false の利用者は stats.js をインストールする必要がない。
-    // animate() 内の begin/end は optional chaining なので、load 完了前は no-op で安全。
-    if (options.showStats) {
-      void import('stats.js').then(({ default: StatsCtor }) => {
-        if (this.destroyed) return;
-        this.stats = new StatsCtor();
-        this.stats.showPanel(0); // 0: fps, 1: ms, 2: mb
-        // 同一ページに複数 WebGLApp を置くと panel が重なるので、
-        // 呼び出し側で statsParent を指定すれば任意要素にぶら下げられる。
-        (options.statsParent ?? document.body).appendChild(this.stats.dom);
-      }).catch((err) => {
-        console.warn(
-          '[WebGLApp] showStats: true ですが stats.js が読み込めませんでした。' +
-          'npm install stats.js してください。',
-          err,
-        );
-      });
-    }
+    // stats.js の FPS パネル（optional peer）を lazy load する（DevTools が dynamic import）。
+    // animate() 内の begin/end は load 完了前は no-op で安全。
+    this.devTools.loadStats();
 
     this.setupEventListeners();
     this.animate();
@@ -240,7 +210,7 @@ export class WebGLApp {
 
   // マウス座標を取得（UV座標: 0~1）
   getMouse() {
-    return this.mouse;
+    return this.pointer.getMouse();
   }
 
   // 確定スクロール値のキャッシュを取得。live な同一オブジェクトを返す（getMouse と同方式）。
@@ -272,12 +242,12 @@ export class WebGLApp {
 
   // 前回のマウス座標を取得（UV座標: 0~1）
   getPrevMouse() {
-    return this.prevMouse;
+    return this.pointer.getPrevMouse();
   }
 
   // マウス移動量を取得。内部スクラッチを使い回すので、保持したい場合は呼び出し側で clone する。
   getMouseDelta() {
-    return this._mouseDeltaBuf.copy(this.mouse).sub(this.prevMouse);
+    return this.pointer.getMouseDelta();
   }
 
   // ScrollSyncを取得
@@ -445,8 +415,7 @@ export class WebGLApp {
   }
 
   /**
-   * canvas 全体にエフェクトを追加する。
-   * 内部で EffectComposer を自動生成するため、別途 setPostEffect は不要。
+   * canvas 全体にエフェクトを追加する。内部で EffectComposer を自動生成する（EffectManager 委譲）。
    *
    * **注意**: `setPostEffect()` でカスタム postEffect を入れている状態でこれを呼ぶと、
    * 自動生成された EffectComposer で上書きされる（カスタム postEffect の dispose は
@@ -456,146 +425,60 @@ export class WebGLApp {
     if (this.destroyed) {
       throw new Error('[WebGLApp] addEffect(): destroy 済みのインスタンスでは使えません。');
     }
-    if (this.postEffect && this.postEffect !== this.internalComposer) {
-      const msg =
-        '[WebGLApp] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
-        '内部 EffectComposer で上書きします。カスタム postEffect は手動で dispose してください。';
-      // DEV では事故防止のため throw（カスタム effect の dispose リークになるため）。
-      if (import.meta.env?.DEV) throw new Error(msg);
-      console.warn(msg);
-    }
-    if (!this.internalComposer) {
-      this.internalComposer = new EffectComposer(
-        this.renderer,
-        this.rect.width,
-        this.rect.height,
-      );
-      this.postEffect = this.internalComposer;
-    }
-    // renderer を要求するエフェクト（FluidEffect 等）に注入してから register する
-    effect._setRenderer?.(this.renderer);
-    effect._register(this.internalComposer);
-    effect.resize?.(this.rect.width, this.rect.height);
-    // setupGUI を実装している場合は自動で lil-gui パネルを生やす。
-    // lil-gui は optional peer なので dynamic import の resolve を await してから呼ぶ。
-    if (this.options.showGUI && effect.setupGUI) {
-      this._ensureGUIAsync()
-        .then((gui) => {
-          if (this.destroyed) return;
-          effect.setupGUI!(gui);
-        })
-        .catch((err) => {
-          console.warn(
-            '[WebGLApp] showGUI: true ですが lil-gui が読み込めませんでした。' +
-            'npm install lil-gui してください。',
-            err,
-          );
-        });
-    }
-    this.effects.push(effect);
-    return effect;
+    return this.effectManager.addEffect(effect, this.rect.width, this.rect.height);
   }
 
   /**
    * lil-gui を dynamic import で読み込み、root インスタンスを lazy 生成して返す。
-   * 同時に複数 effect から呼ばれても load promise を共有して 1 インスタンスにまとめる。
-   * @internal DomPlane.addEffect / WebGLApp.addEffect から呼ばれる。
+   * @internal DomPlane.addEffect の GUI provider から呼ばれる。
    */
   _ensureGUIAsync(): Promise<GUI> {
-    if (this.gui) return Promise.resolve(this.gui);
-    if (!this._guiLoadPromise) {
-      this._guiLoadPromise = import('lil-gui').then(({ default: GuiCtor }) => {
-        if (!this.gui) {
-          this.gui = new GuiCtor({ title: this.options.guiTitle ?? 'Effects' });
-        }
-        return this.gui;
-      });
-    }
-    return this._guiLoadPromise;
+    return this.devTools.ensureGUI();
   }
 
   /**
    * root の lil-gui インスタンスを取得 (sync)。
-   *
-   * **注意**: lil-gui は dynamic import で読み込むため、初回 effect 登録直後など
-   * load 中の段階では `null` を返す。確実にインスタンスを得たい場合は
-   * `getGUIAsync()` を使う。`showGUI: false` の場合は常に `null`。
+   * lil-gui は dynamic import なので load 中は `null`。確実に得たい場合は `getGUIAsync()`。
+   * `showGUI: false` の場合は常に `null`。
    */
   getGUI(): GUI | null {
-    if (this.options.showGUI === false) return null;
-    return this.gui;
+    return this.devTools.getGUI();
   }
 
   /**
-   * lil-gui を必要に応じて load し、インスタンスを返す。
-   * `showGUI: false` の場合は `null` を resolve する。
+   * lil-gui を必要に応じて load し、インスタンスを返す。`showGUI: false` の場合は `null`。
    */
   getGUIAsync(): Promise<GUI | null> {
-    if (this.options.showGUI === false) return Promise.resolve(null);
-    return this._ensureGUIAsync();
+    return this.devTools.getGUIAsync();
   }
 
   /**
-   * ポストエフェクトを設定（低レベル API）。
-   * 自前で `EffectLike`（render/resize/dispose）を実装したオブジェクトを差し込みたい場合のみ使用。
-   * 通常は `addEffect()` を使うこと。
+   * ポストエフェクトを設定（低レベル API）。通常は `addEffect()` を使うこと。
    *
-   * **注意**: `addEffect()` で追加済みのエフェクトがある状態で呼ぶと、
-   * 自動 EffectComposer を捨てて引数の postEffect に差し替える。既存 effect の
-   * dispose は呼ばれない（必要なら先に `clearEffects()` を呼ぶこと）。
+   * **注意**: `addEffect()` で追加済みのエフェクトがある状態で呼ぶと、自動 EffectComposer を
+   * 捨てて引数の postEffect に差し替える（既存 effect は dispose される）。
    */
   setPostEffect(postEffect: EffectLike): void {
     if (this.destroyed) {
       throw new Error('[WebGLApp] setPostEffect(): destroy 済みのインスタンスでは使えません。');
     }
-    if (this.effects.length > 0) {
-      const msg =
-        '[WebGLApp] setPostEffect() が呼ばれましたが、addEffect() で追加した effect が既に存在します。' +
-        '内部 EffectComposer を破棄してカスタム postEffect に差し替えます。' +
-        '事前に clearEffects() を呼ぶことを推奨します。';
-      if (import.meta.env?.DEV) throw new Error(msg);
-      console.warn(msg);
-      // 既存 effect の clean up（dispose まで）
-      this.clearEffects();
-    }
-    this.postEffect = postEffect;
+    this.effectManager.setPostEffect(postEffect);
   }
 
   /**
-   * `addEffect()` で登録した effect を 1 つ取り除く。
-   *
-   * - 内部 EffectComposer から該当 pass を外し、material を dispose する
-   * - effect 自体の `dispose()` も呼ぶ（FluidEffect 等の RT も解放）
-   * - 全 effect が空になった場合、internalComposer はそのまま残す（次の addEffect で再利用）
-   *
-   * 登録されていない effect を渡した時は `false` を返して何もしない。
+   * `addEffect()` で登録した effect を 1 つ取り除く。登録されていなければ `false`。
    */
   removeEffect(effect: BaseEffect): boolean {
     if (this.destroyed) return false;
-    const idx = this.effects.indexOf(effect);
-    if (idx < 0) return false;
-    this.effects.splice(idx, 1);
-    const pass = effect.getPass();
-    if (pass && this.internalComposer) {
-      this.internalComposer.removeEffect(pass);
-    }
-    effect.dispose?.();
-    return true;
+    return this.effectManager.removeEffect(effect);
   }
 
   /**
    * 登録されたエフェクトとポストエフェクトをすべて解除して破棄する。
-   * addEffect で追加した全 effect の dispose() を呼び、内部 EffectComposer も解放する。
    */
   clearEffects(): void {
     if (this.destroyed) return;
-    for (const effect of this.effects) {
-      effect.dispose?.();
-    }
-    this.effects = [];
-    this.postEffect?.dispose();
-    this.postEffect = null;
-    this.internalComposer = null;
+    this.effectManager.clearEffects();
   }
 
   /**
@@ -621,7 +504,7 @@ export class WebGLApp {
     // invalidate する。有効時は `position: fixed` で viewport に固定されており動かない
     // ので invalidate 不要 (mousemove ごとの bcr 読みも消える)。
     if (!this.scrollSync) {
-      window.addEventListener('scroll', this.invalidateCanvasRect, {
+      window.addEventListener('scroll', this.pointer.invalidateRect, {
         signal,
         passive: true,
       });
@@ -634,49 +517,21 @@ export class WebGLApp {
   }
 
   /**
-   * mousemove tracking の動的な ON/OFF。
+   * mousemove tracking の動的な ON/OFF（PointerController へ委譲）。
    * - true: 未 attach なら mousemove listener を追加する
    * - false: attach 済みなら detach する（hover も解除）
    *
-   * `destroy()` 時は eventAbort と一緒に自動 detach される（_mouseAbort 個別 abort も呼ぶ）。
+   * `destroy()` 時は PointerController.destroy() で自動 detach される。
    */
   setMouseTrackingEnabled(enabled: boolean): void {
     if (this.destroyed) return;
     this.options.enableMouseTracking = enabled;
-    if (enabled) {
-      if (this._mouseAbort) return; // すでに attach 済み
-      this._mouseAbort = new AbortController();
-      window.addEventListener(
-        'mousemove',
-        (e: MouseEvent) => this.onMouseMove(e),
-        { signal: this._mouseAbort.signal },
-      );
-    } else {
-      this._mouseAbort?.abort();
-      this._mouseAbort = null;
-      this._mouseInside = false;
-      if (this.hoveredPlane) {
-        this.hoveredPlane.setHoverInfo(false, null);
-        this.hoveredPlane = null;
-      }
-    }
-  }
-
-  private invalidateCanvasRect = (): void => {
-    this._canvasRect = null;
-  };
-
-  /** mousemove 等で頻繁に必要な canvas viewport rect を遅延 + キャッシュで返す。 */
-  private getCanvasRect(): DOMRect {
-    if (!this._canvasRect) {
-      this._canvasRect = this.canvas.getBoundingClientRect();
-    }
-    return this._canvasRect;
+    this.pointer.setEnabled(enabled);
   }
 
   private onResize() {
     // canvas viewport rect は確実に変わるのでキャッシュを invalidate
-    this._canvasRect = null;
+    this.pointer.invalidateRect();
 
     // plane.resize()/obj.resize() は各コンポーネントが保持する live 参照(= Core の this._scroll)と
     // その場の getBoundingClientRect() を合成して pageTop を確定する。rect 読み取りと同一時刻の
@@ -721,89 +576,13 @@ export class WebGLApp {
       obj.resize();
     }
 
-    // ポストエフェクトのリサイズ
-    this.postEffect?.resize(this.rect.width, this.rect.height);
-    const effects = this.effects;
-    for (let i = 0, n = effects.length; i < n; i++) {
-      effects[i].resize?.(this.rect.width, this.rect.height);
-    }
+    // ポストエフェクト / 各 effect のリサイズ
+    this.effectManager.resize(this.rect.width, this.rect.height);
 
     // 登録された更新処理を実行
     const resizeCallbacks = this.resizeCallbacks;
     for (let i = 0, n = resizeCallbacks.length; i < n; i++) {
       resizeCallbacks[i]();
-    }
-  }
-
-  /**
-   * mousemove は **mouse 座標と canvas 内外フラグだけ** 更新する。
-   * raycaster / setHoverInfo は呼ばない (= uMouseUV を直接書かない)。
-   * uniform 更新は `_updateHoverFromMouse` 経由で rAF tick 内に集約することで、
-   * paint と完全同期させ「mousemove 非同期発火による uMouseUV のちらつき」を防ぐ。
-   */
-  private onMouseMove(event: MouseEvent) {
-    const rect = this.getCanvasRect();
-
-    const isInside =
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
-
-    this._mouseInside = isInside;
-    if (!isInside) return;
-
-    this.mouse.x = (event.clientX - rect.left) / rect.width;
-    this.mouse.y = 1.0 - (event.clientY - rect.top) / rect.height;
-  }
-
-  /**
-   * rAF tick 内の Phase A で呼ばれる。最新の `this.mouse` を使って raycaster を投げ、
-   * hover 中の plane を判定 + `setHoverInfo` (= uMouseUV / uIsHovered の更新) する。
-   * mousemove イベントから切り離すことで全 plane の uniform が 1 tick = 1 確定値で
-   * 揃い、paint と同期する。
-   */
-  private _updateHoverFromMouse(): void {
-    if (!this.options.enableMouseTracking) return;
-    if (this.domPlaneMeshes.length === 0) return;
-
-    // canvas 外なら hover を解除
-    if (!this._mouseInside) {
-      if (this.hoveredPlane) {
-        this.hoveredPlane.setHoverInfo(false, null);
-        this.hoveredPlane = null;
-      }
-      return;
-    }
-
-    this._ndcBuf.set(this.mouse.x * 2 - 1, this.mouse.y * 2 - 1);
-    this.raycaster.setFromCamera(this._ndcBuf, this.camera.instance);
-    const intersects = this.raycaster.intersectObjects(this.domPlaneMeshes, false);
-
-    if (intersects.length > 0) {
-      const intersect = intersects[0];
-      // domPlaneMeshes は domPlanes と index 1:1 対応していない
-      // (element 無しの背景 plane は domPlaneMeshes に入っていない) ため、
-      // mesh から対応する DomPlane を find で逆引きする。
-      if (intersect.uv) {
-        const hitMesh = intersect.object as THREE.Mesh;
-        const plane = this.domPlanes.find((p) => p.getMesh() === hitMesh);
-        if (plane) {
-          // 別の plane に hover が移った時のみ前 plane を false 化（uniform 書き込みを減らす）。
-          if (this.hoveredPlane && this.hoveredPlane !== plane) {
-            this.hoveredPlane.setHoverInfo(false, null);
-          }
-          plane.setHoverInfo(true, intersect.uv);
-          this.hoveredPlane = plane;
-          return;
-        }
-      }
-    }
-
-    // どの plane にも当たっていない: 既存 hover があれば解除
-    if (this.hoveredPlane) {
-      this.hoveredPlane.setHoverInfo(false, null);
-      this.hoveredPlane = null;
     }
   }
 
@@ -813,8 +592,7 @@ export class WebGLApp {
     cancelAnimationFrame(this.rafId);
     if (this.resizeTimer) clearTimeout(this.resizeTimer);
     this.eventAbort.abort();
-    this._mouseAbort?.abort();
-    this._mouseAbort = null;
+    this.pointer.destroy();
 
     this.domPlanes.forEach((plane) => plane.destroy());
     this.dom3DObjects.forEach((obj) => obj.destroy());
@@ -830,33 +608,19 @@ export class WebGLApp {
     this.rafScroll?.destroy();
     this.rafScroll = null;
 
-    for (const effect of this.effects) {
-      effect.dispose?.();
-    }
-    this.effects = [];
-    this.postEffect?.dispose();
-    this.postEffect = null;
-    this.internalComposer = null;
+    this.effectManager.dispose();
     this.controls?.dispose();
     this.controls = null;
     this.renderer.dispose();
     this.canvas.remove();
 
-    if (this.stats) {
-      this.stats.dom.remove();
-      this.stats = null;
-    }
-
-    if (this.gui) {
-      this.gui.destroy();
-      this.gui = null;
-    }
+    this.devTools.dispose();
   }
 
   private animate = () => {
     if (this.destroyed) return;
     this.rafId = requestAnimationFrame(this.animate);
-    this.stats?.begin();
+    this.devTools.beginStats();
 
     // OrbitControlsの更新
     if (this.controls) {
@@ -886,7 +650,8 @@ export class WebGLApp {
     // === Phase A: ユーザー callback + マウス hover 確定 + エフェクト update ===
     // raycaster + setHoverInfo を rAF tick 内で呼ぶことで uMouseUV / uIsHovered の
     // 更新タイミングが paint と揃う (mousemove 非同期発火に引きずられない)。
-    this._updateHoverFromMouse();
+    this.pointer.update();
+    const mouse = this.pointer.getMouse();
 
     // DOM には触れないユーザー処理を先に消化する。
     // 登録された更新処理（ホットパスのため for ループで回す）
@@ -896,12 +661,7 @@ export class WebGLApp {
     }
 
     const elapsed = this.clock.getElapsedTime();
-    const effects = this.effects;
-    for (let i = 0, n = effects.length; i < n; i++) {
-      const effect = effects[i];
-      if (!effect.enabled) continue;
-      effect.update(elapsed, this.mouse);
-    }
+    this.effectManager.update(elapsed, mouse);
 
     // === Phase B: ScrollSync + DOM read → per-plane effect → uniform/transform write ===
     // 3 ステップで進む:
@@ -923,7 +683,7 @@ export class WebGLApp {
       objects[i]._tickRead(scrollX, scrollY);
     }
     for (let i = 0, n = planes.length; i < n; i++) {
-      planes[i].updateEffects(elapsed, this.mouse, scrollX, scrollY);
+      planes[i].updateEffects(elapsed, mouse, scrollX, scrollY);
     }
     for (let i = 0, n = planes.length; i < n; i++) {
       planes[i]._tickApply(elapsed, scrollX, scrollY);
@@ -942,20 +702,15 @@ export class WebGLApp {
     // GL context を触る render はフラグを見てから。renderer.dispose() 後に
     // render を呼ぶと WebGL エラーになる。
     if (this.destroyed) {
-      this.stats?.end();
+      this.devTools.endStats();
       return;
     }
-    if (this.postEffect) {
-      // ポストエフェクトあり: シーン→FBO→エフェクト適用→キャンバス
-      this.postEffect.render(this.scene, this.camera.instance);
-    } else {
-      // 通常レンダリング
-      this.renderer.render(this.scene, this.camera.instance);
-    }
+    // ポストエフェクトあり: シーン→FBO→エフェクト適用→キャンバス。無ければ通常 render。
+    this.effectManager.render(this.scene, this.camera.instance);
 
     // フレームの最後にマウス座標を同期
-    this.prevMouse.copy(this.mouse);
+    this.pointer.endFrame();
 
-    this.stats?.end();
+    this.devTools.endStats();
   };
 }
