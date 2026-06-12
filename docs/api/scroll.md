@@ -40,11 +40,14 @@
 
 ## RafScroll
 
-```ts
-import { RafScroll } from 'dom-sync-gl';
+通常は `WebGLApp({ scrollSync: true, rafScroll: {...} })` 経由で使うのが推奨（Core の単一 rAF に
+統合され、生成順依存が無い）。自前で `new RafScroll()` する場合は **`WebGLApp` より先に生成**しないと
+背景がスクロール中に 1 フレームずれる（[Scroll Sync ガイド](/guide/scroll-sync) 参照）。
 
-new RafScroll({
-  touchFriction: 0.95,
+```ts
+const app = new WebGLApp('#canvas', {
+  scrollSync: true,
+  rafScroll: { touchFriction: 0.95 },
 });
 ```
 
@@ -54,12 +57,14 @@ new RafScroll({
 |---|---|---|---|
 | `lineHeight` | `number` | `16` | `WheelEvent.deltaMode=LINE` 時の 1 行 px |
 | `touchFriction` | `number` | `0.95` | タッチリリース後の慣性減衰率。`0` で慣性無効 |
+| `autoStart` | `boolean` | `true` | 自前 rAF ループを起動するか。`false` は管理モード（所有者が `advance()` で駆動）。`rafScroll` オプション経由なら自動で `false` |
 
 ### Instance members
 
 | member | 型 | 説明 |
 |---|---|---|
 | `scrollY` | `number` (getter) | 内部の virtual scrollY |
+| `advance(now?)` | `void` | 管理モード用。外部 rAF ループから 1 フレーム進める（`scrollTo` を確定）。`autoStart: true` のときは no-op |
 | `enabled` | `boolean` (getter/setter) | `false` で wheel/touch を素通しさせて native スクロール復活。再 enable 時は `window.scrollY` に再同期 |
 | `destroy()` | `void` | rAF・listener・ResizeObserver をすべて解放 |
 
