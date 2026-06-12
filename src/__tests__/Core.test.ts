@@ -156,6 +156,91 @@ describe('WebGLApp', () => {
     app.destroy();
   });
 
+  it('getScroll() が確定スクロール値のキャッシュ {x, y} を返す', () => {
+    // Given: 初期化直後の WebGLApp（jsdom の window.scroll* は 0）
+    const app = new WebGLApp(container);
+
+    // When: Core が保持するキャッシュ済みスクロール値を取得する
+    const scroll = app.getScroll();
+
+    // Then: 数値 x / y を持つ 1 組のオブジェクトを返す（座標計算経路の唯一のスクロール源）
+    expect(typeof scroll.x).toBe('number');
+    expect(typeof scroll.y).toBe('number');
+    expect(scroll.x).toBe(0);
+    expect(scroll.y).toBe(0);
+
+    app.destroy();
+  });
+
+  it('getScroll() は live なキャッシュ参照を返す（毎回同一オブジェクト）', () => {
+    // Given: 初期化済みの WebGLApp
+    const app = new WebGLApp(container);
+
+    // When: getScroll() を 2 回呼ぶ
+    const first = app.getScroll();
+    const second = app.getScroll();
+
+    // Then: getMouse() と同じく live 参照を返し、ゼロアロケートで同一オブジェクトを共有する
+    expect(second).toBe(first);
+
+    app.destroy();
+  });
+
+  it('onResize() はスクロールキャッシュを更新し、getScroll() が新しいスクロール値を反映する', () => {
+    // Given: ScrollSync 無効の WebGLApp（種付け時の window.scroll* は 0）
+    const app = new WebGLApp(container);
+    expect(app.getScroll()).toEqual({ x: 0, y: 0 });
+
+    // And: window のスクロール位置が変化している（resize ハンドラが走る前の状態）
+    Object.defineProperty(window, 'scrollX', {
+      value: 120,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      value: 340,
+      writable: true,
+      configurable: true,
+    });
+
+    // When: resize 経路（debounce 後に呼ばれる private onResize）が走る
+    (app as unknown as { onResize: () => void }).onResize();
+
+    // Then: plane/obj.resize() が読む _scroll キャッシュが rect 読み取りと同一時刻の値に更新される
+    expect(app.getScroll()).toEqual({ x: 120, y: 340 });
+
+    Object.defineProperty(window, 'scrollX', {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+    app.destroy();
+  });
+
+  it('onResize() は ScrollSync 有効時に effectiveScrollY をキャッシュへ反映する', () => {
+    // Given: ScrollSync 有効の WebGLApp
+    const app = new WebGLApp(container, { scrollSync: true });
+
+    // And: documentElement の rubber-band 状態（BCR.top = -500 → effectiveScrollY = 500）
+    vi.spyOn(
+      document.documentElement,
+      'getBoundingClientRect'
+    ).mockReturnValue(new DOMRect(0, -500, 1024, 768));
+
+    // When: resize 経路が走る
+    (app as unknown as { onResize: () => void }).onResize();
+
+    // Then: window.scrollY の生値ではなく computeEffectiveScrollY() の補正値を共有する
+    expect(app.getScroll().y).toBe(500);
+
+    app.destroy();
+  });
+
   it('destroy() を 2 回呼んでも例外にならない（冪等）', () => {
     const app = new WebGLApp(container);
     app.destroy();

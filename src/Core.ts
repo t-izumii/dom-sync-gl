@@ -55,6 +55,15 @@ export class WebGLApp {
   private mouse: THREE.Vector2;
   private prevMouse: THREE.Vector2;
   /**
+   * DOM 位置計算に使う確定スクロール値のキャッシュ。
+   * 更新源は rAF tick（animate）で Core が 1 frame に 1 回確定する値。
+   * ScrollSync 有効時は `effectiveScrollY` を反映する（毎フレーム経路と同一源）。
+   * 単発イベント経路（plane/object の ctor・resize・setupModel）はこの live 参照を読み、
+   * `window.scrollX/Y` の直読みをしない（スクロール源を Core に一本化するため）。
+   * getMouse() と同方式で live な同一オブジェクトを共有しゼロアロケートにする。
+   */
+  private readonly _scroll: { x: number; y: number } = { x: 0, y: 0 };
+  /**
    * マウスが canvas 矩形の内側に居るか。mousemove イベントごとに更新し、
    * rAF tick 内の raycaster はこのフラグで実行を決める。
    * (uMouseUV の更新を完全に rAF 駆動にすることで paint と同期させ、
@@ -139,6 +148,9 @@ export class WebGLApp {
       // ここで callback を繋ぐ必要は無い。
     }
 
+    // スクロールキャッシュを種付け（ScrollSync 初期化後）。以降は animate の rAF tick で更新。
+    this.refreshScrollCache();
+
     // renderer/cameraを正しいrectでセットアップ
     this.init();
 
@@ -214,6 +226,28 @@ export class WebGLApp {
     return this.mouse;
   }
 
+  // 確定スクロール値のキャッシュを取得。live な同一オブジェクトを返す（getMouse と同方式）。
+  // 保持する場合は呼び出し側で clone すること。
+  getScroll(): Readonly<{ x: number; y: number }> {
+    return this._scroll;
+  }
+
+  // 確定スクロール値を _scroll キャッシュへ書き込む唯一の経路。
+  // constructor の種付けと animate の rAF tick の両方から呼び、毎フレーム経路と
+  // 単発経路のスクロール源を完全に同一に保つ（片方だけ変えるとこの不変条件が静かに破れる）。
+  //
+  // scrollY に `ScrollSync.computeEffectiveScrollY()` を使う理由:
+  // 通常スクロール時は `window.scrollY` と同値だが、iOS Safari の上端 rubber-band /
+  // pull-to-refresh 中は visual viewport 分マイナスに振れる。この差を container の
+  // transform と plane 位置計算に同値で配ることで、rubber-band 中も canvas と DOM が
+  // 同じ視覚オフセットで揃う。ScrollSync を使っていない場合は補正不要なので window.scrollY。
+  private refreshScrollCache(): void {
+    this._scroll.x = window.scrollX;
+    this._scroll.y = this.scrollSync
+      ? ScrollSync.computeEffectiveScrollY()
+      : window.scrollY;
+  }
+
   // 前回のマウス座標を取得（UV座標: 0~1）
   getPrevMouse() {
     return this.prevMouse;
@@ -264,6 +298,7 @@ export class WebGLApp {
       element,
       this.scene,
       this.rect,
+      this._scroll,
       this.renderer,
       options,
       this.clock,
@@ -328,6 +363,7 @@ export class WebGLApp {
       element,
       this.scene,
       this.rect,
+      this._scroll,
       options,
     );
     this.dom3DObjects.push(dom3DObject);
@@ -620,6 +656,12 @@ export class WebGLApp {
     // canvas viewport rect は確実に変わるのでキャッシュを invalidate
     this._canvasRect = null;
 
+    // plane.resize()/obj.resize() は各コンポーネントが保持する live 参照(= Core の this._scroll)と
+    // その場の getBoundingClientRect() を合成して pageTop を確定する。rect 読み取りと同一時刻の
+    // スクロール値を共有させるため、resize 経路の冒頭でキャッシュを 1 回だけ更新する。
+    // (scrollSync 有効時は documentElement.BCR を強制するためループ外で 1 回)。
+    this.refreshScrollCache();
+
     if (this.scrollSync) {
       // ScrollSync 有効時: container の元 CSS ratio (init 時 snapshot) を基準に
       // window 寸法から再計算させる。引数省略で ratio 経路が走る。
@@ -806,17 +848,10 @@ export class WebGLApp {
     //   (c) effect update 内の local-UV 算出（plane.updateEffects → window 読みを禁ずる）
     // Phase A 内で effect.update / plane.updateEffects が global mouse から
     // plane-local UV を再構成する際にも、ここで取った scrollX/Y を使う。
-    //
-    // **scrollY は `ScrollSync.computeEffectiveScrollY()` を使う**:
-    // 通常スクロール時は `window.scrollY` と同値だが、iOS Safari の上端 rubber-band /
-    // pull-to-refresh 中は visual viewport 分マイナスに振れる。この差を container の
-    // transform と plane 位置計算に同値で配ることで、rubber-band 中も canvas と DOM が
-    // 同じ視覚オフセットで揃う (= 二重オフセットでズレない)。
-    // ScrollSync を使っていない場合は visual_offset の補正は不要なので window.scrollY。
-    const scrollX = window.scrollX;
-    const scrollY = this.scrollSync
-      ? ScrollSync.computeEffectiveScrollY()
-      : window.scrollY;
+    // scrollY に effectiveScrollY を使う理由は refreshScrollCache を参照。
+    this.refreshScrollCache();
+    const scrollX = this._scroll.x;
+    const scrollY = this._scroll.y;
 
     // === Phase A: ユーザー callback + マウス hover 確定 + エフェクト update ===
     // raycaster + setHoverInfo を rAF tick 内で呼ぶことで uMouseUV / uIsHovered の
