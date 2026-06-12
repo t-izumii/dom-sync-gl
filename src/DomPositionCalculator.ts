@@ -11,7 +11,12 @@ export class DomPositionCalculator {
   // calculateWebGLPosition の戻り値を使い回すバッファ（GC削減）
   private readonly _outPosition = { x: 0, y: 0 };
 
-  constructor(element: HTMLElement, canvasRect: DOMRect) {
+  constructor(
+    element: HTMLElement,
+    canvasRect: DOMRect,
+    scrollX: number,
+    scrollY: number,
+  ) {
     this.element = element;
     this.canvasRect = canvasRect;
     this.rect = new DOMRect();
@@ -25,17 +30,17 @@ export class DomPositionCalculator {
     // 多数 plane / object 構築時の reflow 累積コストが大きくなる。
     // 位置タイプ判定は利用側 (DomPlane の init→resize / Dom3DObject の setupModel)
     // で初期化される。
-    this.updatePositionInfo();
+    // scroll 値は Core が確定したキャッシュ値を引数で受け取る（window 直読みはしない）。
+    this.updatePositionInfo(scrollX, scrollY);
   }
 
   /**
-   * DOM要素の位置情報を更新（毎フレーム呼ばれる）
+   * DOM要素の位置情報を更新（毎フレーム呼ばれる）。
+   * scroll 値は Core が rAF tick で確定した 1 組（ScrollSync 有効時は effectiveScrollY）を
+   * 引数で受け取る。window 直読みは行わない（scene 座標算出と同一スクロール源にするため）。
    */
-  updatePositionInfo(): void {
+  updatePositionInfo(scrollX: number, scrollY: number): void {
     this.rect = this.element.getBoundingClientRect();
-
-    const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
 
     if (this.positionInfo.isFixed) {
       this.positionInfo.pageTop = this.rect.top;
@@ -61,8 +66,8 @@ export class DomPositionCalculator {
    * 戻り値は内部バッファを使い回すため、保持する場合は呼び出し側でコピーすること。
    */
   calculateWebGLPosition(
-    scrollX: number = 0,
-    scrollY: number = 0,
+    scrollX: number,
+    scrollY: number,
   ): { x: number; y: number } {
     let canvasCenterX: number;
     let canvasCenterY: number;

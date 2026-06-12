@@ -46,16 +46,25 @@ export class Dom3DObject {
   private updateRectEveryFrame: boolean;
   private observer: IntersectionObserver | null;
   private destroyed: boolean;
+  /**
+   * Core が保持する確定スクロール値キャッシュへの live 参照。
+   * 単発イベント経路（ctor の初期位置算出・setupModel・resize）はこの値を読み、
+   * `window.scrollX/Y` を直読みしない。setupModel は GLTF load 完了後に非同期で走るため、
+   * スナップショットではなく live 参照を保持して最新値を読む必要がある。
+   */
+  private readonly scroll: { x: number; y: number };
 
   constructor(
     element: HTMLElement | null,
     mainScene: THREE.Scene,
     canvasRect: DOMRect,
+    scroll: { x: number; y: number },
     options: Create3DObjectOptions,
   ) {
     this.element = element;
     this.mainScene = mainScene;
     this.canvasRect = canvasRect;
+    this.scroll = scroll;
     this.model = null;
     this.loader = new GLTFLoader();
     this.options = {
@@ -69,7 +78,7 @@ export class Dom3DObject {
     };
     this.updateRectEveryFrame = options.updateRectEveryFrame ?? false;
     this.positionCalculator = element
-      ? new DomPositionCalculator(element, canvasRect)
+      ? new DomPositionCalculator(element, canvasRect, this.scroll.x, this.scroll.y)
       : null;
     // element=null は scene 原点固定で常に表示。HTMLElement の場合は Observer の
     // 初回 callback まで非表示にして「初フレ画面外で見える」を避ける。
@@ -103,10 +112,10 @@ export class Dom3DObject {
    *  になっていたため明示フラグ駆動に変更)
    * @internal Core.animate から呼ばれる。
    */
-  public _tickRead(): void {
+  public _tickRead(scrollX: number, scrollY: number): void {
     if (!this.model || !this.isVisible || !this.positionCalculator) return;
     if (this.updateRectEveryFrame) {
-      this.positionCalculator.updatePositionInfo();
+      this.positionCalculator.updatePositionInfo(scrollX, scrollY);
     }
   }
 
@@ -155,7 +164,8 @@ export class Dom3DObject {
       // DomPositionCalculator constructor で遅延した位置タイプ判定 (getComputedStyle)
       // をここで実行 + rect 再取得。load 完了後の初期化なので layout 1 回。
       this.positionCalculator.refreshPositionType();
-      this.positionCalculator.updatePositionInfo();
+      // GLTF load 完了後（非同期）に走るため、Core の live キャッシュから最新値を読む。
+      this.positionCalculator.updatePositionInfo(this.scroll.x, this.scroll.y);
 
       const box = new THREE.Box3().setFromObject(this.model);
       const size = new THREE.Vector3();
@@ -177,7 +187,7 @@ export class Dom3DObject {
     this.mainScene.add(this.model);
 
     this.applyScale();
-    this.setPosition(window.scrollX, window.scrollY);
+    this.setPosition(this.scroll.x, this.scroll.y);
   }
 
   private applyScale(): void {
@@ -229,9 +239,10 @@ export class Dom3DObject {
       return;
     }
     this.positionCalculator.refreshPositionType();
-    this.positionCalculator.updatePositionInfo();
+    // Core が確定したキャッシュ値を読む（window 直読みはしない）。
+    this.positionCalculator.updatePositionInfo(this.scroll.x, this.scroll.y);
     this.applyScale();
-    this.setPosition(window.scrollX, window.scrollY);
+    this.setPosition(this.scroll.x, this.scroll.y);
   }
 
   public getModel() {

@@ -68,11 +68,18 @@ export class DomPlane {
    * 指定なしの場合は sharedTextureLoader をそのまま使う。
    */
   private crossOrigin: string | undefined;
+  /**
+   * Core が保持する確定スクロール値キャッシュへの live 参照。
+   * 単発イベント経路（ctor の初期位置算出・resize）はこの値を読み、`window.scrollX/Y` を
+   * 直読みしない（毎フレーム経路と同一のスクロール源に揃えるため）。
+   */
+  private readonly scroll: { x: number; y: number };
 
   constructor(
     el: HTMLElement | null,
     scene: THREE.Scene,
     canvasRect: DOMRect,
+    scroll: { x: number; y: number },
     renderer: THREE.WebGLRenderer,
     options: CreatePlaneOptions = {},
     sharedClock?: THREE.Clock,
@@ -80,6 +87,7 @@ export class DomPlane {
     this.element = el;
     this.scene = scene;
     this.renderer = renderer;
+    this.scroll = scroll;
     this.texture = null;
     this.destroyed = false;
     this.updateRectEveryFrame = options.updateRectEveryFrame || false;
@@ -87,7 +95,7 @@ export class DomPlane {
     this.clock = sharedClock ?? new THREE.Clock();
     this.canvasRect = canvasRect;
     this.positionCalculator = el
-      ? new DomPositionCalculator(el, canvasRect)
+      ? new DomPositionCalculator(el, canvasRect, this.scroll.x, this.scroll.y)
       : null;
 
     // フルスクリーンは常に表示、DOM要素は IntersectionObserver で監視
@@ -166,10 +174,10 @@ export class DomPlane {
    *  layout 強制になっていたため明示フラグ駆動に変更)
    * @internal Core.animate から呼ばれる。
    */
-  public _tickRead(): void {
+  public _tickRead(scrollX: number, scrollY: number): void {
     if (!this.isVisible || !this.positionCalculator) return;
     if (this.updateRectEveryFrame) {
-      this.positionCalculator.updatePositionInfo();
+      this.positionCalculator.updatePositionInfo(scrollX, scrollY);
     }
   }
 
@@ -270,11 +278,12 @@ export class DomPlane {
 
   public resize() {
     if (this.positionCalculator) {
-      this.positionCalculator.refreshPositionType();
-      this.positionCalculator.updatePositionInfo();
+      // Core が確定したキャッシュ値を読む（window 直読みはしない）。
+      const scrollX = this.scroll.x;
+      const scrollY = this.scroll.y;
 
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
+      this.positionCalculator.refreshPositionType();
+      this.positionCalculator.updatePositionInfo(scrollX, scrollY);
 
       this.updateSize();
       this.setPosition(scrollX, scrollY);
@@ -348,13 +357,13 @@ export class DomPlane {
    * scrollX/Y は Core.animate が 1 rAF tick 上で 1 回確定したスナップショット値を渡す。
    * ここで `window.scrollX/Y` を直接読むと
    *（同一 frame で全コンポーネントが同じ scroll 値を共有する）を壊すため必ず引数経由。
-   * 後方互換のため省略可能だが、その場合は window から読む (= 古い挙動)。
+   * silent な window fallback を防ぐため必須引数とする（呼び出し元は Core.animate のみ）。
    */
   public updateEffects(
     time: number,
-    globalMouse?: THREE.Vector2,
-    scrollX: number = window.scrollX,
-    scrollY: number = window.scrollY,
+    globalMouse: THREE.Vector2 | undefined,
+    scrollX: number,
+    scrollY: number,
   ) {
     if (this.effects.length === 0) return;
 
