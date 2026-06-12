@@ -101,6 +101,24 @@ describe('ScrollSync', () => {
     expect(container.style.transform).toBe('translate3d(0px, -80px, 0)');
   });
 
+  it('S-3: scroll 値が変わらないフレームでは transform を再書き込みしない（差分適用）', () => {
+    const sync = new ScrollSync(container);
+
+    sync.update(0, 400);
+    expect(container.style.transform).toBe('translate3d(0px, 400px, 0)');
+
+    // 外部から sentinel（有効な transform 値）を書き込み、同値 update が上書きしない
+    // ＝書き込みスキップを観測する。jsdom は無効な CSS 値を弾くので valid な値を使う。
+    container.style.transform = 'translate3d(7px, 7px, 0)';
+    sync.update(0, 400);
+    sync.update(0, 400);
+    expect(container.style.transform).toBe('translate3d(7px, 7px, 0)');
+
+    // scroll 値が変われば再び書き込む
+    sync.update(0, 401);
+    expect(container.style.transform).toBe('translate3d(0px, 401px, 0)');
+  });
+
   it('computeEffectiveScrollY: 通常スクロール時は window.scrollY と一致する', () => {
     Object.defineProperty(window, 'scrollY', { value: 500, configurable: true });
     expect(ScrollSync.computeEffectiveScrollY()).toBe(500);

@@ -47,6 +47,14 @@ export class ScrollSync {
   private _viewportWidth: number = 0;
   private _viewportHeight: number = 0;
   private _enabled: boolean = true;
+  /**
+   * 直近 applyTransform で書き込んだ scroll 値。scroll が動いていないフレームで
+   * テンプレート文字列を再生成して style.transform に再代入するのを省くための diff キャッシュ。
+   * 初期値 NaN（NaN === NaN は false）で初回は必ず書き込む。RafScroll の `_lastAppliedY`
+   * と同じ差分適用パターン。
+   */
+  private _lastAppliedX: number = NaN;
+  private _lastAppliedY: number = NaN;
 
   /** viewport そのままの logical rect (0, 0, vw, vh)。canvas drawing buffer のサイズに使う。 */
   private _logicalRect: DOMRect = new DOMRect();
@@ -149,6 +157,11 @@ export class ScrollSync {
   }
 
   private applyTransform(scrollX: number, scrollY: number): void {
+    // scroll が動いていないフレームでは何もしない。テンプレート文字列の都度生成と
+    // style.transform への再代入（短命オブジェクトの量産 → GC 圧）を避ける。
+    if (scrollX === this._lastAppliedX && scrollY === this._lastAppliedY) return;
+    this._lastAppliedX = scrollX;
+    this._lastAppliedY = scrollY;
     this.container.style.transform =
       `translate3d(${scrollX}px, ${scrollY}px, 0)`;
   }

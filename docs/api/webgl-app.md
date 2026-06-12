@@ -24,6 +24,7 @@ new WebGLApp(selector: string | HTMLElement, options?: WebGLAppOptions)
 | option | type | default | 説明 |
 |---|---|---|---|
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
+| `rafScroll` | `boolean \| RafScrollOptions` | `false` | RafScroll を Core 管理下で有効化（単一 rAF に統合し生成順依存を排除）。詳細は [Scroll](/api/scroll) |
 | `enableMouseTracking` | `boolean` | `true` | マウス座標と hover 判定を更新 |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限（モバイルは `1.5` 推奨） |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
@@ -109,10 +110,12 @@ mousemove listener の動的 ON/OFF。重い UI を開いている間など、ho
 | `getLight()` | `Light` | ambient + directional のラッパー |
 | `getViewPort()` | `DOMRect` | canvas の logical rect（ScrollSync 有効時は viewport ぴったり） |
 | `getMouse()` | `THREE.Vector2` | 現フレの canvas UV (0..1, Y-up) |
+| `getScroll()` | `Readonly<{ x: number; y: number }>` | Core が rAF tick で確定した現フレのスクロール値キャッシュ（live 参照。保持時は clone） |
 | `getPrevMouse()` | `THREE.Vector2` | 前フレの UV |
 | `getMouseDelta()` | `THREE.Vector2` | `current - prev`（毎フレ scratch なので保持したいときは clone） |
 | `getControls()` | `OrbitControls \| null` | `enableOrbitControls()` 後のインスタンス |
 | `getScrollSync()` | `ScrollSync \| null` | `scrollSync: true` で構築した場合の内部インスタンス |
+| `getRafScroll()` | `RafScroll \| null` | `rafScroll` オプションで構築した管理下インスタンス |
 | `getGUI()` | `GUI \| null` | lil-gui のルート（load 完了前は null） |
 | `getGUIAsync()` | `Promise<GUI \| null>` | lil-gui を必要に応じて load してから返す |
 
