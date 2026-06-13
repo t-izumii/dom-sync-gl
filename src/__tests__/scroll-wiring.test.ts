@@ -149,6 +149,22 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
 
     app.destroy();
   });
+
+  it('フルスクリーン plane(element 無し)も hover 経路に入り setHoverInfo で uniform が更新される', () => {
+    // Given: DOM-locked plane を 1 つも作らず、フルスクリーン plane だけを生成
+    const app = new WebGLApp(container);
+    const plane = app.createPlane(null) as DomPlane;
+    const spy = vi.spyOn(plane, 'setHoverInfo');
+
+    // When: 1 フレーム回す（planeMeshes は空だが、フルスクリーン hover は raycast とは別経路）
+    (app as unknown as { animate: () => void }).animate.call(app);
+
+    // Then: 背景 plane も毎フレ setHoverInfo を受ける。mouse 未移動なので inside=false で流れる。
+    expect(spy).toHaveBeenCalledWith(false, expect.anything());
+    expect(plane.material.uniforms.uIsHovered.value).toBe(false);
+
+    app.destroy();
+  });
 });
 
 describe('Core ⇄ RafScroll の統合（rafScroll オプション）', () => {

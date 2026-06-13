@@ -19,6 +19,12 @@ export class PointerController {
   private readonly camera: Camera;
   private readonly planeMeshes: THREE.Mesh[];
   private readonly planeByMesh: Map<THREE.Mesh, DomPlane>;
+  /**
+   * 全 DomPlane の live 配列参照（WebGLApp 所有）。フルスクリーン plane（element 無し）の
+   * hover uniform を毎フレ流すために走査する。raycast 対象（planeMeshes）には背景 plane を
+   * 入れないので、こちらで element===null を拾って直接 setHoverInfo する。
+   */
+  private readonly planes: DomPlane[];
 
   private readonly mouse = new THREE.Vector2(0.5, 0.5);
   private readonly prevMouse = new THREE.Vector2(0.5, 0.5);
@@ -47,11 +53,14 @@ export class PointerController {
     planeMeshes: THREE.Mesh[];
     /** mesh → DomPlane 逆引き用の live Map 参照（WebGLApp 所有）。 */
     planeByMesh: Map<THREE.Mesh, DomPlane>;
+    /** 全 DomPlane の live 配列参照（WebGLApp 所有）。フルスクリーン plane の hover に使う。 */
+    planes: DomPlane[];
   }) {
     this.canvas = opts.canvas;
     this.camera = opts.camera;
     this.planeMeshes = opts.planeMeshes;
     this.planeByMesh = opts.planeByMesh;
+    this.planes = opts.planes;
   }
 
   getMouse(): THREE.Vector2 {
@@ -104,6 +113,13 @@ export class PointerController {
         this.hoveredPlane.setHoverInfo(false, null);
         this.hoveredPlane = null;
       }
+      // フルスクリーン plane の hover も解除（disable 中は update() が早期 return するため）。
+      const planes = this.planes;
+      for (let i = 0, n = planes.length; i < n; i++) {
+        if (planes[i].element === null) {
+          planes[i].setHoverInfo(false, null);
+        }
+      }
     }
   }
 
@@ -130,6 +146,14 @@ export class PointerController {
    */
   update(): void {
     if (!this.enabled) return;
+
+    // フルスクリーン plane（element 無し = canvas 全面の背景）は raycast に入れない
+    // （単一勝者の raycast だと DOM-locked plane と hover を奪い合う）。代わりに毎フレ
+    // global mouse UV と「canvas 内に居るか」を直接流し、背景シェーダーでも uMouseUV /
+    // uIsHovered を DOM-locked plane と同じ感覚で使えるようにする。DOM-locked plane の
+    // raycast hover とは独立経路（背景は常にマウスの下にあるので単一勝者では表せない）。
+    this.updateFullscreenHover();
+
     if (this.planeMeshes.length === 0) return;
 
     // canvas 外なら hover を解除
@@ -168,6 +192,21 @@ export class PointerController {
     if (this.hoveredPlane) {
       this.hoveredPlane.setHoverInfo(false, null);
       this.hoveredPlane = null;
+    }
+  }
+
+  /**
+   * フルスクリーン plane（element 無し）の hover uniform を更新する。canvas 全面を覆うので
+   * raycast せず、global mouse UV（`this.mouse`）と canvas 内判定（`this.mouseInside`）を
+   * そのまま `setHoverInfo` に流す。これで背景シェーダーでも `uMouseUV` / `uIsHovered` が使える。
+   */
+  private updateFullscreenHover(): void {
+    const planes = this.planes;
+    for (let i = 0, n = planes.length; i < n; i++) {
+      const plane = planes[i];
+      if (plane.element === null) {
+        plane.setHoverInfo(this.mouseInside, this.mouse);
+      }
     }
   }
 
