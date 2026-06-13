@@ -109,11 +109,12 @@ export class WebGLApp {
     this.domPlanes = [];
     this.dom3DObjects = [];
     this.clock = new THREE.Clock();
-    this.options = { enableMouseTracking: true, showGUI: true, ...options };
+    this.options = { enableMouseTracking: true, showGUI: false, ...options };
 
     // 関心ごとに分離したコラボレータを構築する。WebGLApp 本体はライフサイクルと rAF
     // オーケストレーションに専念し、入力/hover・effect・devtools は各クラスへ委譲する。
-    const showGUI = this.options.showGUI !== false;
+    // 既定は false（opt-in）。明示的に true のときだけ GUI を有効化する。
+    const showGUI = this.options.showGUI === true;
     this.devTools = new DevTools({
       showStats: !!options.showStats,
       statsParent: options.statsParent ?? document.body,
@@ -302,9 +303,9 @@ export class WebGLApp {
       this.clock,
     );
     // plane.addEffect() からも GUI を生やせるよう WebGLApp の lazy-getter を渡す。
-    // showGUI が false なら provider は渡さない（DomPlane 側で何もしない）。
+    // showGUI が有効（明示 true）でなければ provider は渡さない（DomPlane 側で何もしない）。
     // lil-gui は optional peer の dynamic import なので Promise を返す provider。
-    if (this.options.showGUI !== false) {
+    if (this.options.showGUI === true) {
       domPlane._setGuiProvider(() => this._ensureGUIAsync());
     }
     this.domPlanes.push(domPlane);

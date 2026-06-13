@@ -30,7 +30,7 @@ new WebGLApp(selector: string | HTMLElement, options?: WebGLAppOptions)
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
 | `showStats` | `boolean` | `false` | stats.js の FPS パネルを表示 |
 | `statsParent` | `HTMLElement` | `document.body` | パネルの append 先 |
-| `showGUI` | `boolean` | `true` | `setupGUI()` を実装したエフェクトに lil-gui を渡す |
+| `showGUI` | `boolean` | `false` | `true` のとき `setupGUI()` を実装したエフェクトに lil-gui を渡す（opt-in。lil-gui は optional peer） |
 | `guiTitle` | `string` | `'Effects'` | lil-gui ルートタイトル |
 
 ## Methods
