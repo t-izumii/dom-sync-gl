@@ -141,10 +141,9 @@ export class WebGLApp {
       this.scrollSync = new ScrollSync(this.container, syncOptions);
       // ScrollSync有効時はlogicalRectを使用
       this.rect = this.scrollSync.logicalRect;
-      // 旧 architecture では `setResizeCallback` 経由で padding clamp 起因の canvas
-      // resize を Core に通知していたが、fixed container 化で canvas サイズは window
-      // resize 以外で変わらない。window resize は Core 側で直接 handle するので
-      // ここで callback を繋ぐ必要は無い。
+      // fixed/absolute container 化で canvas サイズは window resize 以外で変わらず、
+      // window resize は Core 側で直接 handle する。よって ScrollSync の resize を
+      // Core へ通知する経路は不要（旧 architecture の callback 配線は廃止済み）。
     }
 
     // RafScroll（rAF 同期 virtual scroll）を Core 管理下で構築する。
