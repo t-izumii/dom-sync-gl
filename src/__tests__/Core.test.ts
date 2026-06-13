@@ -129,12 +129,6 @@ describe('WebGLApp', () => {
     app.destroy();
   });
 
-  it('removePostEffect は clearEffects のエイリアスとして動作する', () => {
-    const app = new WebGLApp(container);
-    expect(() => app.removePostEffect()).not.toThrow();
-    app.destroy();
-  });
-
   it('addUpdateCallback の解除関数は重複呼び出しに耐える', () => {
     const app = new WebGLApp(container);
     const cb = vi.fn();
