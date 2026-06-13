@@ -67,11 +67,12 @@ export interface WebGLAppOptions {
    */
   maxPixelRatio?: number;
   /**
-   * エフェクトを `addEffect()` で読み込んだ時、その effect の `setupGUI()`
-   * を自動で呼び出して lil-gui パネルを表示する。
-   * GUI 本体は最初に setupGUI を実装したエフェクトが登録された時に lazy 生成される。
+   * `true` のとき、エフェクトを `addEffect()` で読み込むと、その effect の `setupGUI()`
+   * を自動で呼び出して lil-gui パネルを表示する（GUI 本体は最初に setupGUI を実装した
+   * エフェクトが登録された時に lazy 生成される）。
+   * lil-gui は optional peer なので**既定は無効**。デバッグ時に明示的に `true` にする。
    *
-   * @default true
+   * @default false
    */
   showGUI?: boolean;
   /**
