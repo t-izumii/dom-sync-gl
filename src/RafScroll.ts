@@ -11,8 +11,14 @@
  *   共有する不変条件) が paint 時まで厳密に成立する
  *
  * Lenis から「rAF 同期に必要な最小機能」だけ抜き出した実装。wheel/drag 中の smoothing
- * は無し (`lerp: 1` 相当)、accessibility (キーボードスクロール) や programmatic scroll
- * (`window.scrollTo` 外部呼び出し) との同期は対応しない。
+ * は無し (`lerp: 1` 相当)。
+ *
+ * **外部 / programmatic スクロールの取り込み**: wheel/touch に加えて `scroll` イベントも監視し、
+ * アンカーリンク・キーボードスクロール (Space/PageDown/矢印)・スクロールバードラッグ・ブラウザ内
+ * 検索のジャンプ・`scrollIntoView`・ハッシュ着地 等で `window.scrollY` が動いたら accumulator
+ * (`_scrollY`) を再同期する。これをしないと、外部スクロール後の最初の wheel/touch 入力で古い
+ * `_scrollY` 位置へ**スナップバック**する（accumulator が取り残されるため）。自分の `scrollTo`
+ * が起こした scroll は `_lastAppliedY` との一致で除外する。
  *
  * **touch 慣性 (momentum)**: ネイティブ touch scroll を `preventDefault` で抑止する以上、
  * OS が提供する慣性も失われる。代わりに自前で実装する:
@@ -67,6 +73,12 @@ const VELOCITY_CUTOFF_MS = 50;
 const VELOCITY_EMA_ALPHA = 0.3;
 /** dt 正規化の基準フレーム時間 (60fps = 16.67ms)。 */
 const FRAME_MS = 1000 / 60;
+/**
+ * 外部スクロール検知の許容差 (px)。自分の `scrollTo(0, _scrollY)` が起こした scroll は
+ * `window.scrollY ≈ _lastAppliedY` になるが、ブラウザの subpixel 丸めで完全一致しないことが
+ * あるため、この差以内は「自分由来」とみなして再同期しない（フィードバックループ防止）。
+ */
+const SELF_SCROLL_EPS = 2;
 
 export class RafScroll {
   private _scrollY: number;
@@ -153,6 +165,13 @@ export class RafScroll {
 
     // viewport / document サイズ変化に追従
     window.addEventListener('resize', this.onResize, { signal });
+
+    // 外部 / programmatic スクロール（アンカー・キーボード・スクロールバー・検索ジャンプ・
+    // scrollIntoView 等）を監視して accumulator を再同期する。passive で監視のみ。
+    window.addEventListener('scroll', this.onExternalScroll, {
+      passive: true,
+      signal,
+    });
   }
 
   /**
@@ -246,6 +265,26 @@ export class RafScroll {
   private onResize = (): void => {
     this._maxScroll = this.calcMaxScroll();
     this._scrollY = this.clamp(this._scrollY);
+  };
+
+  /**
+   * 外部 / programmatic スクロールを accumulator に取り込む。
+   *
+   * 自分の `scrollTo` 由来（`window.scrollY ≈ _lastAppliedY`）は無視し、それ以外（アンカー・
+   * キーボード・スクロールバー・検索・scrollIntoView 等）を検知したら `_scrollY` を
+   * `window.scrollY` に合わせる。これをしないと次の wheel/touch 入力で古い `_scrollY` 位置へ
+   * 巻き戻る。慣性は破棄する。disabled 中は native が scroll を所有し再 enable 時に同期するので
+   * 無視。touch 中は自前駆動が scroll を所有するので無視。
+   */
+  private onExternalScroll = (): void => {
+    if (this._destroyed || !this._enabled || this._isTouching) return;
+    const y = window.scrollY;
+    // 自前 scrollTo が起こした scroll は無視（subpixel 丸めを EPS で吸収）。
+    if (Math.abs(y - this._lastAppliedY) <= SELF_SCROLL_EPS) return;
+    // 外部スクロールを検知 → accumulator を合わせ、次フレームで巻き戻さないようにする。
+    this._scrollY = this.clamp(y);
+    this._lastAppliedY = this._scrollY;
+    this._velocityY = 0;
   };
 
   private clamp(y: number): number {
