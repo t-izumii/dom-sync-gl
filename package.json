@@ -1,6 +1,6 @@
 {
   "name": "dom-sync-gl",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "domSyncGL — DOM ↔ WebGL synchronization with composable post effects, rAF-synced scroll, and touch inertia.",
   "type": "module",
   "license": "MIT",
