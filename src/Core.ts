@@ -490,13 +490,6 @@ export class WebGLApp {
     this.effectManager.clearEffects();
   }
 
-  /**
-   * @deprecated `clearEffects()` を使ってください。挙動は同一です。
-   */
-  removePostEffect(): void {
-    this.clearEffects();
-  }
-
   private setupEventListeners() {
     const signal = this.eventAbort.signal;
 
