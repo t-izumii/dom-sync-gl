@@ -132,6 +132,7 @@ export class WebGLApp {
       camera: this.camera,
       planeMeshes: this.domPlaneMeshes,
       planeByMesh: this.domPlaneByMesh,
+      planes: this.domPlanes,
     });
 
     // ScrollSync の初期化（renderer/camera生成後、init前に実行）
