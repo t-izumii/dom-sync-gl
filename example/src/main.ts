@@ -5,22 +5,19 @@ import "./style.css";
 
 // ---------------------------------------------------------------------------
 // 1. WebGLApp 初期化
-//    scrollSync + trackStrength でスクロール速度 (strength) を取れるようにする。
-//    rafScroll オプションで wheel/touch を rAF にまとめた慣性スクロールを Core 管理下で有効化。
-//    Core の単一 rAF ループ内で scrollTo → scroll 読み取りの順に駆動されるので、
+//    scrollSync / rafScroll はどちらもオプション省略 (= true) でデフォルト構成にしている。
+//    rafScroll は wheel/touch を rAF にまとめた慣性スクロールを Core 管理下で有効化し、
+//    Core の単一 rAF ループ内で scrollTo → scroll 読み取りの順に駆動するので、
 //    生成順を気にせず背景 canvas が 1 フレームずれない。
+//    （スクロール速度 strength を演出に使いたい場合のみ scrollSync: { trackStrength: true } にする）
 // ---------------------------------------------------------------------------
 const app = new WebGLApp("#gl", {
-  scrollSync: { trackStrength: true, strengthDecay: 8 },
-  rafScroll: {
-    lineHeight: 16, // WheelEvent.deltaMode=LINE (Firefox) のときの 1 行 px
-    touchFriction: 0.92, // タッチリリース後の慣性減衰率 (0 で慣性なし)
-  },
+  scrollSync: true,
+  rafScroll: true,
   maxPixelRatio: 2,
   showGUI: false,
   showStats: true,
 });
-const scrollSync = app.getScrollSync();
 
 // ---------------------------------------------------------------------------
 // 2. ヒーローのフルスクリーン背景 plane (viewport 固定)
@@ -120,22 +117,16 @@ syncEffectSize();
 app.addResizeCallback(syncEffectSize);
 
 // ---------------------------------------------------------------------------
-// 5. 毎フレーム: スクロール速度 → 各 uniform、ホバー / リビールの lerp
+// 5. 毎フレーム: ホバー / リビールの lerp 更新
 // ---------------------------------------------------------------------------
 const lerp = (cur: number, to: number, k: number) => cur + (to - cur) * k;
 
 app.addUpdateCallback(() => {
-  const strength = scrollSync?.strength ?? 0;
-
-  heroPlane.material.uniforms.uStrength.value = strength;
-  film.setStrength(strength);
-
   for (const w of works) {
     w.hover = lerp(w.hover, w.hoverTarget, 0.12);
     w.reveal = lerp(w.reveal, w.revealTarget, 0.08);
     w.plane.material.uniforms.uHover.value = w.hover;
     w.plane.material.uniforms.uReveal.value = w.reveal;
-    w.plane.material.uniforms.uStrength.value = strength;
   }
 });
 
