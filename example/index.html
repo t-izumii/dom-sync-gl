@@ -3,19 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>OBSCURA — Independent Digital Studio</title>
+    <title>NAGI 凪 — Digital Studio</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23060605'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23ff5a3c' stroke-width='2'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23efece4'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%231b1916' stroke-width='1.5'/%3E%3C/svg%3E"
     />
     <meta
       name="description"
-      content="domSyncGL を使って構築した、アワードクラスのデジタルスタジオサイトのサンプル。"
+      content="domSyncGL で構築した、和の余白とミニマリズムを基調にしたデジタルスタジオのサンプルサイト。"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500&family=Zen+Old+Mincho:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -29,61 +29,61 @@
     <!-- プリローダー -->
     <div class="loader">
       <div class="loader__inner">
-        <span class="loader__label">OBSCURA STUDIO</span>
+        <span class="loader__mark" aria-hidden="true">凪</span>
         <span class="loader__count">000</span>
       </div>
     </div>
 
     <!-- ナビ -->
     <header class="nav">
-      <a class="nav__logo" href="#">OBSCURA<sup>®</sup></a>
+      <a class="nav__logo" href="#">NAGI<span class="nav__kanji">凪</span></a>
       <nav class="nav__menu">
         <a href="#work">Work</a>
         <a href="#studio">Studio</a>
         <a href="#contact">Contact</a>
       </nav>
-      <span class="nav__time">EST. MMXXVI — TOKYO</span>
+      <span class="nav__time">東京 — Est. MMXXVI</span>
     </header>
 
     <main>
       <!-- ヒーロー -->
       <section class="hero">
-        <p class="hero__eyebrow" data-reveal>Independent Digital Studio</p>
+        <p class="hero__eyebrow" data-reveal>Digital Studio — 凪</p>
         <h1 class="hero__title">
-          <span class="line" data-reveal>Digital</span>
-          <span class="line" data-reveal><em>craft</em> for</span>
-          <span class="line" data-reveal>the curious.</span>
+          <span class="line" data-reveal>Calm</span>
+          <span class="line" data-reveal>surfaces,</span>
+          <span class="line" data-reveal><em>quietly</em> aligned.</span>
         </h1>
         <div class="hero__meta">
           <p data-reveal>
-            私たちは WebGL とタイポグラフィの境界で、記憶に残るデジタル体験を設計・実装する
-            独立スタジオです。
+            私たちは、DOM と光をひとつの面に静かに重ねるデジタルスタジオです。
+            余白と精度のあいだに、記憶に残る静けさを設計します。
           </p>
-          <span class="hero__scroll" data-reveal>Scroll ↓</span>
+          <span class="hero__scroll" data-reveal>Scroll <span aria-hidden="true">↓</span></span>
         </div>
       </section>
 
       <!-- マーキー -->
       <div class="marquee" aria-hidden="true">
         <div class="marquee__track">
-          <span>Creative Development</span><span>·</span>
-          <span>WebGL</span><span>·</span>
-          <span>Art Direction</span><span>·</span>
-          <span>Motion</span><span>·</span>
-          <span>Creative Development</span><span>·</span>
-          <span>WebGL</span><span>·</span>
-          <span>Art Direction</span><span>·</span>
-          <span>Motion</span><span>·</span>
+          <span>Creative Development</span><span class="marquee__dot">凪</span>
+          <span>WebGL</span><span class="marquee__dot">凪</span>
+          <span>Art Direction</span><span class="marquee__dot">凪</span>
+          <span>Motion</span><span class="marquee__dot">凪</span>
+          <span>Creative Development</span><span class="marquee__dot">凪</span>
+          <span>WebGL</span><span class="marquee__dot">凪</span>
+          <span>Art Direction</span><span class="marquee__dot">凪</span>
+          <span>Motion</span><span class="marquee__dot">凪</span>
         </div>
       </div>
 
       <!-- マニフェスト -->
       <section class="manifesto" id="studio">
-        <span class="section-index" data-reveal>(01) — Manifesto</span>
+        <span class="section-index" data-reveal>(01) — 間 / Manifesto</span>
         <p class="manifesto__text" data-reveal>
-          私たちが信じているのは、<em>速さ</em>ではなく<em>密度</em>。
-          一枚の DOM とひとつのシェーダーが正確に重なったとき、画面はただの情報から
-          体験へと変わる。OBSCURA は、その<em>ズレのなさ</em>に手間をかける。
+          信じているのは、速さではなく<em>静けさ</em>。
+          一枚の DOM とひとつの光が寸分なく重なったとき、画面はただの情報から
+          <em>呼吸</em>へと変わる。凪は、その<em>ズレのなさ</em>に手間をかける。
         </p>
       </section>
 
@@ -91,14 +91,14 @@
       <section class="works" id="work">
         <div class="works__head">
           <span class="section-index" data-reveal>(02) — Selected Work</span>
-          <h2 class="works__title" data-reveal>Recent<br />Projects</h2>
+          <h2 class="works__title" data-reveal>Recent<br />Works</h2>
         </div>
 
         <article class="work" data-reveal>
           <div class="work__visual"></div>
           <div class="work__body">
             <span class="work__no">01</span>
-            <h3 class="work__title">Aurora Field</h3>
+            <h3 class="work__title">朝霧 <em>Asagiri</em></h3>
             <p class="work__tags">WebGL · Brand Site</p>
             <span class="work__year">2026</span>
           </div>
@@ -108,7 +108,7 @@
           <div class="work__visual"></div>
           <div class="work__body">
             <span class="work__no">02</span>
-            <h3 class="work__title">Tidal Bloom</h3>
+            <h3 class="work__title">名残 <em>Nagori</em></h3>
             <p class="work__tags">Art Direction · Motion</p>
             <span class="work__year">2025</span>
           </div>
@@ -118,7 +118,7 @@
           <div class="work__visual"></div>
           <div class="work__body">
             <span class="work__no">03</span>
-            <h3 class="work__title">Amber Drift</h3>
+            <h3 class="work__title">雫 <em>Shizuku</em></h3>
             <p class="work__tags">Creative Dev · Campaign</p>
             <span class="work__year">2025</span>
           </div>
@@ -128,7 +128,7 @@
           <div class="work__visual"></div>
           <div class="work__body">
             <span class="work__no">04</span>
-            <h3 class="work__title">Cobalt Hours</h3>
+            <h3 class="work__title">月影 <em>Tsukikage</em></h3>
             <p class="work__tags">WebGL · Editorial</p>
             <span class="work__year">2024</span>
           </div>
@@ -140,7 +140,7 @@
         <span class="section-index" data-reveal>(03) — Capabilities</span>
         <ul class="caps__list">
           <li data-reveal><span>01</span> Creative Development</li>
-          <li data-reveal><span>02</span> WebGL / Shader Art</li>
+          <li data-reveal><span>02</span> WebGL / Shader 表現</li>
           <li data-reveal><span>03</span> Art Direction</li>
           <li data-reveal><span>04</span> Motion &amp; Interaction</li>
         </ul>
@@ -148,14 +148,14 @@
 
       <!-- フッター CTA -->
       <footer class="footer" id="contact">
-        <p class="footer__index" data-reveal>(04) — Say hello</p>
-        <a class="footer__cta" href="mailto:hello@obscura.studio" data-reveal>
-          Let’s make<br /><em>something</em>
+        <p class="footer__index" data-reveal>(04) — ご挨拶</p>
+        <a class="footer__cta" href="mailto:hello@nagi.studio" data-reveal>
+          Let’s make<br />something <em>still</em>.
         </a>
         <div class="footer__base">
-          <span>© MMXXVI OBSCURA STUDIO</span>
+          <span>© MMXXVI NAGI STUDIO</span>
           <span>Built with domSyncGL</span>
-          <a href="mailto:hello@obscura.studio">hello@obscura.studio</a>
+          <a href="mailto:hello@nagi.studio">hello@nagi.studio</a>
         </div>
       </footer>
     </main>
