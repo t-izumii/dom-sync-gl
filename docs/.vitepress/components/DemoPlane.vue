@@ -2,7 +2,9 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue';
 import { WebGLApp } from 'dom-sync-gl';
 
-const stage = ref<HTMLDivElement | null>(null);
+// カード型のボックス自体を WebGL コンテナにする。中に「フルスクリーン plane」を 1 枚張るので
+// DOM 要素ロックではなく、canvasRect / scroll に依存しない。ページをスクロールしても plane は
+// 常に canvas（= カード）を埋めたままズレない。
 const card = ref<HTMLDivElement | null>(null);
 let app: InstanceType<typeof WebGLApp> | null = null;
 
@@ -29,9 +31,21 @@ const fragmentShader = /* glsl */ `
 `;
 
 onMounted(() => {
-  if (!stage.value || !card.value) return;
-  app = new WebGLApp(stage.value);
-  app.createPlane(card.value, { fragmentShader });
+  if (!card.value) return;
+  app = new WebGLApp(card.value, { showGUI: false });
+  // element=null = フルスクリーン plane（canvas 全体を埋める）。
+  const plane = app.createPlane(null, { fragmentShader });
+
+  // フルスクリーン plane は raycast 対象外なので、hover 用 uniform は自前で流す。
+  // uMouseUV は getMouse()（canvas 内 UV, 0〜1）、uIsHovered は pointer enter/leave で。
+  let hovered = false;
+  card.value.addEventListener('pointerenter', () => (hovered = true));
+  card.value.addEventListener('pointerleave', () => (hovered = false));
+  app.addUpdateCallback(() => {
+    const m = app!.getMouse();
+    (plane.material.uniforms.uMouseUV.value as { set(x: number, y: number): void }).set(m.x, m.y);
+    plane.material.uniforms.uIsHovered.value = hovered;
+  });
 });
 
 onBeforeUnmount(() => {
@@ -43,27 +57,22 @@ onBeforeUnmount(() => {
 <template>
   <div class="demo-frame">
     <div
-      ref="stage"
-      class="demo-frame__stage"
+      class="demo-frame__stage demo-frame__stage--center"
       style="height: 320px;"
     >
       <div
         ref="card"
         style="
-          position: absolute;
-          left: 50%;
-          top: 50%;
           width: 60%;
           max-width: 360px;
           aspect-ratio: 16 / 9;
-          transform: translate(-50%, -50%);
           border-radius: 12px;
-          pointer-events: auto;
+          overflow: hidden;
         "
       ></div>
     </div>
     <div class="demo-frame__controls">
-      <span>カードの位置にロックした plane に shader を流し込んでいる。hover で色が変わる。</span>
+      <span>カード型の canvas にフルスクリーン plane を 1 枚張って shader を流している。hover で色が変わる。</span>
     </div>
   </div>
 </template>
