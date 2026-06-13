@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------
-// 共通ノイズ chunk。value noise + 6 オクターブ fbm。
+// 共通ノイズ chunk。value noise + 6 オクターブ fbm。水墨のにじみに使う。
 // ----------------------------------------------------------------------------
 const noise = /* glsl */ `
   float hash(vec2 p) {
@@ -31,8 +31,10 @@ const noise = /* glsl */ `
 
 // ----------------------------------------------------------------------------
 // ヒーロー背景。selector=null のフルスクリーン plane に貼る。
-// ドメインワープした fbm で流れる星雲。マウスで局所的に明るくなる。
+// 和紙の地の上を、ドメインワープした fbm の雲がゆっくり流れる。マウス周辺に
+// やわらかな墨だまりがにじむ（uMouseUV はフルスクリーン plane でも hover 経路で更新される）。
 // uTime / uResolution / uMouseUV は DomPlane が自動で更新する。uStrength は手動。
+// 全体を淡く保ち、上に乗る墨色のテキストが必ず読めるようにしている。
 // ----------------------------------------------------------------------------
 export const heroFragment = /* glsl */ `
   precision highp float;
@@ -49,42 +51,46 @@ export const heroFragment = /* glsl */ `
     vec2 p = uv;
     p.x *= uResolution.x / uResolution.y;
 
-    float t = uTime * 0.04;
+    float t = uTime * 0.025;
 
-    // 2 段のドメインワープ
-    vec2 q = vec2(fbm(p + t), fbm(p + vec2(5.2, 1.3) - t));
+    // 2 段のドメインワープで雲のにじみを作る
+    vec2 q = vec2(fbm(p * 1.3 + t), fbm(p * 1.3 + vec2(3.1, 1.7) - t));
     vec2 r = vec2(
-      fbm(p + 3.5 * q + vec2(1.7, 9.2) + 0.15 * t),
-      fbm(p + 3.5 * q + vec2(8.3, 2.8) - 0.12 * t)
+      fbm(p * 1.3 + 2.2 * q + vec2(1.2, 7.4) + 0.10 * t),
+      fbm(p * 1.3 + 2.2 * q + vec2(6.1, 2.3) - 0.08 * t)
     );
-    float f = fbm(p + 3.5 * r);
+    float f = fbm(p * 1.3 + 2.2 * r);
 
-    // マウス周辺を持ち上げる
-    float m = smoothstep(0.55, 0.0, distance(uv, uMouseUV));
-    f += m * 0.25;
+    // マウス周辺にやわらかい墨だまり
+    float m = smoothstep(0.5, 0.0, distance(uv, uMouseUV));
 
-    vec3 c1 = vec3(0.012, 0.012, 0.018); // ほぼ黒
-    vec3 c2 = vec3(0.16, 0.04, 0.26);    // 紫
-    vec3 c3 = vec3(0.72, 0.27, 0.13);    // 琥珀（控えめ）
+    vec3 paper = vec3(0.937, 0.925, 0.894); // 和紙の地
+    vec3 ink   = vec3(0.60, 0.58, 0.54);    // やわらかい墨グレー
+    vec3 shu   = vec3(0.69, 0.29, 0.19);    // 朱（気配だけ）
 
-    vec3 col = mix(c1, c2, clamp(f * f * 1.8, 0.0, 1.0));
-    // 琥珀は局所的にだけ出す（全面がピンクに寄らないよう pow で締める）
-    col = mix(col, c3, clamp(pow(length(r), 1.6) * 0.42, 0.0, 1.0));
+    // 雲の濃度は淡く保つ（最濃でも paper↔ink の中間どまり）
+    float cloud = smoothstep(0.35, 0.95, f);
+    vec3 col = mix(paper, ink, cloud * 0.5);
 
-    // スクロール速度でわずかに脈動
-    col += 0.04 * sin(uTime * 0.6 + uv.y * 9.0) * uStrength;
+    // マウスでにじみを足す
+    col = mix(col, ink, m * 0.18);
 
-    // ビネット + 全体を沈める
-    col *= 1.0 - 0.55 * length(uv - 0.5);
-    col *= 0.82;
+    // ごく僅かに朱の気配（局所・雲の濃いところだけ）
+    col = mix(col, shu, clamp(pow(length(r), 2.2) * 0.10, 0.0, 1.0) * (0.3 + 0.7 * cloud));
+
+    // スクロール速度で微かに揺らぐ
+    col += 0.015 * sin(uTime * 0.5 + uv.y * 7.0) * uStrength;
+
+    // 紙の縁を僅かに沈めるやわらかいビネット（暗くしすぎない）
+    col *= 1.0 - 0.10 * length(uv - 0.5);
 
     gl_FragColor = vec4(col, 1.0);
   }
 `;
 
 // ----------------------------------------------------------------------------
-// Works のビジュアル。各 DOM 要素にロックされる procedural な板。
-// uColorA/uColorB/uSeed で個体差を、uHover/uReveal/uStrength で状態を表す。
+// Works のビジュアル。各 DOM 要素にロックされる procedural な板。水墨のトーン。
+// uColorA(濃い墨) → uColorB(淡いトーン) を fbm の濃度で混ぜる単色ベースの諧調。
 //   uHover   : ホバー量 (0..1, JS 側で lerp)
 //   uReveal  : 画面内に入ったときの下からのワイプ (0..~1.2)
 //   uStrength: スクロール速度 (0..1)
@@ -107,47 +113,49 @@ export const workFragment = /* glsl */ `
   void main() {
     vec2 uv = vUv;
 
-    // ホバー時に中心へ寄せて “ズーム” 感を出す
-    vec2 cuv = (uv - 0.5) * (1.0 - 0.08 * uHover) + 0.5;
-
-    vec2 p = cuv * 2.0 - 1.0;
+    // ホバー時にわずかに寄せて静かな “呼吸” を出す
+    vec2 cuv = (uv - 0.5) * (1.0 - 0.05 * uHover) + 0.5;
+    vec2 p = cuv * 1.6;
     p.x *= uResolution.x / uResolution.y;
 
-    float t = uTime * 0.12 + uSeed * 12.0;
+    float t = uTime * 0.06 + uSeed * 10.0;
 
-    // ホバー位置から広がる波紋
+    // ホバー位置からのやわらかい波紋
     float d = distance(uv, uMouseUV);
-    float ripple = sin(d * 16.0 - uTime * 3.0) * 0.5 + 0.5;
+    float ripple = sin(d * 14.0 - uTime * 2.2) * 0.5 + 0.5;
 
-    vec2 warp = vec2(fbm(p * 1.4 + t), fbm(p * 1.4 - t + uSeed));
-    float n = fbm(p * 2.0 + warp * 1.6 + uHover * ripple * 0.7);
+    vec2 warp = vec2(fbm(p + t), fbm(p + uSeed - t));
+    float n = fbm(p * 1.4 + warp * 1.3 + uHover * ripple * 0.4);
 
-    float bands = sin((n * 4.0 + cuv.y * 3.0 - uTime * 0.3) * 3.14159);
-    float shade = smoothstep(-0.15, 0.85, n);
-
+    // 単色ベースの諧調（濃い墨 → 淡いトーン）
+    float shade = smoothstep(0.05, 0.95, n);
     vec3 col = mix(uColorA, uColorB, shade);
-    col += bands * 0.06 * (0.5 + uHover);
 
-    // スクロール速度で色味を流す
-    col += uStrength * 0.18 * vec3(0.25, 0.12, 0.35);
+    // 墨のにじみ筋をほんの少し
+    float veins = smoothstep(0.45, 0.5, fbm(p * 2.2 + warp));
+    col = mix(col, uColorA, veins * 0.12);
 
-    // ホバーで持ち上げる
-    col = mix(col, col * 1.45 + 0.08, uHover * 0.55);
+    // ホバーでわずかに持ち上げる
+    col = mix(col, col * 1.08 + 0.02, uHover * 0.4);
+
+    // スクロール速度でうっすら流す
+    col += uStrength * 0.05;
+
+    // 細かい紙の粒子感
+    float g = hash(uv * uResolution.xy + uTime);
+    col += (g - 0.5) * 0.025;
 
     // 下からのリビールワイプ
-    float reveal = smoothstep(uv.y, uv.y + 0.18, uReveal * 1.2);
-
-    // 粒状感
-    float g = hash(uv * uResolution.xy + uTime);
-    col += (g - 0.5) * 0.05;
+    float reveal = smoothstep(uv.y, uv.y + 0.16, uReveal * 1.2);
 
     gl_FragColor = vec4(col, reveal);
   }
 `;
 
 // ----------------------------------------------------------------------------
-// フルスクリーン post effect。色収差 + フィルムグレイン + ビネット + 走査線。
-// 収差はスクロール速度 (uStrength) でブーストする。
+// フルスクリーン post effect。光の地に合わせて極めて控えめに仕上げる。
+// スクロール中だけ僅かな色収差、淡いフィルムグレイン、やわらかいビネット。
+// （ダーク版の強い収差 / 走査線 / 濃いビネットは紙の地に合わないため外した）
 // tDiffuse は EffectPass が自動注入。
 // ----------------------------------------------------------------------------
 export const filmFragment = /* glsl */ `
@@ -162,24 +170,20 @@ export const filmFragment = /* glsl */ `
     vec2 uv = vUv;
     vec2 dir = uv - 0.5;
 
-    // 中心から離れるほど強い色収差。スクロール中はさらに強調。
-    float aberr = (0.0012 + uStrength * 0.012) * dot(dir, dir) * 4.0;
+    // スクロール中だけ、中心から離れるほど僅かに色収差
+    float aberr = (0.0002 + uStrength * 0.004) * dot(dir, dir) * 4.0;
     vec2 off = dir * aberr;
-
     float r = texture2D(tDiffuse, uv + off).r;
     float g = texture2D(tDiffuse, uv).g;
     float b = texture2D(tDiffuse, uv - off).b;
     vec3 col = vec3(r, g, b);
 
-    // グレイン
+    // 淡いフィルムグレイン（紙の粒子感）
     float grain = fract(sin(dot(uv * uResolution.xy + uTime, vec2(12.9898, 78.233))) * 43758.5453);
-    col += (grain - 0.5) * 0.045;
+    col += (grain - 0.5) * 0.02;
 
-    // ビネット
-    col *= 1.0 - 0.28 * dot(dir, dir);
-
-    // 走査線
-    col *= 1.0 - 0.025 * sin(uv.y * uResolution.y * 1.4);
+    // 紙の縁をほんの少し沈めるやわらかいビネット
+    col *= 1.0 - 0.10 * dot(dir, dir);
 
     gl_FragColor = vec4(col, 1.0);
   }

@@ -18,6 +18,7 @@ const app = new WebGLApp("#gl", {
   },
   maxPixelRatio: 2,
   showGUI: false,
+  showStats: true,
 });
 const scrollSync = app.getScrollSync();
 
@@ -48,12 +49,13 @@ type WorkState = {
   revealTarget: number;
 };
 
+// 水墨のトーン。各 work は [濃い墨, 淡いトーン] の単色ベースで諧調を作る。
 const palettes: [number, number][] = [
-  [0x1a1130, 0xff5a3c], // 紫 → 朱
-  [0x07221f, 0x46e6a0], // 深緑 → ミント
-  [0x231405, 0xffc24b], // 茶 → 琥珀
-  [0x0a1330, 0x6da8ff], // 紺 → 空
-  [0x2a0a1e, 0xff8ad1], // ワイン → 桃
+  [0x2a2722, 0xd8d2c6], // 暖墨 → 生成り
+  [0x23282b, 0xccd0cb], // 青墨 → 霧
+  [0x2b2620, 0xd9cdb6], // 焦茶 → 砂色
+  [0x21282b, 0xc6cecd], // 鉄紺 → 淡藍
+  [0x2c2622, 0xd4c8b6], // 墨 → 白茶
 ];
 
 const works: WorkState[] = [];
