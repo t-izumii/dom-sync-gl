@@ -78,16 +78,6 @@ describe('ScrollSync', () => {
     expect(sync.logicalRect.height).toBe(900);
   });
 
-  it('updateSize で resize callback が発火する', () => {
-    const sync = new ScrollSync(container);
-    const cb = vi.fn();
-    sync.setResizeCallback(cb);
-
-    sync.updateSize(1200, 900);
-    expect(cb).toHaveBeenCalledTimes(1);
-    expect(cb).toHaveBeenCalledWith({ width: 1200, height: 900 });
-  });
-
   it('update(scrollX, scrollY) で container transform に scroll が反映される', () => {
     const sync = new ScrollSync(container);
     sync.update(0, 400);

@@ -60,12 +60,6 @@ export class ScrollSync {
   private _logicalRect: DOMRect = new DOMRect();
 
   /**
-   * canvas drawing buffer の resize が必要な時に呼ぶ callback。
-   * Core 側でこれに `renderer.setSize` / `camera.resize` / `postEffect.resize` をぶら下げる。
-   */
-  private _onResize: ((size: { width: number; height: number }) => void) | null = null;
-
-  /**
    * destroy 時の復元用に、constructor 進入時の inline style を退避する。
    * ユーザーが先に `container.style.position = 'relative'` 等を当てていた場合に、
    * destroy で「空文字に潰す」ではなく元の値に戻すために必要。
@@ -135,8 +129,6 @@ export class ScrollSync {
       this._viewportHeight,
     );
 
-    this._onResize?.({ width: this._viewportWidth, height: this._viewportHeight });
-
     // 初期化・リサイズ直後の表示崩れ防止: 現在の scroll 位置で即座に transform を反映
     this.applyTransform(window.scrollX, ScrollSync.computeEffectiveScrollY());
   }
@@ -196,14 +188,6 @@ export class ScrollSync {
 
     this._prevScrollY = scrollY;
     this._prevTime = now;
-  }
-
-  /**
-   * canvas drawing buffer の resize が必要な時に呼ばれる callback を登録する。
-   * @internal Core 側で renderer.setSize / camera.resize / postEffect.resize を繋ぐ。
-   */
-  setResizeCallback(cb: (size: { width: number; height: number }) => void): void {
-    this._onResize = cb;
   }
 
   /**
