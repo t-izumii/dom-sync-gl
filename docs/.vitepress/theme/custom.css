@@ -25,6 +25,13 @@
   display: block;
 }
 
+/* フルスクリーン plane 方式のデモ: カード型コンテナを中央寄せする。 */
+.demo-frame__stage--center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .demo-frame__controls {
   display: flex;
   flex-wrap: wrap;
