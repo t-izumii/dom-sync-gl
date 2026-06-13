@@ -11,14 +11,14 @@ import type { DomPlane } from './DomPlane';
  *   行い、これを rAF tick 内から呼ぶことで paint と同期させ、mousemove 非同期発火による
  *   uMouseUV のちらつきを防ぐ。
  *
- * raycast 対象（`planeMeshes`）と mesh→plane 逆引き用の `planes` は WebGLApp が
- * createPlane/removePlane で出し入れする **live 配列参照**を共有する。
+ * raycast 対象（`planeMeshes`）と mesh→plane 逆引き用の `planeByMesh` は WebGLApp が
+ * createPlane/removePlane で出し入れする **live 参照**を共有する。
  */
 export class PointerController {
   private readonly canvas: HTMLCanvasElement;
   private readonly camera: Camera;
   private readonly planeMeshes: THREE.Mesh[];
-  private readonly planes: DomPlane[];
+  private readonly planeByMesh: Map<THREE.Mesh, DomPlane>;
 
   private readonly mouse = new THREE.Vector2(0.5, 0.5);
   private readonly prevMouse = new THREE.Vector2(0.5, 0.5);
@@ -45,13 +45,13 @@ export class PointerController {
     camera: Camera;
     /** raycast 対象 mesh の live 配列参照（WebGLApp 所有）。 */
     planeMeshes: THREE.Mesh[];
-    /** mesh → DomPlane 逆引き用の live 配列参照（WebGLApp 所有）。 */
-    planes: DomPlane[];
+    /** mesh → DomPlane 逆引き用の live Map 参照（WebGLApp 所有）。 */
+    planeByMesh: Map<THREE.Mesh, DomPlane>;
   }) {
     this.canvas = opts.canvas;
     this.camera = opts.camera;
     this.planeMeshes = opts.planeMeshes;
-    this.planes = opts.planes;
+    this.planeByMesh = opts.planeByMesh;
   }
 
   getMouse(): THREE.Vector2 {
@@ -148,10 +148,10 @@ export class PointerController {
     if (intersects.length > 0) {
       const intersect = intersects[0];
       // planeMeshes は planes と index 1:1 対応していない（背景 plane は meshes に入らない）
-      // ため、mesh から対応する DomPlane を find で逆引きする。
+      // ため、mesh から対応する DomPlane を Map で O(1) 逆引きする。
       if (intersect.uv) {
         const hitMesh = intersect.object as THREE.Mesh;
-        const plane = this.planes.find((p) => p.getMesh() === hitMesh);
+        const plane = this.planeByMesh.get(hitMesh);
         if (plane) {
           // 別の plane に hover が移った時のみ前 plane を false 化（uniform 書き込みを減らす）。
           if (this.hoveredPlane && this.hoveredPlane !== plane) {

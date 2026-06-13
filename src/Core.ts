@@ -67,6 +67,12 @@ export class WebGLApp {
    */
   private domPlaneMeshes: THREE.Mesh[] = [];
   /**
+   * raycast hit した mesh から DomPlane を O(1) で逆引きするための Map。
+   * `domPlaneMeshes` と 1:1 で出し入れし（element 付き plane だけ）、PointerController に
+   * live 参照として共有する。配列 find による線形逆引きを避けるためのもの。
+   */
+  private domPlaneByMesh: Map<THREE.Mesh, DomPlane> = new Map();
+  /**
    * destroy 済みフラグ。animate() 実行中に user callback から destroy() が
    * 呼ばれると、renderer.dispose() 後の続きで renderer.render() を呼んで
    * WebGL エラーになる。各段階の冒頭で見て早期 return する。
@@ -125,7 +131,7 @@ export class WebGLApp {
       canvas: this.canvas,
       camera: this.camera,
       planeMeshes: this.domPlaneMeshes,
-      planes: this.domPlanes,
+      planeByMesh: this.domPlaneByMesh,
     });
 
     // ScrollSync の初期化（renderer/camera生成後、init前に実行）
@@ -307,7 +313,9 @@ export class WebGLApp {
     // stable sort で先勝ち → 後から push された DOM 連動 plane の hover を奪う。
     // 背景 plane は概念的に hover の対象ではないので最初から除外する。
     if (element) {
-      this.domPlaneMeshes.push(domPlane.getMesh());
+      const mesh = domPlane.getMesh();
+      this.domPlaneMeshes.push(mesh);
+      this.domPlaneByMesh.set(mesh, domPlane);
     }
 
     return domPlane;
@@ -320,8 +328,10 @@ export class WebGLApp {
     if (index > -1) {
       this.domPlanes.splice(index, 1);
       // createPlane で element 無し plane は push していないので indexOf で引く。
-      const meshIndex = this.domPlaneMeshes.indexOf(domPlane.getMesh());
+      const mesh = domPlane.getMesh();
+      const meshIndex = this.domPlaneMeshes.indexOf(mesh);
       if (meshIndex > -1) this.domPlaneMeshes.splice(meshIndex, 1);
+      this.domPlaneByMesh.delete(mesh);
       domPlane.destroy();
     }
   }
@@ -599,6 +609,7 @@ export class WebGLApp {
     this.domPlanes = [];
     this.dom3DObjects = [];
     this.domPlaneMeshes = [];
+    this.domPlaneByMesh.clear();
     this.updateCallbacks = [];
     this.resizeCallbacks = [];
 
