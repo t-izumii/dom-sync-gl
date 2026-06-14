@@ -494,7 +494,8 @@ export class DomPlane {
   }
 
   /**
-   * feedback バッファ（generator / GPGPU）を plane に紐づける。ping-pong で状態を時間蓄積し、
+   * feedback バッファ（generator）を plane に紐づける。標準 WebGL の render-to-texture を
+   * ping-pong して状態を時間蓄積し、
    * その出力テクスチャを毎フレ `options.outputUniform` の uniform に供給する。マウス軌跡(trail)・
    * 流体・拡散などに使う。RT の確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。
    *

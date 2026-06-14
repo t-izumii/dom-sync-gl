@@ -85,11 +85,17 @@ app.clearEffects();        // 全部破棄
 app.destroy();             // app ごと破棄（effect も一緒に dispose）
 ```
 
-## Feedback バッファ（generator / GPGPU）
+## Feedback バッファ（generator）
 
 `BaseEffect` は「絵を受け取って絵を返す」**post（フィルタ / sink）**でした。これとは**出力の向きが逆**の、
 **テクスチャを産み出す generator** が `FeedbackBuffer` です。ping-pong RenderTarget で前フレームの自分の
 出力（`uPrev`）を読み、状態を**時間蓄積**します。マウス軌跡（trail）・流体・拡散・反応拡散などに使います。
+
+::: tip 標準 WebGL のみ
+実装は **標準 WebGL の render-to-texture（FBO 2 枚の ping-pong）のみ**。float/half-float RT や
+WebGPU compute（GPGPU）は使わないので対応ブラウザを選びません。蓄積は 8bit RGBA 上で行います
+（長時間の減衰でバンディングが気になる用途では将来オプションで高精度 RT を検討）。
+:::
 
 | | post（`addEffect` / `BaseEffect`） | generator（`addFeedback` / `FeedbackBuffer`） |
 |---|---|---|

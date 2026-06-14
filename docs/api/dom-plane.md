@@ -36,10 +36,10 @@ plane 単位の **post エフェクト**チェーン（描画パイプライン�
 
 ### `addFeedback(options)` / `removeFeedback(buffer)`
 
-plane に **feedback バッファ（generator / GPGPU）** を紐づける。ping-pong RenderTarget で状態を
-時間蓄積し、その出力テクスチャを毎フレ `options.outputUniform` の uniform に供給する（マウス軌跡・
-流体・拡散など）。RT 確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。返り値は
-[`FeedbackBuffer`](/guide/post-effects#feedback-バッファ-generator-gpgpu)。
+plane に **feedback バッファ（generator）** を紐づける。標準 WebGL の render-to-texture を ping-pong
+して状態を時間蓄積し、その出力テクスチャを毎フレ `options.outputUniform` の uniform に供給する
+（マウス軌跡・流体・拡散など）。RT 確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。返り値は
+[`FeedbackBuffer`](/guide/post-effects#feedback-バッファ-generator)。
 
 ```ts
 const plane = app.createPlane('.card', { fragmentShader }); // shader 内で uniform sampler2D uTrailTex; を宣言
@@ -52,7 +52,7 @@ plane.addFeedback({
 ```
 
 `addEffect`（絵を加工する post）と `addFeedback`（素材テクスチャを産む generator）は**出力の向きが逆**。
-詳細は [Post Effects / Feedback バッファ](/guide/post-effects#feedback-バッファ-generator-gpgpu)。
+詳細は [Post Effects / Feedback バッファ](/guide/post-effects#feedback-バッファ-generator)。
 
 ### `setTexture(texture, takeOwnership?)`
 

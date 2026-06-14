@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 
 /**
- * FeedbackBuffer — ping-pong RenderTarget で「状態を時間蓄積」する GPGPU プリミティブ。
+ * FeedbackBuffer — ping-pong RenderTarget で「状態を時間蓄積」する feedback プリミティブ。
+ *
+ * **標準 WebGL の render-to-texture のみ**で実装している（FBO 2 枚を交互に焼く feedback）。
+ * float/half-float RT や WebGPU compute（GPGPU）は使わないので、対応ブラウザを選ばない。
+ * 蓄積は 8bit RGBA テクスチャ上で行う。
  *
  * `BaseEffect`（post / フィルタ = 描画パイプラインに書き込む sink）とは出力の向きが逆で、
  * **テクスチャを産み出す source（generator）**。前フレームの自分の出力（`uPrev`）を読み、
@@ -97,8 +101,11 @@ export class FeedbackBuffer {
   }
 
   private makeTarget(): THREE.WebGLRenderTarget {
+    // 標準 WebGL の render-to-texture のみで完結させるため、type は既定の UnsignedByteType
+    // (8bit RGBA) を使う。HalfFloat/Float の RT は拡張 (EXT_color_buffer_float 等) が要り
+    // ブラウザ依存になるので使わない。長時間の減衰蓄積では 8bit のバンディングが出うるが、
+    // 互換性優先。精度が要るケースは将来オプション化する。
     return new THREE.WebGLRenderTarget(this._size, this._size, {
-      type: THREE.HalfFloatType,
       format: THREE.RGBAFormat,
       depthBuffer: false,
       stencilBuffer: false,

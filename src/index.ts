@@ -35,7 +35,7 @@ export { PlaneComposer } from "./PlaneComposer";
 export { BaseEffect } from "./effects/BaseEffect";
 export type { BaseEffectConfig } from "./effects/BaseEffect";
 
-// Feedback バッファ（generator / GPGPU: ping-pong で状態を時間蓄積しテクスチャを産む）
+// Feedback バッファ（generator: 標準 WebGL の render-to-texture を ping-pong して状態を時間蓄積）
 export { FeedbackBuffer } from "./FeedbackBuffer";
 export type { FeedbackBufferOptions, FeedbackInput } from "./FeedbackBuffer";
 export type { AddFeedbackOptions } from "./DomPlane";
