@@ -18,11 +18,10 @@ export default defineConfig({
     host: true,
   },
   build: {
-    // マルチページ: メインサイト + 機能サンプル（/unified-effect.html）。
+    // マルチページ: メインサイト
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
-        "unified-effect": resolve(__dirname, "unified-effect.html"),
       },
     },
   },
