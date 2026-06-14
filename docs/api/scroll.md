@@ -10,7 +10,7 @@
 
 ## ScrollSync
 
-通常は `new WebGLApp(..., { scrollSync: true })` 経由で使う。直接 new することも可能。
+通常は `new DomSyncGL(..., { scrollSync: true })` 経由で使う。直接 new することも可能。
 
 ### Options
 
@@ -35,17 +35,17 @@
 | `updateSize(width?, height?)` | `void` | viewport サイズが変わった時に呼ぶ。引数省略で `window.innerWidth/Height` |
 | `destroy()` | `void` | container の inline style を構築前の値に復元する |
 
-通常は `WebGLApp(..., { scrollSync: true })` 経由で使い、`update` / `updateSize` /
+通常は `DomSyncGL(..., { scrollSync: true })` 経由で使い、`update` / `updateSize` /
 `destroy` は Core 側が自動で呼ぶ。直接 `new ScrollSync()` した場合のみ自前で繋ぐ。
 
 ## RafScroll
 
-通常は `WebGLApp({ scrollSync: true, rafScroll: {...} })` 経由で使うのが推奨（Core の単一 rAF に
-統合され、生成順依存が無い）。自前で `new RafScroll()` する場合は **`WebGLApp` より先に生成**しないと
+通常は `DomSyncGL({ scrollSync: true, rafScroll: {...} })` 経由で使うのが推奨（Core の単一 rAF に
+統合され、生成順依存が無い）。自前で `new RafScroll()` する場合は **`DomSyncGL` より先に生成**しないと
 背景がスクロール中に 1 フレームずれる（[Scroll Sync ガイド](/guide/scroll-sync) 参照）。
 
 ```ts
-const app = new WebGLApp('#canvas', {
+const app = new DomSyncGL('#canvas', {
   scrollSync: true,
   rafScroll: { touchFriction: 0.95 },
 });

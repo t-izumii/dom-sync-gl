@@ -61,7 +61,7 @@ export abstract class BaseEffect {
 
   /**
    * lil-gui の親 GUI / Folder を受け取り、自分用のフォルダや control を生やす任意フック。
-   * `WebGLApp.addEffect()` / `DomPlane.addEffect()` 経由でエフェクトを登録すると、
+   * `DomSyncGL.addEffect()` / `DomPlane.addEffect()` 経由でエフェクトを登録すると、
    * `showGUI` が無効でない限り自動で呼ばれる。
    *
    * 典型例:
@@ -72,8 +72,8 @@ export abstract class BaseEffect {
    * }
    * ```
    *
-   * @param gui lil-gui の親 GUI（通常は WebGLApp の root GUI）
-   * @returns 作った folder（任意）。WebGLApp 側で dispose する時の参照に使える。
+   * @param gui lil-gui の親 GUI（通常は DomSyncGL の root GUI）
+   * @returns 作った folder（任意）。DomSyncGL 側で dispose する時の参照に使える。
    */
   setupGUI?(gui: GUI): GUI | void;
 

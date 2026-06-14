@@ -62,7 +62,7 @@ grain.enabled = false; // パススルー
 
 ## lil-gui 連携
 
-`setupGUI(gui)` を実装したエフェクトは、`new WebGLApp(..., { showGUI: true })` のときに
+`setupGUI(gui)` を実装したエフェクトは、`new DomSyncGL(..., { showGUI: true })` のときに
 lil-gui パネルへ自動でフォルダが生える（**`showGUI` の既定は `false`** なので、GUI を出すには
 明示的に有効化する。lil-gui は optional peer なので、使うときだけ `npm install lil-gui`）。
 

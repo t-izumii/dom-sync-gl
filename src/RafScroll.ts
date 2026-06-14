@@ -55,7 +55,7 @@ export interface RafScrollOptions {
    * - `true`（既定 / スタンドアロン利用）: 内部で rAF ループを回し、毎フレーム
    *   `window.scrollTo()` を確定させる。
    * - `false`（管理モード）: 内部ループを起動せず、所有者が毎フレーム {@link RafScroll.advance}
-   *   を呼んで 1 歩進める。`WebGLApp({ rafScroll })` がこのモードで構築し、Core の **単一**
+   *   を呼んで 1 歩進める。`DomSyncGL({ rafScroll })` がこのモードで構築し、Core の **単一**
    *   rAF ループ内で `advance()`（= scrollTo）を `scroll 読み取り` より前に走らせることで、
    *   「RafScroll と Core が別々の rAF ループを持ち、生成順しだいで scroll が 1 フレームずれる」
    *   問題を構造的に排除する。
@@ -343,7 +343,7 @@ export class RafScroll {
   /**
    * 外部の rAF ループから 1 フレーム進める（管理モード用）。
    *
-   * `autoStart: false` で構築し、`WebGLApp` 等の **単一** rAF ループ内で毎フレーム呼ぶことで、
+   * `autoStart: false` で構築し、`DomSyncGL` 等の **単一** rAF ループ内で毎フレーム呼ぶことで、
    * `scrollTo`（このメソッド）→ `scroll 読み取り` の順序を呼び出し側が決定論的に固定できる。
    * これにより 2 つの独立 rAF ループの登録順依存（背景が 1 フレームずれる問題）を排除する。
    *

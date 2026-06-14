@@ -9,7 +9,7 @@ export interface Offset3D {
   z: number;
 }
 
-export interface WebGLAppOptions {
+export interface DomSyncGLOptions {
   enableMouseTracking?: boolean;
   /**
    *  スクロール同期を有効化する。
@@ -30,7 +30,7 @@ export interface WebGLAppOptions {
    * RafScroll を構築し、自身の rAF ループ内で `advance()`(= scrollTo) を scroll 読み取りの
    * **前** に駆動する。
    *
-   * `new RafScroll()` を別途生成して併用する方法でも動くが、その場合は **WebGLApp より先に**
+   * `new RafScroll()` を別途生成して併用する方法でも動くが、その場合は **DomSyncGL より先に**
    * 生成しないと 2 つの rAF ループの登録順しだいで scroll が 1 フレームずれる。この
    * オプション経由なら単一ループに統合されるため、その順序依存を気にしなくてよい（推奨）。
    *
@@ -46,7 +46,7 @@ export interface WebGLAppOptions {
    */
   showStats?: boolean;
   /**
-   * stats.js panel の append 先。複数の WebGLApp を同一ページで動かしたいときは
+   * stats.js panel の append 先。複数の DomSyncGL を同一ページで動かしたいときは
    * インスタンスごとに別の要素を指定すると重なりを避けられる。
    * @default document.body
    */

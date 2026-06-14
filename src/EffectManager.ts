@@ -9,9 +9,9 @@ import type { BaseEffect } from './effects/BaseEffect';
  *
  * - `addEffect()`: 内部 EffectComposer を lazy 生成して ping-pong チェーンに繋ぐ。
  * - `setPostEffect()`: 低レベル。EffectLike を丸ごと差し替える。
- * - `update()` / `render()` / `resize()`: WebGLApp の rAF / resize から呼ばれる。
+ * - `update()` / `render()` / `resize()`: DomSyncGL の rAF / resize から呼ばれる。
  *
- * GUI 連携（setupGUI）は WebGLApp（= DevTools）から渡される `ensureGUI` 経由で行う。
+ * GUI 連携（setupGUI）は DomSyncGL（= DevTools）から渡される `ensureGUI` 経由で行う。
  */
 export class EffectManager {
   private readonly renderer: THREE.WebGLRenderer;
@@ -51,7 +51,7 @@ export class EffectManager {
   addEffect<T extends BaseEffect>(effect: T, width: number, height: number): T {
     if (this.postEffect && this.postEffect !== this.internalComposer) {
       const msg =
-        '[WebGLApp] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
+        '[DomSyncGL] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
         '内部 EffectComposer で上書きします。カスタム postEffect は手動で dispose してください。';
       // DEV では事故防止のため throw（カスタム effect の dispose リークになるため）。
       if (import.meta.env?.DEV) throw new Error(msg);
@@ -75,7 +75,7 @@ export class EffectManager {
         })
         .catch((err) => {
           console.warn(
-            '[WebGLApp] showGUI: true ですが lil-gui が読み込めませんでした。' +
+            '[DomSyncGL] showGUI: true ですが lil-gui が読み込めませんでした。' +
               'npm install lil-gui してください。',
             err,
           );
@@ -94,7 +94,7 @@ export class EffectManager {
   setPostEffect(postEffect: EffectLike): void {
     if (this.effects.length > 0) {
       const msg =
-        '[WebGLApp] setPostEffect() が呼ばれましたが、addEffect() で追加した effect が既に存在します。' +
+        '[DomSyncGL] setPostEffect() が呼ばれましたが、addEffect() で追加した effect が既に存在します。' +
         '内部 EffectComposer を破棄してカスタム postEffect に差し替えます。' +
         '事前に clearEffects() を呼ぶことを推奨します。';
       if (import.meta.env?.DEV) throw new Error(msg);

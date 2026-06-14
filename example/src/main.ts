@@ -1,17 +1,17 @@
-import { WebGLApp, THREE } from "dom-sync-gl";
+import { DomSyncGL, THREE } from "dom-sync-gl";
 import { heroFragment, workFragment } from "./shaders";
 import { FilmEffect } from "./effects";
 import "./style.css";
 
 // ---------------------------------------------------------------------------
-// 1. WebGLApp 初期化
+// 1. DomSyncGL 初期化
 //    scrollSync / rafScroll はどちらもオプション省略 (= true) でデフォルト構成にしている。
 //    rafScroll は wheel/touch を rAF にまとめた慣性スクロールを Core 管理下で有効化し、
 //    Core の単一 rAF ループ内で scrollTo → scroll 読み取りの順に駆動するので、
 //    生成順を気にせず背景 canvas が 1 フレームずれない。
 //    （スクロール速度 strength を演出に使いたい場合のみ scrollSync: { trackStrength: true } にする）
 // ---------------------------------------------------------------------------
-const app = new WebGLApp("#gl", {
+const app = new DomSyncGL("#gl", {
   scrollSync: true,
   rafScroll: true,
   maxPixelRatio: 2,
@@ -39,7 +39,7 @@ heroPlane.material.depthWrite = false;
 // ---------------------------------------------------------------------------
 type WorkState = {
   el: HTMLElement;
-  plane: ReturnType<WebGLApp["createPlane"]>;
+  plane: ReturnType<DomSyncGL["createPlane"]>;
   hover: number;
   hoverTarget: number;
   reveal: number;
@@ -200,4 +200,4 @@ if (loader && counter) {
 }
 
 // 開発時の確認用にグローバルへ
-(window as unknown as { app: WebGLApp }).app = app;
+(window as unknown as { app: DomSyncGL }).app = app;

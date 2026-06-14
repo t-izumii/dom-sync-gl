@@ -39,9 +39,9 @@ plane が変な場所にロックされる。
 ## TypeScript
 
 ```ts
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
-const app = new WebGLApp('#stage');
+const app = new DomSyncGL('#stage');
 
 app.createPlane('#card', {
   fragmentShader: /* glsl */ `
@@ -73,12 +73,12 @@ app.createPlane('#card', {
 ### 1. 宣言だけで使える uniform
 
 `uTime` `uMouseUV` `uIsHovered` `uResolution` `uTexture` `uAlpha` は declarations
-を書くだけで使える。値の更新は WebGLApp 側でやる。詳細は
+を書くだけで使える。値の更新は DomSyncGL 側でやる。詳細は
 [API: DomPlane](/api/dom-plane#built-in-uniforms)。
 
 ### 2. hover 判定は raycast 駆動
 
-`uIsHovered` は WebGLApp 内部の raycaster が canvas 上のマウス位置から判定して
+`uIsHovered` は DomSyncGL 内部の raycaster が canvas 上のマウス位置から判定して
 更新する。要素の DOM 上の `pointer-events` には依存しない（plane は 3D scene 側）。
 
 ### 3. plane を破棄するとき

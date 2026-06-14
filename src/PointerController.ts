@@ -11,7 +11,7 @@ import type { DomPlane } from './DomPlane';
  *   行い、これを rAF tick 内から呼ぶことで paint と同期させ、mousemove 非同期発火による
  *   uMouseUV のちらつきを防ぐ。
  *
- * raycast 対象（`planeMeshes`）と mesh→plane 逆引き用の `planeByMesh` は WebGLApp が
+ * raycast 対象（`planeMeshes`）と mesh→plane 逆引き用の `planeByMesh` は DomSyncGL が
  * createPlane/removePlane で出し入れする **live 参照**を共有する。
  */
 export class PointerController {
@@ -20,7 +20,7 @@ export class PointerController {
   private readonly planeMeshes: THREE.Mesh[];
   private readonly planeByMesh: Map<THREE.Mesh, DomPlane>;
   /**
-   * 全 DomPlane の live 配列参照（WebGLApp 所有）。フルスクリーン plane（element 無し）の
+   * 全 DomPlane の live 配列参照（DomSyncGL 所有）。フルスクリーン plane（element 無し）の
    * hover uniform を毎フレ流すために走査する。raycast 対象（planeMeshes）には背景 plane を
    * 入れないので、こちらで element===null を拾って直接 setHoverInfo する。
    */
@@ -49,11 +49,11 @@ export class PointerController {
   constructor(opts: {
     canvas: HTMLCanvasElement;
     camera: Camera;
-    /** raycast 対象 mesh の live 配列参照（WebGLApp 所有）。 */
+    /** raycast 対象 mesh の live 配列参照（DomSyncGL 所有）。 */
     planeMeshes: THREE.Mesh[];
-    /** mesh → DomPlane 逆引き用の live Map 参照（WebGLApp 所有）。 */
+    /** mesh → DomPlane 逆引き用の live Map 参照（DomSyncGL 所有）。 */
     planeByMesh: Map<THREE.Mesh, DomPlane>;
-    /** 全 DomPlane の live 配列参照（WebGLApp 所有）。フルスクリーン plane の hover に使う。 */
+    /** 全 DomPlane の live 配列参照（DomSyncGL 所有）。フルスクリーン plane の hover に使う。 */
     planes: DomPlane[];
   }) {
     this.canvas = opts.canvas;

@@ -42,7 +42,7 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
   },
 }));
 
-import { WebGLApp } from '../Core';
+import { DomSyncGL } from '../Core';
 import { RafScroll } from '../RafScroll';
 import type { DomPlane } from '../DomPlane';
 import type { Dom3DObject } from '../Dom3DObject';
@@ -81,8 +81,8 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
   });
 
   it('createPlane が生成した plane は Core の getScroll() と同一の live 参照を保持する', () => {
-    // Given: 初期化済みの WebGLApp と DOM 要素
-    const app = new WebGLApp(container);
+    // Given: 初期化済みの DomSyncGL と DOM 要素
+    const app = new DomSyncGL(container);
     const el = document.createElement('div');
     document.body.appendChild(el);
 
@@ -97,7 +97,7 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
 
   it('onResize 後のキャッシュ更新が plane の保持する参照へ live に反映される', () => {
     // Given: plane を生成済み（初期 window.scroll* は 0）
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const el = document.createElement('div');
     document.body.appendChild(el);
     const plane = app.createPlane(el) as DomPlane;
@@ -136,8 +136,8 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
   });
 
   it('create3DObject が生成した object も Core の getScroll() と同一の live 参照を保持する', () => {
-    // Given: 初期化済みの WebGLApp と DOM 要素
-    const app = new WebGLApp(container);
+    // Given: 初期化済みの DomSyncGL と DOM 要素
+    const app = new DomSyncGL(container);
     const el = document.createElement('div');
     document.body.appendChild(el);
 
@@ -152,7 +152,7 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
 
   it('フルスクリーン plane(element 無し)も hover 経路に入り setHoverInfo で uniform が更新される', () => {
     // Given: DOM-locked plane を 1 つも作らず、フルスクリーン plane だけを生成
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const plane = app.createPlane(null) as DomPlane;
     const spy = vi.spyOn(plane, 'setHoverInfo');
 
@@ -195,20 +195,20 @@ describe('Core ⇄ RafScroll の統合（rafScroll オプション）', () => {
   });
 
   it('rafScroll 未指定なら getRafScroll() は null', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     expect(app.getRafScroll()).toBeNull();
     app.destroy();
   });
 
   it('rafScroll オプションで管理下の RafScroll を構築し getRafScroll() で取得できる', () => {
-    const app = new WebGLApp(container, { rafScroll: true });
+    const app = new DomSyncGL(container, { rafScroll: true });
     expect(app.getRafScroll()).toBeInstanceOf(RafScroll);
     app.destroy();
   });
 
   it('animate ループ内で RafScroll.advance() を refreshScrollCache() より前に駆動する', () => {
     // Given: 管理下 RafScroll を持つ app
-    const app = new WebGLApp(container, { rafScroll: true });
+    const app = new DomSyncGL(container, { rafScroll: true });
     const rs = app.getRafScroll();
     expect(rs).not.toBeNull();
 

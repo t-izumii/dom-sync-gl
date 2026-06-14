@@ -36,9 +36,9 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', () => ({
   },
 }));
 
-import { WebGLApp } from '../Core';
+import { DomSyncGL } from '../Core';
 
-describe('WebGLApp', () => {
+describe('DomSyncGL', () => {
   let container: HTMLElement;
 
   beforeEach(() => {
@@ -58,17 +58,17 @@ describe('WebGLApp', () => {
   });
 
   it('コンテナに canvas を追加する', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     expect(container.contains(app.canvas)).toBe(true);
     app.destroy();
   });
 
   it('存在しないセレクタを渡すと例外を投げる', () => {
-    expect(() => new WebGLApp('#does-not-exist')).toThrow(/Container not found/);
+    expect(() => new DomSyncGL('#does-not-exist')).toThrow(/Container not found/);
   });
 
   it('addUpdateCallback は callback を登録し、戻り値で解除できる', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const cb = vi.fn();
     const unsubscribe = app.addUpdateCallback(cb);
 
@@ -80,7 +80,7 @@ describe('WebGLApp', () => {
   });
 
   it('addResizeCallback も同様に登録／解除できる', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const cb = vi.fn();
     const unsubscribe = app.addResizeCallback(cb);
 
@@ -92,7 +92,7 @@ describe('WebGLApp', () => {
   });
 
   it('destroy() で AbortController の signal が aborted=true になる', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const signal = (app as unknown as { eventAbort: AbortController }).eventAbort
       .signal;
     expect(signal.aborted).toBe(false);
@@ -102,7 +102,7 @@ describe('WebGLApp', () => {
   });
 
   it('destroy() で rAF がキャンセルされ canvas が DOM から外れる', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const canvas = app.canvas;
     expect(container.contains(canvas)).toBe(true);
 
@@ -112,7 +112,7 @@ describe('WebGLApp', () => {
   });
 
   it('destroy() で domPlanes / dom3DObjects / callbacks 配列が空になる', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     app.addUpdateCallback(() => {});
     app.addResizeCallback(() => {});
 
@@ -124,13 +124,13 @@ describe('WebGLApp', () => {
   });
 
   it('clearEffects はエフェクトが登録されていなくても安全に呼べる', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     expect(() => app.clearEffects()).not.toThrow();
     app.destroy();
   });
 
   it('addUpdateCallback の解除関数は重複呼び出しに耐える', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     const cb = vi.fn();
     const unsubscribe = app.addUpdateCallback(cb);
 
@@ -142,7 +142,7 @@ describe('WebGLApp', () => {
   });
 
   it('getScene / getCamera / getRenderer が初期化済みインスタンスを返す', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     expect(app.getScene()).toBeDefined();
     expect(app.getCamera()).toBeDefined();
     expect(app.getRenderer()).toBeDefined();
@@ -151,8 +151,8 @@ describe('WebGLApp', () => {
   });
 
   it('getScroll() が確定スクロール値のキャッシュ {x, y} を返す', () => {
-    // Given: 初期化直後の WebGLApp（jsdom の window.scroll* は 0）
-    const app = new WebGLApp(container);
+    // Given: 初期化直後の DomSyncGL（jsdom の window.scroll* は 0）
+    const app = new DomSyncGL(container);
 
     // When: Core が保持するキャッシュ済みスクロール値を取得する
     const scroll = app.getScroll();
@@ -167,8 +167,8 @@ describe('WebGLApp', () => {
   });
 
   it('getScroll() は live なキャッシュ参照を返す（毎回同一オブジェクト）', () => {
-    // Given: 初期化済みの WebGLApp
-    const app = new WebGLApp(container);
+    // Given: 初期化済みの DomSyncGL
+    const app = new DomSyncGL(container);
 
     // When: getScroll() を 2 回呼ぶ
     const first = app.getScroll();
@@ -181,8 +181,8 @@ describe('WebGLApp', () => {
   });
 
   it('onResize() はスクロールキャッシュを更新し、getScroll() が新しいスクロール値を反映する', () => {
-    // Given: ScrollSync 無効の WebGLApp（種付け時の window.scroll* は 0）
-    const app = new WebGLApp(container);
+    // Given: ScrollSync 無効の DomSyncGL（種付け時の window.scroll* は 0）
+    const app = new DomSyncGL(container);
     expect(app.getScroll()).toEqual({ x: 0, y: 0 });
 
     // And: window のスクロール位置が変化している（resize ハンドラが走る前の状態）
@@ -217,8 +217,8 @@ describe('WebGLApp', () => {
   });
 
   it('onResize() は ScrollSync 有効時に effectiveScrollY をキャッシュへ反映する', () => {
-    // Given: ScrollSync 有効の WebGLApp
-    const app = new WebGLApp(container, { scrollSync: true });
+    // Given: ScrollSync 有効の DomSyncGL
+    const app = new DomSyncGL(container, { scrollSync: true });
 
     // And: documentElement の rubber-band 状態（BCR.top = -500 → effectiveScrollY = 500）
     vi.spyOn(
@@ -236,7 +236,7 @@ describe('WebGLApp', () => {
   });
 
   it('destroy() を 2 回呼んでも例外にならない（冪等）', () => {
-    const app = new WebGLApp(container);
+    const app = new DomSyncGL(container);
     app.destroy();
     expect(() => app.destroy()).not.toThrow();
   });

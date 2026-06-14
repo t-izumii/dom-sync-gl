@@ -15,8 +15,8 @@ import {
  *   `directionalLight.castShadow = true` を外から設定し、別途 shadow map 設定が必要。
  *
  * 簡易ライティングで十分なケースを想定。複雑なライト設計が必要なら、
- * `WebGLApp.getLight()` から内部 light を取り出して直接操作するか、
- * `WebGLApp.getScene()` に独自ライトを追加する。
+ * `DomSyncGL.getLight()` から内部 light を取り出して直接操作するか、
+ * `DomSyncGL.getScene()` に独自ライトを追加する。
  */
 export class Light {
   readonly ambientLight: THREE.AmbientLight;

@@ -19,10 +19,10 @@ import { DevTools } from './DevTools';
 import type {
   CreatePlaneOptions,
   Create3DObjectOptions,
-  WebGLAppOptions,
+  DomSyncGLOptions,
 } from './types';
 
-export class WebGLApp {
+export class DomSyncGL {
   container: HTMLElement;
   canvas: HTMLCanvasElement;
   scene: THREE.Scene;
@@ -42,7 +42,7 @@ export class WebGLApp {
    * animate() の rAF ループ内で advance() を駆動する。未指定なら null。
    */
   private rafScroll: RafScroll | null = null;
-  private options: WebGLAppOptions;
+  private options: DomSyncGLOptions;
   private rafId: number = 0;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private eventAbort: AbortController = new AbortController();
@@ -79,7 +79,7 @@ export class WebGLApp {
    */
   private destroyed: boolean = false;
 
-  constructor(selector: string | HTMLElement, options: WebGLAppOptions = {}) {
+  constructor(selector: string | HTMLElement, options: DomSyncGLOptions = {}) {
     // コンテナを取得
     const element =
       typeof selector === 'string'
@@ -111,7 +111,7 @@ export class WebGLApp {
     this.clock = new THREE.Clock();
     this.options = { enableMouseTracking: true, showGUI: false, ...options };
 
-    // 関心ごとに分離したコラボレータを構築する。WebGLApp 本体はライフサイクルと rAF
+    // 関心ごとに分離したコラボレータを構築する。DomSyncGL 本体はライフサイクルと rAF
     // オーケストレーションに専念し、入力/hover・effect・devtools は各クラスへ委譲する。
     // 既定は false（opt-in）。明示的に true のときだけ GUI を有効化する。
     const showGUI = this.options.showGUI === true;
@@ -278,7 +278,7 @@ export class WebGLApp {
     options?: CreatePlaneOptions
   ) {
     if (this.destroyed) {
-      throw new Error('[WebGLApp] createPlane(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] createPlane(): destroy 済みのインスタンスでは使えません。');
     }
     let element: HTMLElement | null = null;
 
@@ -302,7 +302,7 @@ export class WebGLApp {
       options,
       this.clock,
     );
-    // plane.addEffect() からも GUI を生やせるよう WebGLApp の lazy-getter を渡す。
+    // plane.addEffect() からも GUI を生やせるよう DomSyncGL の lazy-getter を渡す。
     // showGUI が有効（明示 true）でなければ provider は渡さない（DomPlane 側で何もしない）。
     // lil-gui は optional peer の dynamic import なので Promise を返す provider。
     if (this.options.showGUI === true) {
@@ -348,7 +348,7 @@ export class WebGLApp {
     options: Create3DObjectOptions,
   ) {
     if (this.destroyed) {
-      throw new Error('[WebGLApp] create3DObject(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] create3DObject(): destroy 済みのインスタンスでは使えません。');
     }
     let element: HTMLElement | null = null;
 
@@ -407,7 +407,7 @@ export class WebGLApp {
   // OrbitControlsを有効化するメソッド
   enableOrbitControls() {
     if (this.destroyed) {
-      throw new Error('[WebGLApp] enableOrbitControls(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] enableOrbitControls(): destroy 済みのインスタンスでは使えません。');
     }
     if (!this.controls) {
       // ScrollSync で container に pointer-events:none を当てていると
@@ -434,7 +434,7 @@ export class WebGLApp {
    */
   addEffect<T extends BaseEffect>(effect: T): T {
     if (this.destroyed) {
-      throw new Error('[WebGLApp] addEffect(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] addEffect(): destroy 済みのインスタンスでは使えません。');
     }
     return this.effectManager.addEffect(effect, this.rect.width, this.rect.height);
   }
@@ -471,7 +471,7 @@ export class WebGLApp {
    */
   setPostEffect(postEffect: EffectLike): void {
     if (this.destroyed) {
-      throw new Error('[WebGLApp] setPostEffect(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] setPostEffect(): destroy 済みのインスタンスでは使えません。');
     }
     this.effectManager.setPostEffect(postEffect);
   }

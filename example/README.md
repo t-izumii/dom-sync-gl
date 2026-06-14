@@ -7,7 +7,7 @@
 
 | 機能 | 使いどころ |
 |---|---|
-| `WebGLApp({ scrollSync: { trackStrength: true } })` | スクロール同期 + スクロール速度の取得 |
+| `DomSyncGL({ scrollSync: { trackStrength: true } })` | スクロール同期 + スクロール速度の取得 |
 | `RafScroll` | wheel / touch をまとめた慣性スクロール |
 | `createPlane(null, …)` | ヒーローのフルスクリーン背景シェーダー（viewport 固定）|
 | `createPlane('.work__visual', …)` | 各 Work を DOM 要素にロックした procedural な板に |

@@ -44,7 +44,7 @@ export default defineConfig({
         {
           text: 'API',
           items: [
-            { text: 'WebGLApp', link: '/api/webgl-app' },
+            { text: 'DomSyncGL', link: '/api/webgl-app' },
             { text: 'DomPlane', link: '/api/dom-plane' },
             { text: 'Scroll', link: '/api/scroll' },
             { text: 'BaseEffect', link: '/api/base-effect' },
@@ -61,7 +61,7 @@ export default defineConfig({
     resolve: {
       alias: {
         // ローカル src を import 解決対象にする。
-        // demo コンポーネントは `import { WebGLApp } from 'dom-sync-gl'` で書け、
+        // demo コンポーネントは `import { DomSyncGL } from 'dom-sync-gl'` で書け、
         // dev / build の両方で src/index.ts を見にいく。
         'dom-sync-gl': fileURLToPath(new URL('../../src/index.ts', import.meta.url)),
       },

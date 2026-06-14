@@ -29,9 +29,9 @@
 ## TypeScript
 
 ```ts
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
-const app = new WebGLApp('#stage');
+const app = new DomSyncGL('#stage');
 
 // 各カードに別 shader で plane を貼る
 const colors = [
@@ -74,7 +74,7 @@ plane が古い位置に取り残される。
 `window` 全体のスクロールに対しては `scrollSync: true` を渡す:
 
 ```ts
-const app = new WebGLApp('#stage', { scrollSync: true });
+const app = new DomSyncGL('#stage', { scrollSync: true });
 ```
 
 container を `position: absolute` で document に貼り、毎 rAF で実効 scrollY を
