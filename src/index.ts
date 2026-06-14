@@ -33,7 +33,11 @@ export { EffectComposer, EffectPass } from "./EffectComposer";
 export type { EffectOptions, EffectTarget, EffectLike } from "./EffectComposer";
 export { PlaneComposer } from "./PlaneComposer";
 export { BaseEffect } from "./effects/BaseEffect";
-export type { BaseEffectConfig } from "./effects/BaseEffect";
+export type {
+  BaseEffectConfig,
+  EffectGenerateConfig,
+  EffectOutput,
+} from "./effects/BaseEffect";
 
 // Feedback バッファ（generator: 標準 WebGL の render-to-texture を ping-pong して状態を時間蓄積）
 export { FeedbackBuffer } from "./FeedbackBuffer";

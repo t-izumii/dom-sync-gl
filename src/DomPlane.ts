@@ -3,7 +3,7 @@ import type GUI from "lil-gui";
 import type { CreatePlaneOptions } from "./types";
 import { DomPositionCalculator } from "./DomPositionCalculator";
 import { PlaneComposer } from "./PlaneComposer";
-import type { BaseEffect } from "./effects/BaseEffect";
+import type { BaseEffect, EffectOutput } from "./effects/BaseEffect";
 import { FeedbackBuffer, type FeedbackBufferOptions } from "./FeedbackBuffer";
 
 /** {@link DomPlane.addFeedback} のオプション。{@link FeedbackBufferOptions} に出力先 uniform を足したもの。 */
@@ -62,7 +62,15 @@ export class DomPlane {
    * この plane に紐づいた feedback バッファ（generator）。毎フレ step して出力テクスチャを
    * 指定 uniform に供給する。post 系の {@link effects} とは別管理（出力の向きが逆なため）。
    */
-  private feedbacks: { buffer: FeedbackBuffer; outputUniform: string }[] = [];
+  private feedbacks: {
+    buffer: FeedbackBuffer;
+    /** step() の出力テクスチャの供給先（plane uniform / 合成 pass の uGenerated 等）。 */
+    sink: (tex: THREE.Texture) => void;
+    /** 取り外し時に uniform を null に戻す等の後始末（任意）。 */
+    cleanup?: () => void;
+    /** addEffect の generator として作られた場合の所有 effect。removeEffect で一緒に片付ける。 */
+    owner?: BaseEffect;
+  }[] = [];
   /** _tickFeedback で uMouseUV を破壊せず渡すためのスクラッチ。 */
   private readonly _feedbackMouseUV: THREE.Vector2 = new THREE.Vector2();
   /**
@@ -285,6 +293,11 @@ export class DomPlane {
       scrollY,
     );
     this.mesh.position.set(x, y, 0);
+    // post エフェクト時、PlaneComposer は mesh を main scene から外してプロキシに差し替える。
+    // すると scene 描画では mesh.matrixWorld が更新されず、raycast(hover 判定) が壊れて
+    // uIsHovered/uMouseUV が止まる（generator が hover で駆動されず post で軌跡が出ない）。
+    // ここで毎フレ明示更新し、シーン在/不在に関わらず raycast を正しく当てる。
+    this.mesh.updateMatrixWorld();
   }
 
   public setCanvasRect(canvasRect: DOMRect) {
@@ -466,13 +479,93 @@ export class DomPlane {
     return this.planeComposer;
   }
 
-  public addEffect<T extends BaseEffect>(effect: T): T {
-    const composer = this.enableEffects();
-    // renderer を要求するエフェクト（FluidEffect 等）に注入してから register する
+  /**
+   * エフェクトを plane に適用する。`options.output` で出力モードを切り替える:
+   *
+   * - `'post'`（既定）: 描画結果（tDiffuse）を合成する post エフェクト。`getConfig().generate`
+   *   を持つ場合は生成テクスチャが `uGenerated` として合成 shader に渡る。
+   * - `{ uniform }`: `getConfig().generate` の生成テクスチャをその名前の uniform に毎フレ供給する
+   *   （= 旧 {@link addFeedback} 相当）。plane の fragment shader 側で `uniform sampler2D <名前>;` を宣言しておく。
+   *
+   * 同じ effect クラスのまま `output` だけで texture ⇄ post を切り替えられる。
+   *
+   * @example
+   * ```ts
+   * plane.addEffect(new Trail(), { output: { uniform: 'uTrailTex' } }); // テクスチャ
+   * plane.addEffect(new Trail(), { output: 'post' });                   // ポスト
+   * ```
+   */
+  public addEffect<T extends BaseEffect>(
+    effect: T,
+    options?: { output?: EffectOutput },
+  ): T {
+    // renderer を要求するエフェクト（FluidEffect 等）に注入してから getConfig を読む
     effect._setRenderer?.(this.renderer);
-    effect._register(composer);
-    const rect = this.positionCalculator?.rect ?? this.canvasRect;
-    effect.resize?.(rect.width, rect.height);
+    const config = effect._getConfig();
+    const output: EffectOutput = options?.output ?? "post";
+
+    // generator（テクスチャ生成）があれば FeedbackBuffer を作る
+    let buffer: FeedbackBuffer | null = null;
+    if (config.generate) {
+      buffer = new FeedbackBuffer(this.renderer, {
+        fragmentShader: config.generate.fragmentShader,
+        vertexShader: config.generate.vertexShader,
+        size: config.generate.size,
+        uniforms: config.generate.uniforms,
+      });
+    }
+
+    if (output === "post") {
+      const composer = this.enableEffects();
+      if (buffer) {
+        if (!config.fragmentShader) {
+          throw new Error(
+            "[DomPlane] output:'post' で generate を使うには合成用 fragmentShader が必要です。",
+          );
+        }
+        // 生成テクスチャを uGenerated として合成 pass に渡す。
+        const pass = composer.addEffect({
+          fragmentShader: config.fragmentShader,
+          uniforms: { uGenerated: { value: buffer.texture }, ...config.uniforms },
+        });
+        effect._setPass(pass);
+        this.feedbacks.push({
+          buffer,
+          sink: (tex) => pass.setUniform("uGenerated", tex),
+          owner: effect,
+        });
+      } else {
+        // generator なしの素の post（後方互換）
+        effect._register(composer);
+      }
+      const rect = this.positionCalculator?.rect ?? this.canvasRect;
+      effect.resize?.(rect.width, rect.height);
+    } else {
+      // texture: 生成テクスチャを plane material の uniform に供給
+      if (!buffer) {
+        throw new Error(
+          "[DomPlane] output:{uniform} を使うには getConfig().generate が必要です。",
+        );
+      }
+      const name = output.uniform;
+      if (!this.material.uniforms[name]) {
+        this.material.uniforms[name] = { value: null };
+      }
+      this.material.uniforms[name].value = buffer.texture;
+      this.feedbacks.push({
+        buffer,
+        sink: (tex) => {
+          this.material.uniforms[name].value = tex;
+        },
+        cleanup: () => {
+          if (this.material.uniforms[name]) {
+            this.material.uniforms[name].value = null;
+          }
+        },
+        owner: effect,
+      });
+    }
+
     // setupGUI を実装している場合は自動で lil-gui パネルを生やす。
     // lil-gui は optional peer の dynamic import なので provider が Promise を返す。
     if (this.guiProvider && effect.setupGUI) {
@@ -524,7 +617,17 @@ export class DomPlane {
     }
     // 初期テクスチャを即供給（first frame からマテリアルが有効な texture を持つ）。
     this.material.uniforms[options.outputUniform].value = buffer.texture;
-    this.feedbacks.push({ buffer, outputUniform: options.outputUniform });
+    this.feedbacks.push({
+      buffer,
+      sink: (tex) => {
+        this.material.uniforms[options.outputUniform].value = tex;
+      },
+      cleanup: () => {
+        if (this.material.uniforms[options.outputUniform]) {
+          this.material.uniforms[options.outputUniform].value = null;
+        }
+      },
+    });
     return buffer;
   }
 
@@ -535,11 +638,8 @@ export class DomPlane {
   public removeFeedback(buffer: FeedbackBuffer): boolean {
     const idx = this.feedbacks.findIndex((f) => f.buffer === buffer);
     if (idx < 0) return false;
-    const { outputUniform } = this.feedbacks[idx];
+    this.feedbacks[idx].cleanup?.();
     this.feedbacks.splice(idx, 1);
-    if (this.material.uniforms[outputUniform]) {
-      this.material.uniforms[outputUniform].value = null;
-    }
     buffer.dispose();
     return true;
   }
@@ -566,7 +666,7 @@ export class DomPlane {
         time: elapsedTime,
         aspect,
       });
-      this.material.uniforms[f.outputUniform].value = tex;
+      f.sink(tex);
     }
   }
 
@@ -581,6 +681,14 @@ export class DomPlane {
     const pass = effect.getPass();
     if (pass && this.planeComposer) {
       this.planeComposer.removeEffect(pass);
+    }
+    // この effect の generator（FeedbackBuffer）も一緒に外して dispose する。
+    for (let i = this.feedbacks.length - 1; i >= 0; i--) {
+      if (this.feedbacks[i].owner === effect) {
+        this.feedbacks[i].cleanup?.();
+        this.feedbacks[i].buffer.dispose();
+        this.feedbacks.splice(i, 1);
+      }
     }
     effect.dispose?.();
     return true;

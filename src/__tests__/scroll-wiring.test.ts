@@ -55,8 +55,25 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
 
 import { DomSyncGL } from '../Core';
 import { RafScroll } from '../RafScroll';
+import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 import type { DomPlane } from '../DomPlane';
 import type { Dom3DObject } from '../Dom3DObject';
+
+// generate(生成) + fragmentShader(post 合成) を両方持つテスト用エフェクト。
+// addEffect の output で texture / post を切り替えられることを検証するのに使う。
+class GenEffect extends BaseEffect {
+  protected getConfig(): BaseEffectConfig {
+    return {
+      generate: {
+        fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
+        size: 32,
+      },
+      fragmentShader:
+        'uniform sampler2D tDiffuse; uniform sampler2D uGenerated; varying vec2 vUv;' +
+        ' void main(){ gl_FragColor = texture2D(tDiffuse, vUv) + texture2D(uGenerated, vUv); }',
+    };
+  }
+}
 
 // DomPlane / Dom3DObject が Core から注入された live スクロール参照を保持しているかを
 // private フィールド経由で確認するためのアクセサ型（TS の private は実行時には素通し）。
@@ -202,6 +219,78 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
     // removeFeedback で外すと uniform は null に戻る
     expect(plane.removeFeedback(fb)).toBe(true);
     expect(plane.material.uniforms.uTrailTex.value).toBeNull();
+
+    app.destroy();
+  });
+
+  it('addEffect output:{uniform}: generate のテクスチャを plane uniform に供給し animate で更新', () => {
+    const app = new DomSyncGL(container);
+    const plane = app.createPlane(null) as DomPlane; // フルスクリーン(isVisible=true)
+    const effect = new GenEffect();
+
+    plane.addEffect(effect, { output: { uniform: 'uGenTex' } });
+
+    // 出力 uniform が自動で生え、初期テクスチャが供給される（post 合成 pass は作られない）
+    expect(plane.material.uniforms.uGenTex).toBeDefined();
+    expect(plane.material.uniforms.uGenTex.value).not.toBeNull();
+    expect(effect.getPass()).toBeNull();
+
+    (app as unknown as { animate: () => void }).animate.call(app);
+    expect(plane.material.uniforms.uGenTex.value).not.toBeNull();
+
+    app.destroy();
+  });
+
+  it('addEffect output:"post"(generate付き): 合成 pass を作り uGenerated に generate を渡す', () => {
+    const app = new DomSyncGL(container);
+    const plane = app.createPlane(null) as DomPlane;
+    const effect = new GenEffect();
+
+    plane.addEffect(effect, { output: 'post' });
+
+    // 合成 pass ができ、uGenerated uniform を持つ
+    const pass = effect.getPass();
+    expect(pass).not.toBeNull();
+    expect(pass!.material.uniforms.uGenerated).toBeDefined();
+
+    // 1 フレーム回しても例外なく回る（generator step → uGenerated 更新）
+    expect(() =>
+      (app as unknown as { animate: () => void }).animate.call(app),
+    ).not.toThrow();
+
+    // removeEffect で generator(FeedbackBuffer) も一緒に片付く
+    expect(plane.removeEffect(effect)).toBe(true);
+
+    app.destroy();
+  });
+
+  it('post エフェクト時も mesh.updateMatrixWorld が毎フレ呼ばれ raycast(hover) が機能する', () => {
+    const app = new DomSyncGL(container);
+    const el = document.createElement('div');
+    vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(50, 60, 200, 150),
+    );
+    document.body.appendChild(el);
+    const plane = app.createPlane(el, {
+      updateRectEveryFrame: true,
+    }) as DomPlane;
+    // DOM-locked plane は IO callback が来るまで非表示。テストでは IO スタブが発火しないので手動で可視化。
+    (plane as unknown as { isVisible: boolean }).isVisible = true;
+
+    plane.addEffect(new GenEffect(), { output: 'post' }); // PlaneComposer が mesh を scene から外す
+
+    const mesh = plane.getMesh();
+    const spy = vi.spyOn(mesh, 'updateMatrixWorld');
+
+    (app as unknown as { animate: () => void }).animate.call(app);
+
+    // setPosition 経由で毎フレ world 行列が更新される（scene 不在でも raycast が当たるよう）
+    expect(spy).toHaveBeenCalled();
+    // 単位行列ではなく位置/スケールが反映されている（raycast が正しい場所に当たる）
+    const m = mesh.matrixWorld.elements;
+    const isIdentity =
+      m[0] === 1 && m[5] === 1 && m[10] === 1 && m[12] === 0 && m[13] === 0;
+    expect(isIdentity).toBe(false);
 
     app.destroy();
   });

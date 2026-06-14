@@ -2,10 +2,32 @@ import type { IUniform, Vector2, WebGLRenderer } from "three";
 import type GUI from "lil-gui";
 import type { EffectTarget, EffectPass } from "../EffectComposer";
 
-export interface BaseEffectConfig {
+/**
+ * テクスチャ生成パス（generator）の設定。ping-pong の FeedbackBuffer で軌跡・流体等の
+ * 「状態を時間蓄積したテクスチャ」を作る。`uPrev` / `uMouse` / `uHover` / `uTime` /
+ * `uResolution` / `uAspect` は自動供給される。
+ */
+export interface EffectGenerateConfig {
   fragmentShader: string;
+  vertexShader?: string;
+  /** ping-pong バッファの1辺解像度（正方）。@default 256 */
+  size?: number;
   uniforms?: { [key: string]: IUniform };
 }
+
+export interface BaseEffectConfig {
+  /**
+   * post 合成 shader（`output: 'post'` のとき `tDiffuse` を読む）。generate と併用すると
+   * 生成テクスチャが `uGenerated`(sampler2D) として自動で渡る。generator 専用なら省略可。
+   */
+  fragmentShader?: string;
+  uniforms?: { [key: string]: IUniform };
+  /** テクスチャ生成パス。`output:{uniform}` で uniform に供給、`output:'post'` で合成素材になる。 */
+  generate?: EffectGenerateConfig;
+}
+
+/** addEffect の出力モード。`'post'`=合成して描画 / `{uniform}`=生成テクスチャをその uniform に供給。 */
+export type EffectOutput = "post" | { uniform: string };
 
 export abstract class BaseEffect {
   protected pass: EffectPass | null = null;
@@ -40,12 +62,34 @@ export abstract class BaseEffect {
       );
     }
     const config = this.getConfig();
+    if (!config.fragmentShader) {
+      throw new Error(
+        "[BaseEffect] post として登録するには getConfig().fragmentShader が必要です。",
+      );
+    }
     this.pass = target.addEffect({
       fragmentShader: config.fragmentShader,
       uniforms: config.uniforms,
     });
     // _register 前に enabled を弄られていた場合に備えて pass に反映
     this.pass.enabled = this._enabled;
+  }
+
+  /**
+   * @internal getConfig() の結果を library 側（DomPlane / EffectManager）から読むためのアクセサ。
+   * generate / fragmentShader / output を見て配線を分岐するために使う。
+   */
+  _getConfig(): BaseEffectConfig {
+    return this.getConfig();
+  }
+
+  /**
+   * @internal generate + output:'post' 経路で library が合成 pass を作った後、その pass を
+   * effect に紐づける（update()/setUniform()/getUniform()/enabled が効くようにする）。
+   */
+  _setPass(pass: EffectPass | null): void {
+    this.pass = pass;
+    if (pass) pass.enabled = this._enabled;
   }
 
   /**
