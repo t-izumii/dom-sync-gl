@@ -504,6 +504,19 @@ export class DomPlane {
     const config = effect._getConfig();
     const output: EffectOutput = options?.output ?? "post";
 
+    // FeedbackBuffer を確保する **前** に設定の整合を検証する（throw 後に GPU リソースが
+    // 宙に浮かないようにするため）。
+    if (!config.generate && output !== "post") {
+      throw new Error(
+        "[DomPlane] output:{uniform} を使うには getConfig().generate が必要です。",
+      );
+    }
+    if (config.generate && output === "post" && !config.fragmentShader) {
+      throw new Error(
+        "[DomPlane] output:'post' で generate を使うには合成用 fragmentShader が必要です。",
+      );
+    }
+
     // generator（テクスチャ生成）があれば FeedbackBuffer を作る
     let buffer: FeedbackBuffer | null = null;
     if (config.generate) {
@@ -518,14 +531,10 @@ export class DomPlane {
     if (output === "post") {
       const composer = this.enableEffects();
       if (buffer) {
-        if (!config.fragmentShader) {
-          throw new Error(
-            "[DomPlane] output:'post' で generate を使うには合成用 fragmentShader が必要です。",
-          );
-        }
         // 生成テクスチャを uGenerated として合成 pass に渡す。
+        // fragmentShader の存在は冒頭の検証で保証済み。
         const pass = composer.addEffect({
-          fragmentShader: config.fragmentShader,
+          fragmentShader: config.fragmentShader as string,
           uniforms: { uGenerated: { value: buffer.texture }, ...config.uniforms },
         });
         effect._setPass(pass);
@@ -542,18 +551,15 @@ export class DomPlane {
       effect.resize?.(rect.width, rect.height);
     } else {
       // texture: 生成テクスチャを plane material の uniform に供給
-      if (!buffer) {
-        throw new Error(
-          "[DomPlane] output:{uniform} を使うには getConfig().generate が必要です。",
-        );
-      }
+      // （buffer の存在は冒頭の検証で保証済み）
+      const gen = buffer as FeedbackBuffer;
       const name = output.uniform;
       if (!this.material.uniforms[name]) {
         this.material.uniforms[name] = { value: null };
       }
-      this.material.uniforms[name].value = buffer.texture;
+      this.material.uniforms[name].value = gen.texture;
       this.feedbacks.push({
-        buffer,
+        buffer: gen,
         sink: (tex) => {
           this.material.uniforms[name].value = tex;
         },
@@ -660,6 +666,10 @@ export class DomPlane {
     );
     for (let i = 0, n = this.feedbacks.length; i < n; i++) {
       const f = this.feedbacks[i];
+      // addEffect 由来（owner あり）は effect.enabled=false の間は step を止める。
+      // EffectManager.update（app 側 generator）と挙動を揃え、無効化中の蓄積進行と
+      // 無駄な GPU 焼きを防ぐ。addFeedback 由来（owner 無し）は常時駆動のまま。
+      if (f.owner && !f.owner.enabled) continue;
       const tex = f.buffer.step({
         mouse: this._feedbackMouseUV,
         hover,
