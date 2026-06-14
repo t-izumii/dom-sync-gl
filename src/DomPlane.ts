@@ -4,6 +4,17 @@ import type { CreatePlaneOptions } from "./types";
 import { DomPositionCalculator } from "./DomPositionCalculator";
 import { PlaneComposer } from "./PlaneComposer";
 import type { BaseEffect } from "./effects/BaseEffect";
+import { FeedbackBuffer, type FeedbackBufferOptions } from "./FeedbackBuffer";
+
+/** {@link DomPlane.addFeedback} のオプション。{@link FeedbackBufferOptions} に出力先 uniform を足したもの。 */
+export interface AddFeedbackOptions extends FeedbackBufferOptions {
+  /**
+   * 出力テクスチャを供給する plane material の uniform 名（例: `'uTrailTex'`）。
+   * plane の fragment shader 側で `uniform sampler2D uTrailTex;` を宣言しておくこと。
+   * uniform が未定義なら自動で作る。
+   */
+  outputUniform: string;
+}
 
 // 全インスタンスで共有する TextureLoader（同一の CrossOrigin 設定）
 const sharedTextureLoader = new THREE.TextureLoader();
@@ -47,6 +58,13 @@ export class DomPlane {
   private planeComposer: PlaneComposer | null = null;
   private renderer: THREE.WebGLRenderer;
   private effects: BaseEffect[] = [];
+  /**
+   * この plane に紐づいた feedback バッファ（generator）。毎フレ step して出力テクスチャを
+   * 指定 uniform に供給する。post 系の {@link effects} とは別管理（出力の向きが逆なため）。
+   */
+  private feedbacks: { buffer: FeedbackBuffer; outputUniform: string }[] = [];
+  /** _tickFeedback で uMouseUV を破壊せず渡すためのスクラッチ。 */
+  private readonly _feedbackMouseUV: THREE.Vector2 = new THREE.Vector2();
   /**
    * effect.update に渡す mouse UV のスクラッチ。
    * `material.uniforms.uMouseUV.value` を直接渡すと effect 側で `.set()` 等の破壊的操作で
@@ -476,6 +494,82 @@ export class DomPlane {
   }
 
   /**
+   * feedback バッファ（generator / GPGPU）を plane に紐づける。ping-pong で状態を時間蓄積し、
+   * その出力テクスチャを毎フレ `options.outputUniform` の uniform に供給する。マウス軌跡(trail)・
+   * 流体・拡散などに使う。RT の確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。
+   *
+   * post 系の {@link addEffect}（描画パイプラインに書き込む sink）とは逆で、こちらは
+   * **テクスチャを産む source**。plane の fragment shader 側で出力 uniform を宣言しておくこと。
+   *
+   * @example
+   * ```ts
+   * const plane = app.createPlane('.card', {
+   *   fragmentShader, // 中で `uniform sampler2D uTrailTex;` を宣言して使う
+   * });
+   * plane.addFeedback({
+   *   fragmentShader: trailFragment, // uPrev/uMouse/uHover を読んで軌跡を蓄積
+   *   size: 256,
+   *   outputUniform: 'uTrailTex',
+   *   uniforms: { uDecay: { value: 0.94 }, uRadius: { value: 0.2 } },
+   * });
+   * ```
+   * @returns 生成した {@link FeedbackBuffer}（`buffer.uniforms.uDecay.value = ...` で実行時調整可）。
+   */
+  public addFeedback(options: AddFeedbackOptions): FeedbackBuffer {
+    const buffer = new FeedbackBuffer(this.renderer, options);
+    // 出力先 uniform が無ければ作る（shader 側の宣言があれば compile 時に拾われる）。
+    if (!this.material.uniforms[options.outputUniform]) {
+      this.material.uniforms[options.outputUniform] = { value: null };
+    }
+    // 初期テクスチャを即供給（first frame からマテリアルが有効な texture を持つ）。
+    this.material.uniforms[options.outputUniform].value = buffer.texture;
+    this.feedbacks.push({ buffer, outputUniform: options.outputUniform });
+    return buffer;
+  }
+
+  /**
+   * `addFeedback()` で紐づけた feedback バッファを取り外して dispose する。
+   * 登録されていなければ false。出力 uniform の value は null に戻す。
+   */
+  public removeFeedback(buffer: FeedbackBuffer): boolean {
+    const idx = this.feedbacks.findIndex((f) => f.buffer === buffer);
+    if (idx < 0) return false;
+    const { outputUniform } = this.feedbacks[idx];
+    this.feedbacks.splice(idx, 1);
+    if (this.material.uniforms[outputUniform]) {
+      this.material.uniforms[outputUniform].value = null;
+    }
+    buffer.dispose();
+    return true;
+  }
+
+  /**
+   * Phase C: 各 feedback バッファを 1 フレーム進め、出力テクスチャを uniform に供給する。
+   * main scene の描画（Phase D）より前・PlaneComposer より前に呼ぶ（材料を先に焼くため）。
+   * @internal Core.animate から呼ばれる。
+   */
+  public _tickFeedback(elapsedTime: number): void {
+    if (!this.isVisible || this.feedbacks.length === 0) return;
+    const rect = this.positionCalculator?.rect ?? this.canvasRect;
+    const aspect = rect.height > 0 ? rect.width / rect.height : 1;
+    const hover = this.material.uniforms.uIsHovered.value ? 1 : 0;
+    // uMouseUV は plane の uniform をそのまま渡すと破壊されうるので copy する。
+    this._feedbackMouseUV.copy(
+      this.material.uniforms.uMouseUV.value as THREE.Vector2,
+    );
+    for (let i = 0, n = this.feedbacks.length; i < n; i++) {
+      const f = this.feedbacks[i];
+      const tex = f.buffer.step({
+        mouse: this._feedbackMouseUV,
+        hover,
+        time: elapsedTime,
+        aspect,
+      });
+      this.material.uniforms[f.outputUniform].value = tex;
+    }
+  }
+
+  /**
    * `addEffect()` で登録した effect を取り除き、pass material を dispose する。
    * 登録されていない effect を渡した時は何もしない（戻り値 false）。
    */
@@ -509,6 +603,11 @@ export class DomPlane {
       effect.dispose?.();
     }
     this.effects = [];
+
+    for (const f of this.feedbacks) {
+      f.buffer.dispose();
+    }
+    this.feedbacks = [];
 
     if (this.planeComposer) {
       this.planeComposer.dispose(); // mesh を scene に戻してから

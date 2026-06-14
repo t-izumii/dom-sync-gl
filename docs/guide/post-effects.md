@@ -84,3 +84,79 @@ app.removeEffect(grain);   // 1 つだけ取り外す
 app.clearEffects();        // 全部破棄
 app.destroy();             // app ごと破棄（effect も一緒に dispose）
 ```
+
+## Feedback バッファ（generator / GPGPU）
+
+`BaseEffect` は「絵を受け取って絵を返す」**post（フィルタ / sink）**でした。これとは**出力の向きが逆**の、
+**テクスチャを産み出す generator** が `FeedbackBuffer` です。ping-pong RenderTarget で前フレームの自分の
+出力（`uPrev`）を読み、状態を**時間蓄積**します。マウス軌跡（trail）・流体・拡散・反応拡散などに使います。
+
+| | post（`addEffect` / `BaseEffect`） | generator（`addFeedback` / `FeedbackBuffer`） |
+|---|---|---|
+| 入力 | 直前のレンダリング結果（tDiffuse） | 前フレームの自分の出力（uPrev）＋ マウス等 |
+| 出力 | 描画パイプラインに書き込む（**sink**） | テクスチャを産み、別シェーダーの材料にする（**source**） |
+| 状態 | 基本ステートレス（per-frame） | 永続バッファ（RT 2 枚）を時間蓄積 |
+| 用途 | 色収差・グレイン・ブラー等の仕上げ | 軌跡・流体・拡散等の素材生成 |
+
+### `plane.addFeedback()`
+
+plane に紐づけると、毎フレ自動で `step()` され、出力テクスチャが指定 uniform に供給されます
+（RT 確保 / 駆動 / resize / dispose はライブラリが担当）。
+
+```ts
+// plane 側の shader で受け取る uniform を宣言しておく
+const plane = app.createPlane('.card', {
+  fragmentShader: /* glsl */ `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTrailTex;   // ← addFeedback が毎フレ供給する
+    void main() {
+      float trail = texture2D(uTrailTex, vUv).r;
+      gl_FragColor = vec4(vec3(trail), 1.0);
+    }
+  `,
+});
+
+const trail = plane.addFeedback({
+  fragmentShader: /* glsl */ `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uPrev;   // 前フレームの自分の出力
+    uniform vec2  uMouse;      // マウス UV (0..1)
+    uniform float uHover;      // hover 量 (0..1)
+    uniform float uAspect;     // plane の w/h
+    uniform float uDecay;      // ← ユーザー uniform
+    uniform float uRadius;
+    void main() {
+      vec3 prev = texture2D(uPrev, vUv).rgb * uDecay;          // 余韻を減衰
+      vec2 d = (vUv - uMouse) * vec2(uAspect, 1.0);
+      float splat = smoothstep(uRadius, 0.0, length(d)) * uHover; // 現在地にスプラット
+      gl_FragColor = vec4(prev + splat, 1.0);
+    }
+  `,
+  size: 256,
+  outputUniform: 'uTrailTex',
+  uniforms: { uDecay: { value: 0.94 }, uRadius: { value: 0.2 } },
+});
+
+// 実行時に調整・取り外し
+trail.uniforms.uDecay.value = 0.9;
+plane.removeFeedback(trail);
+```
+
+### 自動で渡る uniform（更新シェーダー）
+
+`uPrev`(前フレーム) / `uMouse` / `uHover` / `uTime` / `uResolution`(バッファ解像度) / `uAspect`(plane の w/h)
+は宣言するだけで使えます。`uniforms` で渡した値（`uDecay` 等）はマージされ、`buffer.uniforms.xxx.value`
+で実行時に更新できます。
+
+### スタンドアロン利用
+
+`FeedbackBuffer` は plane に依存しない素の primitive としても使えます（`getRenderer()` を渡す）。
+
+```ts
+import { FeedbackBuffer } from 'dom-sync-gl';
+const fb = new FeedbackBuffer(app.getRenderer(), { fragmentShader, size: 256 });
+const tex = fb.step({ mouse, hover, time, aspect }); // 1 フレーム進めて最新テクスチャ取得
+fb.dispose();
+```

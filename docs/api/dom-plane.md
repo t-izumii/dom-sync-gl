@@ -32,7 +32,27 @@ createPlane で生成される plane には、宣言するだけで使える uni
 
 ### `addEffect(effect)` / `removeEffect(effect)`
 
-plane 単位のエフェクトチェーン。詳細は [Post Effects](/guide/post-effects)。
+plane 単位の **post エフェクト**チェーン（描画パイプラインに書き込む sink）。詳細は [Post Effects](/guide/post-effects)。
+
+### `addFeedback(options)` / `removeFeedback(buffer)`
+
+plane に **feedback バッファ（generator / GPGPU）** を紐づける。ping-pong RenderTarget で状態を
+時間蓄積し、その出力テクスチャを毎フレ `options.outputUniform` の uniform に供給する（マウス軌跡・
+流体・拡散など）。RT 確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。返り値は
+[`FeedbackBuffer`](/guide/post-effects#feedback-バッファ-generator-gpgpu)。
+
+```ts
+const plane = app.createPlane('.card', { fragmentShader }); // shader 内で uniform sampler2D uTrailTex; を宣言
+plane.addFeedback({
+  fragmentShader: trailFragment, // uPrev/uMouse/uHover を読んで軌跡を蓄積
+  size: 256,
+  outputUniform: 'uTrailTex',
+  uniforms: { uDecay: { value: 0.94 }, uRadius: { value: 0.2 } },
+});
+```
+
+`addEffect`（絵を加工する post）と `addFeedback`（素材テクスチャを産む generator）は**出力の向きが逆**。
+詳細は [Post Effects / Feedback バッファ](/guide/post-effects#feedback-バッファ-generator-gpgpu)。
 
 ### `setTexture(texture, takeOwnership?)`
 

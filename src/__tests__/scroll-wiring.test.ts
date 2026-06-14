@@ -18,6 +18,17 @@ vi.mock('three', async () => {
       return this.dpr;
     }
     setRenderTarget() {}
+    getRenderTarget() {
+      return null;
+    }
+    getClearColor(c: { set: (v: unknown) => void }) {
+      return c;
+    }
+    getClearAlpha() {
+      return 1;
+    }
+    setClearColor() {}
+    clear() {}
     render() {}
     dispose() {}
   }
@@ -162,6 +173,35 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
     // Then: 背景 plane も毎フレ setHoverInfo を受ける。mouse 未移動なので inside=false で流れる。
     expect(spy).toHaveBeenCalledWith(false, expect.anything());
     expect(plane.material.uniforms.uIsHovered.value).toBe(false);
+
+    app.destroy();
+  });
+
+  it('addFeedback: 出力テクスチャが plane の uniform に供給され、animate で step 更新される', () => {
+    const app = new DomSyncGL(container);
+    // フルスクリーン plane（isVisible=true）にして _tickFeedback が走るようにする
+    const plane = app.createPlane(null, {
+      fragmentShader:
+        'uniform sampler2D uTrailTex; varying vec2 vUv; void main(){ gl_FragColor = texture2D(uTrailTex, vUv); }',
+    }) as DomPlane;
+
+    const fb = plane.addFeedback({
+      fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }',
+      outputUniform: 'uTrailTex',
+      size: 64,
+    });
+
+    // 出力 uniform が自動で生え、初期テクスチャが供給されている
+    expect(plane.material.uniforms.uTrailTex).toBeDefined();
+    expect(plane.material.uniforms.uTrailTex.value).toBe(fb.texture);
+
+    // animate 1 フレームで _tickFeedback → step → 最新テクスチャを供給
+    (app as unknown as { animate: () => void }).animate.call(app);
+    expect(plane.material.uniforms.uTrailTex.value).toBe(fb.texture);
+
+    // removeFeedback で外すと uniform は null に戻る
+    expect(plane.removeFeedback(fb)).toBe(true);
+    expect(plane.material.uniforms.uTrailTex.value).toBeNull();
 
     app.destroy();
   });
