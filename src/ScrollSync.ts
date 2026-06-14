@@ -112,12 +112,20 @@ export class ScrollSync {
   }
 
   /**
-   * viewport サイズが変わった時に呼ぶ。引数省略で window 寸法から自動算出。
-   * 明示的に値を渡せば override 可能 (scrollbar 差し引いた幅にしたい等)。
+   * viewport サイズが変わった時に呼ぶ。引数省略で `documentElement.clientWidth/clientHeight`
+   * （= スクロールバーを除いた実コンテンツ領域）から自動算出する。明示値を渡せば override 可能。
+   *
+   * **`window.innerWidth` ではなく `clientWidth` を使う理由（横スクロール無限ループ防止）**:
+   * `innerWidth` は縦スクロールバーの幅を含むため、縦に長いページではコンテナが約 15px はみ出して
+   * 横スクロールが発生する。さらに `applyTransform` がその `scrollX` 分コンテナを右へずらすと
+   * `scrollWidth` が伸び、横スクロール可能量が増える→ずれる…と無限に広がる。`clientWidth`
+   * （`width: 100%` 相当。`100vw` ではない）にすればはみ出しの種が無くなり `scrollX` は 0 のまま。
+   * 縦軸は横スクロールバーが通常無いので `innerHeight ≈ clientHeight` でこの問題は起きなかった。
    */
   updateSize(wrapperWidth?: number, wrapperHeight?: number): void {
-    this._viewportWidth = wrapperWidth ?? window.innerWidth;
-    this._viewportHeight = wrapperHeight ?? window.innerHeight;
+    const docEl = document.documentElement;
+    this._viewportWidth = wrapperWidth ?? docEl.clientWidth;
+    this._viewportHeight = wrapperHeight ?? docEl.clientHeight;
 
     this.container.style.width = `${this._viewportWidth}px`;
     this.container.style.height = `${this._viewportHeight}px`;

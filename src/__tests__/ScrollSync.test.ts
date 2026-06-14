@@ -19,6 +19,18 @@ describe('ScrollSync', () => {
       writable: true,
       configurable: true,
     });
+    // updateSize は既定で documentElement.clientWidth/clientHeight（スクロールバー除外の
+    // 実コンテンツ領域）を読む。横スクロール無限ループ防止のため innerWidth ではなくこちらを使う。
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      value: 1000,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(document.documentElement, 'clientHeight', {
+      value: 800,
+      writable: true,
+      configurable: true,
+    });
     Object.defineProperty(window, 'scrollX', {
       value: 0,
       writable: true,
@@ -58,6 +70,18 @@ describe('ScrollSync', () => {
     new ScrollSync(container);
     expect(container.style.width).toBe('1000px');
     expect(container.style.height).toBe('800px');
+  });
+
+  it('縦スクロールバーぶんを除いた clientWidth を採用する（横スクロール無限ループ防止）', () => {
+    // 縦スクロールバーがある状態を模す: innerWidth は scrollbar を含む、clientWidth は含まない。
+    // container 幅に innerWidth(1015) を使うと約 15px はみ出して横スクロール→translate 無限拡大する。
+    Object.defineProperty(window, 'innerWidth', { value: 1015, configurable: true });
+    Object.defineProperty(document.documentElement, 'clientWidth', {
+      value: 1000,
+      configurable: true,
+    });
+    new ScrollSync(container);
+    expect(container.style.width).toBe('1000px'); // innerWidth(1015) ではなく clientWidth(1000)
   });
 
   it('logicalRect は viewport そのままの (0, 0, vw, vh) を返す', () => {
