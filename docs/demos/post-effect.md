@@ -18,9 +18,9 @@ WebGL を載せるコンテナ 1 つだけ。
 ## TypeScript
 
 ```ts
-import { WebGLApp, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
+import { DomSyncGL, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
 
-const app = new WebGLApp('#stage', { showGUI: false });
+const app = new DomSyncGL('#stage', { showGUI: false });
 
 // 1. 全画面背景 plane（selector に null を渡す）
 app.createPlane(null, {
@@ -128,5 +128,5 @@ class GrainEffect extends BaseEffect {
 }
 ```
 
-`new WebGLApp(..., { showGUI: true })` のとき、`setupGUI()` が自動で呼ばれる。
+`new DomSyncGL(..., { showGUI: true })` のとき、`setupGUI()` が自動で呼ばれる。
 `lil-gui` は optional peer なので、使うときだけ `npm install lil-gui`。

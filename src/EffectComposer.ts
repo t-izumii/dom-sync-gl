@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * `WebGLApp.setPostEffect()` で差し込めるポストエフェクトの最小契約。
+ * `DomSyncGL.setPostEffect()` で差し込めるポストエフェクトの最小契約。
  * `EffectComposer` は実装している。自前で差し込みたい場合は構造的にこれを満たせばよい。
  */
 export interface EffectLike {

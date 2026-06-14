@@ -20,9 +20,9 @@ npm install lil-gui stats.js
 ```
 
 ```ts
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
-const app = new WebGLApp('#canvas');
+const app = new DomSyncGL('#canvas');
 
 app.createPlane('.hero-card', {
   fragmentShader: `
@@ -65,4 +65,4 @@ app.createPlane(null, { fragmentShader: bgShader });
 - [Demos](/demos/) — 動くサンプル + コピペ可能なコード
 - [Scroll Sync](/guide/scroll-sync) — スクロールと canvas を 1 frame で揃える
 - [Post Effects](/guide/post-effects) — `BaseEffect` でエフェクトを書く
-- [API: WebGLApp](/api/webgl-app) — 全オプション
+- [API: DomSyncGL](/api/dom-sync-gl) — 全オプション

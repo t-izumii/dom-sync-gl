@@ -49,7 +49,7 @@ plane 単位のエフェクトチェーン。詳細は [Post Effects](/guide/pos
 
 ### `setHoverInfo(isHovered, uv)`
 
-raycast 結果を WebGLApp 側から流し込む内部 API。通常は触らない。
+raycast 結果を DomSyncGL 側から流し込む内部 API。通常は触らない。
 
 ### `getMesh()`
 
@@ -57,7 +57,7 @@ THREE.Mesh 本体。shadow / layer 等を直接弄りたいときに。
 
 ### `resize()`
 
-DOM サイズの再計算 + uniform/scale の更新。WebGLApp の resize で自動で呼ばれる。
+DOM サイズの再計算 + uniform/scale の更新。DomSyncGL の resize で自動で呼ばれる。
 
 ### `destroy()`
 

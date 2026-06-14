@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
 const scroller = ref<HTMLDivElement | null>(null);
 const inner = ref<HTMLDivElement | null>(null);
 const stage = ref<HTMLDivElement | null>(null);
-let app: InstanceType<typeof WebGLApp> | null = null;
+let app: InstanceType<typeof DomSyncGL> | null = null;
 
 // scroller の中で scroll が起こる擬似ページ。3 枚のカードに plane をロック。
 const cards = [0, 1, 2];
@@ -33,7 +33,7 @@ onMounted(() => {
   // scrollSync は window scroll 前提なので、ここではローカル擬似 scroll に
   // 合わせて plane.position を更新するシンプルなトランスフォームで代用する。
   // （docs 上で「DOM が動いても plane が追随する」体感だけ伝える）
-  app = new WebGLApp(stage.value);
+  app = new DomSyncGL(stage.value);
 
   cards.forEach((i) => {
     const el = scroller.value!.querySelector<HTMLElement>(`[data-card="${i}"]`);

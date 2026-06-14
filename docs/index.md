@@ -14,7 +14,7 @@ hero:
       link: /demos/
     - theme: alt
       text: API
-      link: /api/webgl-app
+      link: /api/dom-sync-gl
     - theme: alt
       text: GitHub
       link: https://github.com/t-izumii/dom-sync-gl
@@ -43,8 +43,8 @@ npm install dom-sync-gl three
 ```
 
 ```ts
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
-const app = new WebGLApp('#canvas');
+const app = new DomSyncGL('#canvas');
 app.createPlane('.hero-card', { fragmentShader });
 ```

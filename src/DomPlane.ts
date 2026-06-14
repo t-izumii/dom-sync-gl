@@ -55,7 +55,7 @@ export class DomPlane {
   private readonly _effectMouseUV: THREE.Vector2 = new THREE.Vector2();
   /**
    * effect の `setupGUI` 呼び出し時に root GUI を渡すための provider。
-   * WebGLApp.createPlane() でセットされる。null の時は GUI を作らない（showGUI: false 等）。
+   * DomSyncGL.createPlane() でセットされる。null の時は GUI を作らない（showGUI: false 等）。
    *
    * lil-gui は optional peer の dynamic import なので Promise を返す。
    * @internal
@@ -492,7 +492,7 @@ export class DomPlane {
   }
 
   /**
-   * WebGLApp.createPlane() から呼ばれる。GUI lazy 取得関数を渡す。
+   * DomSyncGL.createPlane() から呼ばれる。GUI lazy 取得関数を渡す。
    * null を渡すと GUI 統合を無効化（showGUI: false 相当）。
    * @internal
    */

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
 // カード型のボックス自体を WebGL コンテナにする。中に「フルスクリーン plane」を 1 枚張るので
 // DOM 要素ロックではなく、canvasRect / scroll に依存しない。ページをスクロールしても plane は
 // 常に canvas（= カード）を埋めたままズレない。
 const card = ref<HTMLDivElement | null>(null);
-let app: InstanceType<typeof WebGLApp> | null = null;
+let app: InstanceType<typeof DomSyncGL> | null = null;
 
 const fragmentShader = /* glsl */ `
   precision highp float;
@@ -32,7 +32,7 @@ const fragmentShader = /* glsl */ `
 
 onMounted(() => {
   if (!card.value) return;
-  app = new WebGLApp(card.value, { showGUI: false });
+  app = new DomSyncGL(card.value, { showGUI: false });
   // element=null = フルスクリーン plane（canvas 全体を埋める）。
   const plane = app.createPlane(null, { fragmentShader });
 

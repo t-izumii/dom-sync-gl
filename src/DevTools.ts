@@ -12,7 +12,7 @@ export class DevTools {
   private readonly statsParent: HTMLElement;
   private readonly showGUI: boolean;
   private readonly guiTitle: string;
-  /** WebGLApp が destroy 済みかを確認するための参照（import 解決後の guard 用）。 */
+  /** DomSyncGL が destroy 済みかを確認するための参照（import 解決後の guard 用）。 */
   private readonly isDestroyed: () => boolean;
 
   private stats: Stats | null = null;
@@ -49,7 +49,7 @@ export class DevTools {
       })
       .catch((err) => {
         console.warn(
-          '[WebGLApp] showStats: true ですが stats.js が読み込めませんでした。' +
+          '[DomSyncGL] showStats: true ですが stats.js が読み込めませんでした。' +
             'npm install stats.js してください。',
           err,
         );

@@ -84,5 +84,5 @@ setupGUI(gui) {
 import { EffectComposer, EffectPass, type EffectLike } from 'dom-sync-gl';
 ```
 
-`WebGLApp.setPostEffect(effectLike)` に `EffectLike` を渡せば、独自の post-effect
+`DomSyncGL.setPostEffect(effectLike)` に `EffectLike` を渡せば、独自の post-effect
 パイプラインを丸ごと差し込める（`addEffect()` と併用は不可）。

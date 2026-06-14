@@ -1,5 +1,5 @@
 // Core classes
-export { WebGLApp } from "./Core";
+export { DomSyncGL } from "./Core";
 export { Camera } from "./Camera";
 export { Light } from "./Light";
 export { DomPlane } from "./DomPlane";
@@ -14,7 +14,7 @@ export { DomPositionCalculator } from "./DomPositionCalculator";
 
 // Types
 export type {
-  WebGLAppOptions,
+  DomSyncGLOptions,
   CreatePlaneOptions,
   Create3DObjectOptions,
   Dom3DObjectFitMode,

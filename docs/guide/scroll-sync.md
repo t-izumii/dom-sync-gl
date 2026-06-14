@@ -5,7 +5,7 @@
 ## 有効化
 
 ```ts
-const app = new WebGLApp('#canvas', {
+const app = new DomSyncGL('#canvas', {
   scrollSync: true,
 });
 ```
@@ -24,7 +24,7 @@ canvas と DOM が同じ分だけズレて見た目が揃う。pull-to-refresh �
 ## オプション
 
 ```ts
-new WebGLApp('#canvas', {
+new DomSyncGL('#canvas', {
   scrollSync: { trackStrength: true },
 });
 ```
@@ -43,7 +43,7 @@ JS が読む scrollY と paint された位置がフレーム内で揃う。
 `scrollTo` → `scroll 読み取り` の順に駆動するため、背景・plane が 1 フレームずれない。
 
 ```ts
-const app = new WebGLApp('#canvas', {
+const app = new DomSyncGL('#canvas', {
   scrollSync: true,
   rafScroll: {
     touchFriction: 0.95, // タッチリリース後の慣性（0 で慣性なし）
@@ -59,8 +59,8 @@ const app = new WebGLApp('#canvas', {
 
 ::: warning 自前生成するなら順序に注意
 `new RafScroll()` を別途生成して併用する場合、RafScroll と Core は**別々の rAF ループ**を持つ。
-ブラウザは rAF を登録順に実行するため、`WebGLApp` より**後に**生成すると Core が 1 フレーム古い
-scrollY を読み、背景 canvas がスクロール中だけズレる。自前生成するなら必ず `WebGLApp` より
+ブラウザは rAF を登録順に実行するため、`DomSyncGL` より**後に**生成すると Core が 1 フレーム古い
+scrollY を読み、背景 canvas がスクロール中だけズレる。自前生成するなら必ず `DomSyncGL` より
 **先に**生成すること。順序を気にしたくなければ上記の `rafScroll` オプションを使う。
 :::
 

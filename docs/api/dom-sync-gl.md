@@ -1,12 +1,12 @@
-# WebGLApp
+# DomSyncGL
 
 domSyncGL のエントリポイント。renderer / scene / camera を内包し、`createPlane()` や
 `addEffect()` のハブになる。
 
 ```ts
-import { WebGLApp } from 'dom-sync-gl';
+import { DomSyncGL } from 'dom-sync-gl';
 
-const app = new WebGLApp('#canvas', {
+const app = new DomSyncGL('#canvas', {
   scrollSync: true,
 });
 ```
@@ -14,7 +14,7 @@ const app = new WebGLApp('#canvas', {
 ## Constructor
 
 ```ts
-new WebGLApp(selector: string | HTMLElement, options?: WebGLAppOptions)
+new DomSyncGL(selector: string | HTMLElement, options?: DomSyncGLOptions)
 ```
 
 `selector` で canvas を載せる container を指定する。文字列 or HTMLElement。

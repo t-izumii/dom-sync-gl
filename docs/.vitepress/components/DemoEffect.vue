@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { WebGLApp, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
+import { DomSyncGL, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
 
 const stage = ref<HTMLDivElement | null>(null);
-let app: InstanceType<typeof WebGLApp> | null = null;
+let app: InstanceType<typeof DomSyncGL> | null = null;
 let grain: GrainEffect | null = null;
 const grainOn = ref(true);
 
@@ -51,7 +51,7 @@ class GrainEffect extends BaseEffect {
 
 onMounted(() => {
   if (!stage.value) return;
-  app = new WebGLApp(stage.value, { showGUI: false });
+  app = new DomSyncGL(stage.value, { showGUI: false });
   app.createPlane(null, { fragmentShader: baseShader });
   grain = new GrainEffect();
   app.addEffect(grain);
