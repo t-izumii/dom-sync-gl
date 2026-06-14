@@ -35,6 +35,11 @@ export { PlaneComposer } from "./PlaneComposer";
 export { BaseEffect } from "./effects/BaseEffect";
 export type { BaseEffectConfig } from "./effects/BaseEffect";
 
+// Feedback バッファ（generator: 標準 WebGL の render-to-texture を ping-pong して状態を時間蓄積）
+export { FeedbackBuffer } from "./FeedbackBuffer";
+export type { FeedbackBufferOptions, FeedbackInput } from "./FeedbackBuffer";
+export type { AddFeedbackOptions } from "./DomPlane";
+
 // THREE.js の再エクスポート（方針: 利便性を優先して維持する）
 //
 // 【目的】利用者が `dom-sync-gl` から `THREE` を直接受け取れるようにし、別途 `three` を

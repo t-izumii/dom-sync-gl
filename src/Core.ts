@@ -697,7 +697,12 @@ export class DomSyncGL {
       objects[i]._tickApply(scrollX, scrollY);
     }
 
-    // === Phase C: PlaneComposer の per-plane FBO レンダリング ===
+    // === Phase C: feedback バッファ更新 → PlaneComposer の per-plane FBO レンダリング ===
+    // feedback(generator) は plane の材料テクスチャを焼くので、PlaneComposer / main render より
+    // 前に step する（最新の出力 uniform を持った状態で plane を描く）。
+    for (let i = 0, n = planes.length; i < n; i++) {
+      planes[i]._tickFeedback(elapsed);
+    }
     for (let i = 0, n = planes.length; i < n; i++) {
       planes[i]._tickRenderComposer();
     }
