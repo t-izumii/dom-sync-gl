@@ -294,6 +294,33 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
 
     app.destroy();
   });
+
+  it('app.addEffect output:"post"(generate付き): fullscreen 合成 pass を作り generator を駆動する', () => {
+    const app = new DomSyncGL(container);
+    const effect = new GenEffect();
+
+    // 画面全体(EffectComposer)に対する fullscreen ポスト
+    app.addEffect(effect, { output: 'post' });
+
+    const pass = effect.getPass();
+    expect(pass).not.toBeNull();
+    expect(pass!.material.uniforms.uGenerated).toBeDefined();
+
+    // animate で generator が step され uGenerated が更新される（例外なく回る）
+    expect(() =>
+      (app as unknown as { animate: () => void }).animate.call(app),
+    ).not.toThrow();
+
+    // texture 出力は app 全体では不可（plane.addEffect を使う）
+    expect(() =>
+      app.addEffect(new GenEffect(), { output: { uniform: 'x' } }),
+    ).toThrow();
+
+    // removeEffect で generator も片付く
+    expect(app.removeEffect(effect)).toBe(true);
+
+    app.destroy();
+  });
 });
 
 describe('Core ⇄ RafScroll の統合（rafScroll オプション）', () => {

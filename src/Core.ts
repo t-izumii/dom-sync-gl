@@ -12,7 +12,7 @@ import { RafScroll } from './RafScroll';
 import type { EffectLike } from './EffectComposer';
 import type { ScrollSyncOptions } from './ScrollSync';
 import type { RafScrollOptions } from './RafScroll';
-import type { BaseEffect } from './effects/BaseEffect';
+import type { BaseEffect, EffectOutput } from './effects/BaseEffect';
 import { PointerController } from './PointerController';
 import { EffectManager } from './EffectManager';
 import { DevTools } from './DevTools';
@@ -432,11 +432,19 @@ export class DomSyncGL {
    * 自動生成された EffectComposer で上書きされる（カスタム postEffect の dispose は
    * 呼ばれない＝呼び出し側の責務）。両 API の併用は避けること。
    */
-  addEffect<T extends BaseEffect>(effect: T): T {
+  addEffect<T extends BaseEffect>(
+    effect: T,
+    options?: { output?: EffectOutput },
+  ): T {
     if (this.destroyed) {
       throw new Error('[DomSyncGL] addEffect(): destroy 済みのインスタンスでは使えません。');
     }
-    return this.effectManager.addEffect(effect, this.rect.width, this.rect.height);
+    return this.effectManager.addEffect(
+      effect,
+      this.rect.width,
+      this.rect.height,
+      options,
+    );
   }
 
   /**

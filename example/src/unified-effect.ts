@@ -92,9 +92,19 @@ class Trail extends BaseEffect {
 // ---------------------------------------------------------------------------
 const app = new DomSyncGL("#gl", { scrollSync: true, showGUI: false });
 
+  const bg = app.createPlane(null, {
+    fragmentShader: `
+    precision highp float;
+    void main() {
+    gl_FragColor = vec4(0.0,1.0,1.0, 1.0);
+    }
+    `
+  });
+
 const cards = Array.from(document.querySelectorAll<HTMLElement>(".card"));
 let output: EffectOutput = { uniform: "uTrailTex" }; // 初期は texture モード
 let planes: ReturnType<DomSyncGL["createPlane"]>[] = [];
+let postEffect: Trail | null = null; // post モード時の fullscreen エフェクト
 
 function build() {
   cards.forEach((card) => {
@@ -107,15 +117,31 @@ function build() {
         uSeed: { value: seed },
       },
     });
-    // ★ ここが肝: 同じ Trail クラスのまま output だけで texture ⇄ post を切替
-    plane.addEffect(new Trail(), { output });
+    // texture モード: plane 単位で生成テクスチャを uniform に供給（その plane の素材になる）
+    if (output !== "post") {
+      plane.addEffect(new Trail(), { output });
+    }
     planes.push(plane);
   });
+
+  // ★ post モード: 画面全体（bg + 全 card を描いた最終結果）に 1 つだけ fullscreen ポストを掛ける。
+  //   app.addEffect 経由なので per-plane ではなく canvas 全体に効く（本物のポストエフェクト）。
+  if (output === "post") {
+    postEffect = app.addEffect(new Trail(), { output: "post" });
+  }
+}
+
+function teardown() {
+  if (postEffect) {
+    app.removeEffect(postEffect);
+    postEffect = null;
+  }
+  for (const p of planes) app.removePlane(p);
+  planes = [];
 }
 
 function rebuild() {
-  for (const p of planes) app.removePlane(p);
-  planes = [];
+  teardown();
   build();
 }
 

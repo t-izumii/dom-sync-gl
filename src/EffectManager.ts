@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import type GUI from 'lil-gui';
 import { EffectComposer } from './EffectComposer';
 import type { EffectLike } from './EffectComposer';
-import type { BaseEffect } from './effects/BaseEffect';
+import type { BaseEffect, EffectOutput } from './effects/BaseEffect';
+import { FeedbackBuffer } from './FeedbackBuffer';
 
 /**
  * フルスクリーンのポストエフェクト群を集約管理する。
@@ -23,6 +24,20 @@ export class EffectManager {
   private effects: BaseEffect[] = [];
   private postEffect: EffectLike | null = null;
   private internalComposer: EffectComposer | null = null;
+  /**
+   * fullscreen post に generate（テクスチャ生成パス）を持つ effect の generator 群。
+   * 毎フレ step してグローバルマウスで軌跡等を蓄積し、合成 pass の uGenerated に供給する。
+   */
+  private generators: {
+    buffer: FeedbackBuffer;
+    sink: (tex: THREE.Texture) => void;
+    owner: BaseEffect;
+  }[] = [];
+  /** generator の uAspect 計算に使う現在の描画サイズ。addEffect / resize で更新。 */
+  private _width = 1;
+  private _height = 1;
+  /** generator step の mouse を破壊せず渡すスクラッチ。 */
+  private readonly _genMouse = new THREE.Vector2(0.5, 0.5);
 
   constructor(opts: {
     renderer: THREE.WebGLRenderer;
@@ -48,7 +63,20 @@ export class EffectManager {
    * 自動生成された EffectComposer で上書きされる（カスタム postEffect の dispose は
    * 呼ばれない＝呼び出し側の責務）。両 API の併用は避けること。
    */
-  addEffect<T extends BaseEffect>(effect: T, width: number, height: number): T {
+  addEffect<T extends BaseEffect>(
+    effect: T,
+    width: number,
+    height: number,
+    options?: { output?: EffectOutput },
+  ): T {
+    const output: EffectOutput = options?.output ?? 'post';
+    if (output !== 'post') {
+      // app 全体には供給先 material が無いので texture 出力は不可（plane.addEffect を使う）。
+      throw new Error(
+        "[DomSyncGL] app.addEffect は output:'post'（fullscreen 合成）専用です。" +
+          ' texture 出力は plane.addEffect(effect, { output: { uniform } }) を使ってください。',
+      );
+    }
     if (this.postEffect && this.postEffect !== this.internalComposer) {
       const msg =
         '[DomSyncGL] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
@@ -61,9 +89,39 @@ export class EffectManager {
       this.internalComposer = new EffectComposer(this.renderer, width, height);
       this.postEffect = this.internalComposer;
     }
+    this._width = width;
+    this._height = height;
     // renderer を要求するエフェクト（FluidEffect 等）に注入してから register する
     effect._setRenderer?.(this.renderer);
-    effect._register(this.internalComposer);
+
+    const config = effect._getConfig();
+    if (config.generate) {
+      // generate を持つ effect: グローバルな軌跡テクスチャを作り、合成 pass の uGenerated に流す。
+      if (!config.fragmentShader) {
+        throw new Error(
+          "[DomSyncGL] app.addEffect で generate を使うには合成用 fragmentShader が必要です。",
+        );
+      }
+      const buffer = new FeedbackBuffer(this.renderer, {
+        fragmentShader: config.generate.fragmentShader,
+        vertexShader: config.generate.vertexShader,
+        size: config.generate.size,
+        uniforms: config.generate.uniforms,
+      });
+      const pass = this.internalComposer.addEffect({
+        fragmentShader: config.fragmentShader,
+        uniforms: { uGenerated: { value: buffer.texture }, ...config.uniforms },
+      });
+      effect._setPass(pass);
+      this.generators.push({
+        buffer,
+        sink: (tex) => pass.setUniform('uGenerated', tex),
+        owner: effect,
+      });
+    } else {
+      // generator なしの素の fullscreen post（従来どおり）
+      effect._register(this.internalComposer);
+    }
     effect.resize?.(width, height);
     // setupGUI を実装している場合は自動で lil-gui パネルを生やす。
     // lil-gui は optional peer なので dynamic import の resolve を await してから呼ぶ。
@@ -117,8 +175,21 @@ export class EffectManager {
     if (pass && this.internalComposer) {
       this.internalComposer.removeEffect(pass);
     }
+    // この effect の generator（FeedbackBuffer）も外して dispose する。
+    for (let i = this.generators.length - 1; i >= 0; i--) {
+      if (this.generators[i].owner === effect) {
+        this.generators[i].buffer.dispose();
+        this.generators.splice(i, 1);
+      }
+    }
     effect.dispose?.();
     return true;
+  }
+
+  /** generator(FeedbackBuffer) をすべて dispose する。 */
+  private disposeGenerators(): void {
+    for (const g of this.generators) g.buffer.dispose();
+    this.generators = [];
   }
 
   /** 登録された effect / postEffect をすべて解除して破棄する。 */
@@ -127,13 +198,31 @@ export class EffectManager {
       effect.dispose?.();
     }
     this.effects = [];
+    this.disposeGenerators();
     this.postEffect?.dispose();
     this.postEffect = null;
     this.internalComposer = null;
   }
 
-  /** rAF tick 内: 有効な effect の update を回す。 */
+  /** rAF tick 内: generator を 1 歩進め、有効な effect の update を回す。 */
   update(elapsed: number, mouse: THREE.Vector2): void {
+    // generator（fullscreen post の軌跡等）を main render より前に step し uGenerated を更新。
+    // app 全体なので mouse は canvas グローバル UV、hover は常時 1。
+    if (this.generators.length > 0) {
+      this._genMouse.copy(mouse);
+      const aspect = this._height > 0 ? this._width / this._height : 1;
+      for (let i = 0, n = this.generators.length; i < n; i++) {
+        const g = this.generators[i];
+        if (!g.owner.enabled) continue;
+        const tex = g.buffer.step({
+          mouse: this._genMouse,
+          hover: 1,
+          time: elapsed,
+          aspect,
+        });
+        g.sink(tex);
+      }
+    }
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
@@ -155,6 +244,8 @@ export class EffectManager {
   }
 
   resize(width: number, height: number): void {
+    this._width = width;
+    this._height = height;
     this.postEffect?.resize(width, height);
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
@@ -167,6 +258,7 @@ export class EffectManager {
       effect.dispose?.();
     }
     this.effects = [];
+    this.disposeGenerators();
     this.postEffect?.dispose();
     this.postEffect = null;
     this.internalComposer = null;
