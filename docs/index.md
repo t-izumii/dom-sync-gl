@@ -14,7 +14,7 @@ hero:
       link: /demos/
     - theme: alt
       text: API
-      link: /api/webgl-app
+      link: /api/dom-sync-gl
     - theme: alt
       text: GitHub
       link: https://github.com/t-izumii/dom-sync-gl

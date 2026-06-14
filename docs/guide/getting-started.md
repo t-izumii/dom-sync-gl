@@ -65,4 +65,4 @@ app.createPlane(null, { fragmentShader: bgShader });
 - [Demos](/demos/) — 動くサンプル + コピペ可能なコード
 - [Scroll Sync](/guide/scroll-sync) — スクロールと canvas を 1 frame で揃える
 - [Post Effects](/guide/post-effects) — `BaseEffect` でエフェクトを書く
-- [API: DomSyncGL](/api/webgl-app) — 全オプション
+- [API: DomSyncGL](/api/dom-sync-gl) — 全オプション

@@ -15,7 +15,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Demos', link: '/demos/' },
-      { text: 'API', link: '/api/webgl-app' },
+      { text: 'API', link: '/api/dom-sync-gl' },
       { text: 'GitHub', link: 'https://github.com/t-izumii/dom-sync-gl' },
     ],
     sidebar: {
@@ -44,7 +44,7 @@ export default defineConfig({
         {
           text: 'API',
           items: [
-            { text: 'DomSyncGL', link: '/api/webgl-app' },
+            { text: 'DomSyncGL', link: '/api/dom-sync-gl' },
             { text: 'DomPlane', link: '/api/dom-plane' },
             { text: 'Scroll', link: '/api/scroll' },
             { text: 'BaseEffect', link: '/api/base-effect' },
