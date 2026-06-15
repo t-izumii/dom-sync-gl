@@ -10,6 +10,17 @@ export interface Offset3D {
 }
 
 export interface DomSyncGLOptions {
+  /**
+   * ポインタ入力（マウス / タッチ / ペン）の追跡と hover 判定を有効化する。
+   * 有効時は Pointer Events を listen し、`uMouseUV` / `uIsHovered`（および feedback の
+   * `uMouse` / `uHover`）へ単点ポインタの値を流す。タッチは「指 down 中」を hover として扱う。
+   * @default true
+   */
+  enablePointerTracking?: boolean;
+  /**
+   * @deprecated `enablePointerTracking` を使うこと（タッチ/ペンも含むため）。
+   * 後方互換のため残置。両方指定された場合は `enablePointerTracking` が優先される。
+   */
   enableMouseTracking?: boolean;
   /**
    *  スクロール同期を有効化する。

@@ -2,14 +2,27 @@ import * as THREE from 'three';
 import type { Camera } from './Camera';
 import type { DomPlane } from './DomPlane';
 
+/** 直近に処理したポインタの種別。`getPointerType()` で公開する（GLSL には流さない）。 */
+export type PointerType = 'mouse' | 'touch' | 'pen' | 'none';
+
 /**
- * canvas 上のマウス入力と hover(raycast) を担うコントローラ。
+ * canvas 上のポインタ入力（マウス / タッチ / ペン）と hover(raycast) を担うコントローラ。
  *
- * 設計の肝は「mousemove と uniform 更新の分離」:
- * - `onMouseMove` は **マウス座標と canvas 内外フラグだけ** 更新する（uniform は書かない）。
- * - hover 判定（raycaster → `setHoverInfo` = uMouseUV / uIsHovered 更新）は `update()` で
- *   行い、これを rAF tick 内から呼ぶことで paint と同期させ、mousemove 非同期発火による
- *   uMouseUV のちらつきを防ぐ。
+ * **Pointer Events に一本化**している（旧実装は `mousemove` のみ）。`pointermove` /
+ * `pointerdown` / `pointerup` / `pointercancel` を listen し、マウス・タッチ・ペンを
+ * **単一の単点パイプライン**（`mouse` UV + `active`）へ統合する。これにより既存シェーダーは
+ * 無改修でタッチ対応になる（同じ `uMouseUV` / `uIsHovered` / `uMouse` / `uHover` に値が流れる）。
+ *
+ * 設計の肝:
+ * - **入力と uniform 更新の分離**: `onPointer*` は **座標と active フラグだけ**更新する
+ *   （uniform は書かない）。hover 判定（raycaster → `setHoverInfo`）は `update()` で行い、
+ *   rAF tick 内から呼ぶことで paint と同期させ、非同期発火によるちらつきを防ぐ。
+ * - **active の意味**: マウス/ペン hover = canvas 内に居るか。タッチ = 指が down 中かつ canvas 内。
+ *   タッチには hover 概念が無いので「触れている間だけ active」とし、`uIsHovered`/`uHover` に流す。
+ * - **単点保証**: 最初に canvas 上へ触れた pointer を主点として捕捉し、離す（up/cancel）まで
+ *   2 本目以降の指は無視する。
+ * - **スクロール非阻害**: 全リスナーは `{ passive: true }` で `preventDefault` しない。
+ *   RafScroll / ScrollSync の慣性スクロールを一切妨げない。
  *
  * raycast 対象（`planeMeshes`）と mesh→plane 逆引き用の `planeByMesh` は DomSyncGL が
  * createPlane/removePlane で出し入れする **live 参照**を共有する。
@@ -35,16 +48,26 @@ export class PointerController {
   private readonly raycaster = new THREE.Raycaster();
   private hoveredPlane: DomPlane | null = null;
 
-  /** マウスが canvas 矩形の内側に居るか。mousemove で更新し update() の raycast 実行可否に使う。 */
-  private mouseInside = false;
   /**
-   * canvas viewport rect のキャッシュ。mousemove ごとに getBoundingClientRect を呼ぶと
+   * ポインタが「有効」か。mouse/pen は canvas 内に居るか、touch は指が down 中かつ canvas 内。
+   * `update()` の raycast 実行可否と、`uIsHovered`/`uHover` の値に使う。
+   */
+  private active = false;
+  /**
+   * 主点として捕捉中の pointerId（touch/pen のみ。未捕捉は null）。
+   * 単点保証のため、この id 以外の touch/pen は無視する。mouse は常に主点扱い（id 管理しない）。
+   */
+  private activePointerId: number | null = null;
+  /** 直近に処理したポインタ種別。 */
+  private pointerType: PointerType = 'none';
+  /**
+   * canvas viewport rect のキャッシュ。pointermove ごとに getBoundingClientRect を呼ぶと
    * layout 強制が走るため、resize / (ScrollSync 無効時の) scroll で invalidate する形にする。
    */
   private canvasRect: DOMRect | null = null;
   private enabled = false;
-  /** mousemove listener 専用の AbortController。動的 detach 用に独立して持つ。 */
-  private mouseAbort: AbortController | null = null;
+  /** pointer listener 群の AbortController。動的 detach 用に独立して持つ。 */
+  private pointerAbort: AbortController | null = null;
 
   constructor(opts: {
     canvas: HTMLCanvasElement;
@@ -76,6 +99,16 @@ export class PointerController {
     return this.mouseDeltaBuf.copy(this.mouse).sub(this.prevMouse);
   }
 
+  /** ポインタが有効か（mouse/pen: canvas 内 / touch: 指 down 中かつ canvas 内）。 */
+  isPointerActive(): boolean {
+    return this.active;
+  }
+
+  /** 直近に処理したポインタ種別（'mouse' | 'touch' | 'pen' | 'none'）。 */
+  getPointerType(): PointerType {
+    return this.pointerType;
+  }
+
   isEnabled(): boolean {
     return this.enabled;
   }
@@ -93,22 +126,48 @@ export class PointerController {
   }
 
   /**
-   * mousemove tracking の動的 ON/OFF。
-   * - true: 未 attach なら mousemove listener を追加する
+   * client 座標から canvas UV(0..1, Y-up) を算出して `mouse` に書き、canvas 内か返す。
+   * canvas 外のときは `mouse` を更新しない（最後の内側位置を据え置く）。
+   */
+  private applyPosition(clientX: number, clientY: number): boolean {
+    const rect = this.getCanvasRect();
+    const isInside =
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom;
+    if (isInside) {
+      this.mouse.x = (clientX - rect.left) / rect.width;
+      this.mouse.y = 1.0 - (clientY - rect.top) / rect.height;
+    }
+    return isInside;
+  }
+
+  /**
+   * pointer tracking の動的 ON/OFF。
+   * - true: 未 attach なら pointer listener 群を追加する
    * - false: attach 済みなら detach する（hover も解除）
    */
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     if (enabled) {
-      if (this.mouseAbort) return; // すでに attach 済み
-      this.mouseAbort = new AbortController();
-      window.addEventListener('mousemove', this.onMouseMove, {
-        signal: this.mouseAbort.signal,
-      });
+      if (this.pointerAbort) return; // すでに attach 済み
+      this.pointerAbort = new AbortController();
+      // 全リスナー passive。座標を読むだけで preventDefault しない＝スクロールを阻害しない。
+      const opts: AddEventListenerOptions = {
+        signal: this.pointerAbort.signal,
+        passive: true,
+      };
+      window.addEventListener('pointermove', this.onPointerMove, opts);
+      window.addEventListener('pointerdown', this.onPointerDown, opts);
+      window.addEventListener('pointerup', this.onPointerUp, opts);
+      window.addEventListener('pointercancel', this.onPointerCancel, opts);
     } else {
-      this.mouseAbort?.abort();
-      this.mouseAbort = null;
-      this.mouseInside = false;
+      this.pointerAbort?.abort();
+      this.pointerAbort = null;
+      this.active = false;
+      this.activePointerId = null;
+      this.pointerType = 'none';
       if (this.hoveredPlane) {
         this.hoveredPlane.setHoverInfo(false, null);
         this.hoveredPlane = null;
@@ -123,25 +182,60 @@ export class PointerController {
     }
   }
 
-  private onMouseMove = (event: MouseEvent): void => {
-    const rect = this.getCanvasRect();
+  /** touch / pen か（= 指 down が active の前提になる種別）。 */
+  private isTouchLike(event: PointerEvent): boolean {
+    return event.pointerType === 'touch' || event.pointerType === 'pen';
+  }
 
-    const isInside =
-      event.clientX >= rect.left &&
-      event.clientX <= rect.right &&
-      event.clientY >= rect.top &&
-      event.clientY <= rect.bottom;
-
-    this.mouseInside = isInside;
-    if (!isInside) return;
-
-    this.mouse.x = (event.clientX - rect.left) / rect.width;
-    this.mouse.y = 1.0 - (event.clientY - rect.top) / rect.height;
+  private onPointerMove = (event: PointerEvent): void => {
+    if (this.isTouchLike(event)) {
+      // 主点のみ追従（単点保証）。down 中だけ pointermove が来る。
+      if (event.pointerId !== this.activePointerId) return;
+      this.active = this.applyPosition(event.clientX, event.clientY);
+    } else {
+      // mouse/pen hover: ボタン不要。canvas 内外で active を決める（旧 onMouseMove と等価）。
+      this.pointerType = 'mouse';
+      this.active = this.applyPosition(event.clientX, event.clientY);
+    }
   };
 
+  private onPointerDown = (event: PointerEvent): void => {
+    if (this.isTouchLike(event)) {
+      if (this.activePointerId !== null) return; // 既に主点あり → 2 本目以降は無視
+      const inside = this.applyPosition(event.clientX, event.clientY);
+      if (!inside) return; // canvas 外で始まった指は主点にしない
+      this.activePointerId = event.pointerId;
+      this.pointerType = event.pointerType === 'pen' ? 'pen' : 'touch';
+      this.active = true;
+      // 初フレの巨大 delta（fluid 等の force スパイク）を防ぐため prev を現在地にスナップ。
+      this.prevMouse.copy(this.mouse);
+    } else {
+      // mouse: down は hover モデルに影響しない（位置だけ更新）。
+      this.pointerType = 'mouse';
+      this.active = this.applyPosition(event.clientX, event.clientY);
+    }
+  };
+
+  private onPointerUp = (event: PointerEvent): void => {
+    this.releasePrimary(event);
+  };
+
+  private onPointerCancel = (event: PointerEvent): void => {
+    this.releasePrimary(event);
+  };
+
+  /** 主点 touch/pen が離れたら active を落とす。mouse の up は無視（hover は inside 駆動）。 */
+  private releasePrimary(event: PointerEvent): void {
+    if (event.pointerId === this.activePointerId) {
+      this.activePointerId = null;
+      this.active = false;
+      this.pointerType = 'none';
+    }
+  }
+
   /**
-   * rAF tick 内で呼ぶ。最新の mouse で raycaster を投げ、hover 中の plane を判定して
-   * `setHoverInfo`（uMouseUV / uIsHovered）を更新する。mousemove から切り離すことで
+   * rAF tick 内で呼ぶ。最新の pointer 位置で raycaster を投げ、hover 中の plane を判定して
+   * `setHoverInfo`（uMouseUV / uIsHovered）を更新する。入力イベントから切り離すことで
    * 全 plane の uniform が 1 tick = 1 確定値で揃い、paint と同期する。
    */
   update(): void {
@@ -149,15 +243,14 @@ export class PointerController {
 
     // フルスクリーン plane（element 無し = canvas 全面の背景）は raycast に入れない
     // （単一勝者の raycast だと DOM-locked plane と hover を奪い合う）。代わりに毎フレ
-    // global mouse UV と「canvas 内に居るか」を直接流し、背景シェーダーでも uMouseUV /
-    // uIsHovered を DOM-locked plane と同じ感覚で使えるようにする。DOM-locked plane の
-    // raycast hover とは独立経路（背景は常にマウスの下にあるので単一勝者では表せない）。
+    // global pointer UV と active を直接流し、背景シェーダーでも uMouseUV / uIsHovered を
+    // DOM-locked plane と同じ感覚で使えるようにする。
     this.updateFullscreenHover();
 
     if (this.planeMeshes.length === 0) return;
 
-    // canvas 外なら hover を解除
-    if (!this.mouseInside) {
+    // 非 active（canvas 外 / 指を離した）なら hover を解除
+    if (!this.active) {
       if (this.hoveredPlane) {
         this.hoveredPlane.setHoverInfo(false, null);
         this.hoveredPlane = null;
@@ -197,15 +290,15 @@ export class PointerController {
 
   /**
    * フルスクリーン plane（element 無し）の hover uniform を更新する。canvas 全面を覆うので
-   * raycast せず、global mouse UV（`this.mouse`）と canvas 内判定（`this.mouseInside`）を
-   * そのまま `setHoverInfo` に流す。これで背景シェーダーでも `uMouseUV` / `uIsHovered` が使える。
+   * raycast せず、global pointer UV（`this.mouse`）と active（`this.active`）をそのまま
+   * `setHoverInfo` に流す。これで背景シェーダーでも `uMouseUV` / `uIsHovered` が使える。
    */
   private updateFullscreenHover(): void {
     const planes = this.planes;
     for (let i = 0, n = planes.length; i < n; i++) {
       const plane = planes[i];
       if (plane.element === null) {
-        plane.setHoverInfo(this.mouseInside, this.mouse);
+        plane.setHoverInfo(this.active, this.mouse);
       }
     }
   }
@@ -216,8 +309,11 @@ export class PointerController {
   }
 
   destroy(): void {
-    this.mouseAbort?.abort();
-    this.mouseAbort = null;
+    this.pointerAbort?.abort();
+    this.pointerAbort = null;
+    this.active = false;
+    this.activePointerId = null;
+    this.pointerType = 'none';
     this.hoveredPlane = null;
     this.canvasRect = null;
   }

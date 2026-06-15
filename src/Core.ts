@@ -13,7 +13,7 @@ import type { EffectLike } from './EffectComposer';
 import type { ScrollSyncOptions } from './ScrollSync';
 import type { RafScrollOptions } from './RafScroll';
 import type { BaseEffect } from './effects/BaseEffect';
-import { PointerController } from './PointerController';
+import { PointerController, type PointerType } from './PointerController';
 import { EffectManager } from './EffectManager';
 import { DevTools } from './DevTools';
 import type {
@@ -109,7 +109,11 @@ export class DomSyncGL {
     this.domPlanes = [];
     this.dom3DObjects = [];
     this.clock = new THREE.Clock();
-    this.options = { enableMouseTracking: true, showGUI: false, ...options };
+    this.options = { showGUI: false, ...options };
+    // ポインタ追跡の既定解決: enablePointerTracking を優先、無ければ後方互換 enableMouseTracking、
+    // どちらも無指定なら true。以降は enablePointerTracking を正とする。
+    this.options.enablePointerTracking =
+      options.enablePointerTracking ?? options.enableMouseTracking ?? true;
 
     // 関心ごとに分離したコラボレータを構築する。DomSyncGL 本体はライフサイクルと rAF
     // オーケストレーションに専念し、入力/hover・effect・devtools は各クラスへ委譲する。
@@ -255,6 +259,19 @@ export class DomSyncGL {
   // マウス移動量を取得。内部スクラッチを使い回すので、保持したい場合は呼び出し側で clone する。
   getMouseDelta() {
     return this.pointer.getMouseDelta();
+  }
+
+  /**
+   * ポインタが現在「有効」か。マウス/ペンは canvas 内に居るか、タッチは指が down 中かつ
+   * canvas 内かを表す（= `uIsHovered` / `uHover` に流れる値と同じ）。
+   */
+  isPointerActive(): boolean {
+    return this.pointer.isPointerActive();
+  }
+
+  /** 直近に処理したポインタ種別（'mouse' | 'touch' | 'pen' | 'none'）。 */
+  getPointerType(): PointerType {
+    return this.pointer.getPointerType();
   }
 
   // ScrollSyncを取得
@@ -514,23 +531,32 @@ export class DomSyncGL {
       });
     }
 
-    // マウスイベントは setMouseTrackingEnabled 経由で attach する（動的切替対応）。
-    if (this.options.enableMouseTracking) {
-      this.setMouseTrackingEnabled(true);
+    // ポインタイベントは setPointerTrackingEnabled 経由で attach する（動的切替対応）。
+    if (this.options.enablePointerTracking) {
+      this.setPointerTrackingEnabled(true);
     }
   }
 
   /**
-   * mousemove tracking の動的な ON/OFF（PointerController へ委譲）。
-   * - true: 未 attach なら mousemove listener を追加する
+   * ポインタ追跡（マウス / タッチ / ペン）の動的な ON/OFF（PointerController へ委譲）。
+   * - true: 未 attach なら pointer listener 群を追加する
    * - false: attach 済みなら detach する（hover も解除）
    *
    * `destroy()` 時は PointerController.destroy() で自動 detach される。
    */
-  setMouseTrackingEnabled(enabled: boolean): void {
+  setPointerTrackingEnabled(enabled: boolean): void {
     if (this.destroyed) return;
+    this.options.enablePointerTracking = enabled;
+    // 後方互換フィールドも同期（旧フィールドを参照するコード向け）。
     this.options.enableMouseTracking = enabled;
     this.pointer.setEnabled(enabled);
+  }
+
+  /**
+   * @deprecated `setPointerTrackingEnabled` を使うこと（タッチ/ペンも含む）。後方互換のため残置。
+   */
+  setMouseTrackingEnabled(enabled: boolean): void {
+    this.setPointerTrackingEnabled(enabled);
   }
 
   private onResize() {

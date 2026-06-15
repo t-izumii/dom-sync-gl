@@ -25,7 +25,8 @@ new DomSyncGL(selector: string | HTMLElement, options?: DomSyncGLOptions)
 |---|---|---|---|
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
 | `rafScroll` | `boolean \| RafScrollOptions` | `false` | RafScroll を Core 管理下で有効化（単一 rAF に統合し生成順依存を排除）。詳細は [Scroll](/api/scroll) |
-| `enableMouseTracking` | `boolean` | `true` | マウス座標と hover 判定を更新 |
+| `enablePointerTracking` | `boolean` | `true` | ポインタ（マウス/タッチ/ペン）座標と hover 判定を更新。タッチは「指 down 中」を hover として扱う |
+| `enableMouseTracking` | `boolean` | `true` | **@deprecated** `enablePointerTracking` を使う。後方互換のため残置（両方指定時は `enablePointerTracking` 優先） |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限（モバイルは `1.5` 推奨） |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
 | `showStats` | `boolean` | `false` | stats.js の FPS パネルを表示 |
@@ -96,9 +97,15 @@ const off = app.addUpdateCallback(() => {
 off(); // unsubscribe
 ```
 
-### `setMouseTrackingEnabled(enabled)`
+### `setPointerTrackingEnabled(enabled)`
 
-mousemove listener の動的 ON/OFF。重い UI を開いている間など、hover 判定を止めたいときに。
+ポインタ（マウス/タッチ/ペン）追跡の動的 ON/OFF。重い UI を開いている間など、hover 判定を
+止めたいときに。`setMouseTrackingEnabled` は **@deprecated** な別名（同じ動作）。
+
+タッチ対応は uniform を変えずに行うため、既存シェーダーは無改修でタッチに反応する:
+`uMouseUV` / `uIsHovered`（および feedback の `uMouse` / `uHover`）に**単点（primary）**の
+タッチ値が流れる。指を離すと `uIsHovered` / `uHover` は 0 になる。リスナーは全て passive
+（`preventDefault` しない）なのでスクロールを妨げない。
 
 ### Getters
 
@@ -109,7 +116,9 @@ mousemove listener の動的 ON/OFF。重い UI を開いている間など、ho
 | `getRenderer()` | `THREE.WebGLRenderer` | renderer |
 | `getLight()` | `Light` | ambient + directional のラッパー |
 | `getViewPort()` | `DOMRect` | canvas の logical rect（ScrollSync 有効時は viewport ぴったり） |
-| `getMouse()` | `THREE.Vector2` | 現フレの canvas UV (0..1, Y-up) |
+| `getMouse()` | `THREE.Vector2` | 現フレの canvas UV (0..1, Y-up)。マウス/タッチ/ペン共通の単点座標 |
+| `isPointerActive()` | `boolean` | ポインタが有効か（マウス/ペン: canvas 内 / タッチ: 指 down 中かつ canvas 内）。`uIsHovered` と同値 |
+| `getPointerType()` | `'mouse' \| 'touch' \| 'pen' \| 'none'` | 直近に処理したポインタ種別 |
 | `getScroll()` | `Readonly<{ x: number; y: number }>` | Core が rAF tick で確定した現フレのスクロール値キャッシュ（live 参照。保持時は clone） |
 | `getPrevMouse()` | `THREE.Vector2` | 前フレの UV |
 | `getMouseDelta()` | `THREE.Vector2` | `current - prev`（毎フレ scratch なので保持したいときは clone） |
