@@ -23,10 +23,11 @@ const app = new DomSyncGL("#gl", {
 // 2. ヒーローのフルスクリーン背景 plane (viewport 固定)
 // ---------------------------------------------------------------------------
 const heroPlane = app.createPlane(null, {
-  fragmentShader: heroFragment,
-  uniforms: {
-    uStrength: { value: 0 },
-  },
+  fragmentShader: `
+  void main() {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  }
+  `,
 });
 // 背景は常に最背面。works の板を必ず上に重ねたいので renderOrder と深度設定で制御する。
 // (DOM は透明にして canvas を覗かせる構成なので、背景シェーダーがページ全体の地になる)
