@@ -1,23 +1,15 @@
 import type Stats from 'stats.js';
 import type GUI from 'lil-gui';
 
-/**
- * 開発支援パネル（stats.js の FPS パネル / lil-gui）の lazy dynamic import を担う。
- *
- * `stats.js` / `lil-gui` はどちらも optional peer dependency。`showStats` / `showGUI` が
- * 有効なときだけ動的 import するので、使わない利用者はインストール不要。
- */
 export class DevTools {
   private readonly showStats: boolean;
   private readonly statsParent: HTMLElement;
   private readonly showGUI: boolean;
   private readonly guiTitle: string;
-  /** DomSyncGL が destroy 済みかを確認するための参照（import 解決後の guard 用）。 */
   private readonly isDestroyed: () => boolean;
 
   private stats: Stats | null = null;
   private gui: GUI | null = null;
-  /** lil-gui の dynamic import promise。複数 effect から同時に呼ばれても 1 インスタンスに揃える。 */
   private guiLoadPromise: Promise<GUI> | null = null;
 
   constructor(opts: {
@@ -34,17 +26,13 @@ export class DevTools {
     this.isDestroyed = opts.isDestroyed;
   }
 
-  /**
-   * 構築直後に呼ぶ。`showStats: true` のとき stats.js を dynamic import して panel を出す。
-   * import 完了前に destroy された場合は何もしない。
-   */
   loadStats(): void {
     if (!this.showStats) return;
     void import('stats.js')
       .then(({ default: StatsCtor }) => {
         if (this.isDestroyed()) return;
         this.stats = new StatsCtor();
-        this.stats.showPanel(0); // 0: fps, 1: ms, 2: mb
+        this.stats.showPanel(0);
         this.statsParent.appendChild(this.stats.dom);
       })
       .catch((err) => {
@@ -64,10 +52,6 @@ export class DevTools {
     this.stats?.end();
   }
 
-  /**
-   * lil-gui を dynamic import で読み込み、root インスタンスを lazy 生成して返す。
-   * 同時に複数から呼ばれても load promise を共有して 1 インスタンスにまとめる。
-   */
   ensureGUI(): Promise<GUI> {
     if (this.gui) return Promise.resolve(this.gui);
     if (!this.guiLoadPromise) {
@@ -81,15 +65,11 @@ export class DevTools {
     return this.guiLoadPromise;
   }
 
-  /**
-   * root の lil-gui インスタンスを取得 (sync)。load 中は null。`showGUI: false` なら常に null。
-   */
   getGUI(): GUI | null {
     if (!this.showGUI) return null;
     return this.gui;
   }
 
-  /** lil-gui を必要に応じて load して返す。`showGUI: false` なら null を resolve。 */
   getGUIAsync(): Promise<GUI | null> {
     if (!this.showGUI) return Promise.resolve(null);
     return this.ensureGUI();
