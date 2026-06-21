@@ -1,7 +1,7 @@
 {
   "name": "dom-sync-gl",
   "version": "0.3.0",
-  "description": "domSyncGL — DOM ↔ WebGL synchronization with composable post effects, rAF-synced scroll, and touch inertia.",
+  "description": "domSyncGL — DOM ↔ WebGL synchronization with composable post effects and Lenis-based smooth scroll.",
   "type": "module",
   "license": "MIT",
   "files": [
@@ -66,5 +66,8 @@
     "scroll-sync",
     "dom-sync",
     "domsyncgl"
-  ]
+  ],
+  "dependencies": {
+    "lenis": "^1.3.23"
+  }
 }

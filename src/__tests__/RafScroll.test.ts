@@ -1,152 +1,135 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// スムーズスクロールの実体は Lenis に委譲済み。ここでは RafScroll ラッパーが
+// 「管理モード（autoStart:false + advance）」と公開 API（scrollY / enabled / destroy）を
+// Lenis に正しく橋渡ししているかだけを検証する。Lenis 本体の挙動は Lenis 側の責務。
+//
+// vi.mock のファクトリは巻き上げられるため、参照する Mock 定義も vi.hoisted で先頭に巻き上げる。
+const { lenisInstances, MockLenis } = vi.hoisted(() => {
+  const instances: any[] = [];
+  class MockLenis {
+    options: Record<string, unknown>;
+    scroll = 0;
+    private _stopped = false;
+    raf = vi.fn();
+    start = vi.fn(() => {
+      this._stopped = false;
+    });
+    stop = vi.fn(() => {
+      this._stopped = true;
+    });
+    destroy = vi.fn();
+
+    constructor(options: Record<string, unknown> = {}) {
+      this.options = options;
+      instances.push(this);
+    }
+
+    get isStopped(): boolean {
+      return this._stopped;
+    }
+  }
+  return { lenisInstances: instances, MockLenis };
+});
+
+vi.mock('lenis', () => ({ default: MockLenis }));
+
 import { RafScroll } from '../RafScroll';
 
-// RafScroll の「管理モード（autoStart: false + advance）」の配線を検証する。
-// これは「RafScroll と Core が別々の rAF ループを持ち、生成順しだいで scroll が
-// 1 フレームずれる」問題を構造的に潰すための機構。
-describe('RafScroll 管理モード (autoStart / advance)', () => {
-  let rafSpy: ReturnType<typeof vi.spyOn>;
+type MockLenisInstance = InstanceType<typeof MockLenis>;
+const last = (): MockLenisInstance =>
+  lenisInstances[lenisInstances.length - 1];
 
+describe('RafScroll 管理モード (autoStart / advance)', () => {
   beforeEach(() => {
-    // 自前 rAF が実際に走るとテストノイズ・非同期 scrollTo になるので no-op に固定。
-    rafSpy = vi
-      .spyOn(window, 'requestAnimationFrame')
-      .mockReturnValue(0 as unknown as number);
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-    // jsdom は scrollHeight=0 で maxScroll が 0 になり clamp で入力が死ぬので、
-    // スクロール余地を作っておく。
-    Object.defineProperty(document.documentElement, 'scrollHeight', {
-      value: 5000,
-      configurable: true,
-    });
-    Object.defineProperty(window, 'innerHeight', {
-      value: 800,
-      configurable: true,
-    });
+    lenisInstances.length = 0;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('既定（autoStart 省略）では自前 rAF ループを 1 回スケジュールする', () => {
+  it('既定（autoStart 省略）では Lenis を autoRaf:true で生成する（自走モード）', () => {
     const rs = new RafScroll();
-    expect(rafSpy).toHaveBeenCalledTimes(1);
+    expect(last().options.autoRaf).toBe(true);
     rs.destroy();
   });
 
-  it('autoStart:false は自前 rAF を起動しない（所有者が advance で駆動する想定）', () => {
+  it('autoStart:false では Lenis を autoRaf:false で生成する（所有者が advance で駆動）', () => {
     const rs = new RafScroll({ autoStart: false });
-    expect(rafSpy).not.toHaveBeenCalled();
+    expect(last().options.autoRaf).toBe(false);
     rs.destroy();
   });
 
-  it('advance() は wheel で蓄積した scrollY を window.scrollTo に流す', () => {
-    const scrollToSpy = vi
-      .spyOn(window, 'scrollTo')
-      .mockImplementation(() => {});
+  it('autoStart は Lenis へ漏らさず、それ以外のオプションは Lenis に渡す', () => {
+    const rs = new RafScroll({ autoStart: false, lerp: 0.2, wheelMultiplier: 2 });
+    const opts = last().options;
+    expect(opts.autoStart).toBeUndefined();
+    expect(opts.lerp).toBe(0.2);
+    expect(opts.wheelMultiplier).toBe(2);
+    rs.destroy();
+  });
+
+  it('管理モード（autoStart:false）の advance() は lenis.raf(now) を駆動する', () => {
     const rs = new RafScroll({ autoStart: false });
-
-    // wheel 入力で内部 accumulator を進める（deltaMode=0 → px そのまま）。
-    const ev = new Event('wheel', { cancelable: true });
-    Object.assign(ev, { deltaY: 240, deltaMode: 0 });
-    window.dispatchEvent(ev);
-
     rs.advance(16);
-
-    expect(scrollToSpy).toHaveBeenCalledWith(0, 240);
+    expect(last().raf).toHaveBeenCalledWith(16);
     rs.destroy();
   });
 
   it('autoStart:true のとき advance() は二重進行防止のため no-op', () => {
-    const scrollToSpy = vi
-      .spyOn(window, 'scrollTo')
-      .mockImplementation(() => {});
-    // autoStart=true（自前ループは rAF mock のため実際には走らない）。
     const rs = new RafScroll();
-
-    const ev = new Event('wheel', { cancelable: true });
-    Object.assign(ev, { deltaY: 240, deltaMode: 0 });
-    window.dispatchEvent(ev);
-
     rs.advance(16);
-
-    expect(scrollToSpy).not.toHaveBeenCalled();
+    expect(last().raf).not.toHaveBeenCalled();
     rs.destroy();
+  });
+
+  it('destroy() 後の advance() は lenis.raf を呼ばない', () => {
+    const rs = new RafScroll({ autoStart: false });
+    rs.destroy();
+    rs.advance(16);
+    expect(last().raf).not.toHaveBeenCalled();
   });
 });
 
-// 外部 / programmatic スクロール（アンカーリンク・キーボード・スクロールバー・検索ジャンプ等）の
-// 取り込み。これが無いと外部スクロール後の最初の wheel/touch 入力で古い accumulator へ巻き戻る。
-describe('RafScroll 外部スクロール同期 (scroll listener)', () => {
+describe('RafScroll 公開 API の委譲', () => {
   beforeEach(() => {
-    vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(
-      0 as unknown as number,
-    );
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-    Object.defineProperty(document.documentElement, 'scrollHeight', {
-      value: 5000,
-      configurable: true,
-    });
-    Object.defineProperty(window, 'innerHeight', {
-      value: 800,
-      configurable: true,
-    });
-    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+    lenisInstances.length = 0;
   });
 
   afterEach(() => {
-    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
     vi.restoreAllMocks();
   });
 
-  it('外部スクロール（アンカー等）を検知して _scrollY を window.scrollY に再同期する', () => {
+  it('scrollY は lenis.scroll を返す', () => {
     const rs = new RafScroll({ autoStart: false });
-    expect(rs.scrollY).toBe(0);
-
-    // アンカーリンク等でブラウザがネイティブにジャンプ（RafScroll は wheel/touch を受けていない）
-    Object.defineProperty(window, 'scrollY', { value: 3000, configurable: true });
-    window.dispatchEvent(new Event('scroll'));
-
-    // accumulator が追従していれば、次入力で巻き戻らない
+    last().scroll = 3000;
     expect(rs.scrollY).toBe(3000);
     rs.destroy();
   });
 
-  it('再同期後の wheel 入力は現在位置からの相対移動になる（巻き戻らない）', () => {
-    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  it('enabled=false は lenis.stop()、=true は lenis.start() を呼ぶ', () => {
     const rs = new RafScroll({ autoStart: false });
+    rs.enabled = false;
+    expect(last().stop).toHaveBeenCalledTimes(1);
+    expect(rs.enabled).toBe(false);
 
-    // アンカージャンプ → scroll で再同期
-    Object.defineProperty(window, 'scrollY', { value: 3000, configurable: true });
-    window.dispatchEvent(new Event('scroll'));
-
-    // 以降の wheel は 3000 を起点に積まれる（0 起点ではない）
-    const ev = new Event('wheel', { cancelable: true });
-    Object.assign(ev, { deltaY: 120, deltaMode: 0 });
-    window.dispatchEvent(ev);
-    rs.advance(16);
-
-    expect(scrollToSpy).toHaveBeenCalledWith(0, 3120);
+    rs.enabled = true;
+    expect(last().start).toHaveBeenCalledTimes(1);
+    expect(rs.enabled).toBe(true);
     rs.destroy();
   });
 
-  it('自分の scrollTo 由来の scroll は再同期しない（フィードバック防止）', () => {
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  it('destroy() は lenis.destroy() を呼び、二重呼び出しは無害', () => {
     const rs = new RafScroll({ autoStart: false });
+    rs.destroy();
+    rs.destroy();
+    expect(last().destroy).toHaveBeenCalledTimes(1);
+  });
 
-    // wheel → advance で _scrollY=240, _lastAppliedY=240
-    const ev = new Event('wheel', { cancelable: true });
-    Object.assign(ev, { deltaY: 240, deltaMode: 0 });
-    window.dispatchEvent(ev);
-    rs.advance(16);
-
-    // ブラウザが scrollTo(0,240) を反映して scroll を発火
-    Object.defineProperty(window, 'scrollY', { value: 240, configurable: true });
-    window.dispatchEvent(new Event('scroll'));
-
-    // 自分由来なので無視され、_scrollY は 240 のまま
-    expect(rs.scrollY).toBe(240);
+  it('lenis getter は内部インスタンスを返す（scrollTo 等の高度操作用）', () => {
+    const rs = new RafScroll({ autoStart: false });
+    expect(rs.lenis).toBe(last());
     rs.destroy();
   });
 });

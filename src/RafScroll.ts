@@ -1,252 +1,76 @@
-export interface RafScrollOptions {
-  lineHeight?: number;
-  touchFriction?: number;
+import Lenis from 'lenis';
+import type { LenisOptions } from 'lenis';
+
+/**
+ * RafScroll の公開オプション。スムーズスクロールの実体は Lenis に委譲しているため、
+ * Lenis のオプション（lerp / duration / easing / smoothWheel / wheelMultiplier /
+ * touchMultiplier / syncTouch など）をそのまま受け付ける。
+ *
+ * 例外は `autoRaf`。RafScroll は「所有者（Core）の単一 rAF ループから advance() で
+ * 駆動する管理モード」を持つため、その制御は `autoStart` 経由で行う（下記参照）。
+ */
+export interface RafScrollOptions extends Omit<LenisOptions, 'autoRaf'> {
+  /**
+   * true なら内部で rAF ループを自走させる（スタンドアロン利用）。
+   * false なら自走せず、所有者が毎フレーム advance() を呼んで駆動する（Core 管理下の挙動）。
+   * @default true
+   */
   autoStart?: boolean;
 }
 
-const MIN_VELOCITY = 0.01;
-const VELOCITY_CUTOFF_MS = 50;
-const VELOCITY_EMA_ALPHA = 0.3;
-const FRAME_MS = 1000 / 60;
-const SELF_SCROLL_EPS = 2;
-
+/**
+ * Lenis を内部に持つ薄いラッパー。従来の自前実装（wheel/touch 蓄積 + 慣性 + window.scrollTo）を
+ * Lenis に置き換えたもの。公開 API（scrollY / enabled / advance / destroy）は据え置きなので
+ * Core 側の配線は変更不要。Lenis は window をラッパーとして実 scroll を更新するため、
+ * Core が advance() 後に読む window.scrollY もそのまま整合する。
+ */
 export class RafScroll {
-  private _scrollY: number;
-
-  private _lastAppliedY: number;
-  private _maxScroll: number;
-  private _rafId: number = 0;
-  private _enabled: boolean = true;
-  private _lineHeight: number;
-  private _friction: number;
-
+  private _lenis: Lenis;
   private _autoStart: boolean;
-  private _touchPrevY: number = 0;
-  private _touchPrevTime: number = 0;
-
-  private _velocityY: number = 0;
-  private _isTouching: boolean = false;
-
-  private _allowNativePull: boolean = false;
-
-  private _lastTickTime: number = 0;
-  private _eventAbort: AbortController = new AbortController();
-  private _resizeObserver: ResizeObserver | null = null;
   private _destroyed: boolean = false;
 
   constructor(options: RafScrollOptions = {}) {
-    this._lineHeight = options.lineHeight ?? 16;
-    this._friction = options.touchFriction ?? 0.95;
-    this._autoStart = options.autoStart ?? true;
-    this._scrollY = window.scrollY;
-    this._lastAppliedY = this._scrollY;
-    this._maxScroll = this.calcMaxScroll();
+    const { autoStart = true, ...lenisOptions } = options;
+    this._autoStart = autoStart;
 
-    this.setupEventListeners();
-    this.setupResizeObserver();
-
-    if (this._autoStart) {
-      this._rafId = requestAnimationFrame(this.tick);
-    }
+    // autoStart=false（Core 管理モード）では Lenis の自走 rAF を止め、advance() で駆動する。
+    this._lenis = new Lenis({ ...lenisOptions, autoRaf: autoStart });
   }
 
-  private calcMaxScroll(): number {
-    return Math.max(
-      0,
-      document.documentElement.scrollHeight - window.innerHeight,
-    );
-  }
-
-  private setupEventListeners(): void {
-    const signal = this._eventAbort.signal;
-
-    window.addEventListener('wheel', this.onWheel, {
-      passive: false,
-      signal,
-    });
-
-    window.addEventListener('touchstart', this.onTouchStart, {
-      passive: false,
-      signal,
-    });
-    window.addEventListener('touchmove', this.onTouchMove, {
-      passive: false,
-      signal,
-    });
-    window.addEventListener('touchend', this.onTouchEnd, {
-      passive: true,
-      signal,
-    });
-    window.addEventListener('touchcancel', this.onTouchEnd, {
-      passive: true,
-      signal,
-    });
-
-    window.addEventListener('resize', this.onResize, { signal });
-
-    window.addEventListener('scroll', this.onExternalScroll, {
-      passive: true,
-      signal,
-    });
-  }
-
-  private setupResizeObserver(): void {
-    if (typeof ResizeObserver === 'undefined') return;
-    this._resizeObserver = new ResizeObserver(() => {
-      this._maxScroll = this.calcMaxScroll();
-      this._scrollY = this.clamp(this._scrollY);
-    });
-    this._resizeObserver.observe(document.documentElement);
-  }
-
-  private onWheel = (e: WheelEvent): void => {
-    if (!this._enabled) return;
-    e.preventDefault();
-
-    this._velocityY = 0;
-    let delta = e.deltaY;
-
-    if (e.deltaMode === 1) delta *= this._lineHeight;
-    else if (e.deltaMode === 2) delta *= window.innerHeight;
-    this._scrollY = this.clamp(this._scrollY + delta);
-  };
-
-  private onTouchStart = (e: TouchEvent): void => {
-    if (!this._enabled) return;
-    if (e.touches.length === 0) return;
-
-    this._velocityY = 0;
-    this._isTouching = true;
-    this._touchPrevY = e.touches[0].clientY;
-    this._touchPrevTime = performance.now();
-
-    this._allowNativePull = this._scrollY <= 0;
-  };
-
-  private onTouchMove = (e: TouchEvent): void => {
-    if (!this._enabled) return;
-    if (e.touches.length === 0) return;
-
-    const y = e.touches[0].clientY;
-    const now = performance.now();
-    const dy = this._touchPrevY - y;
-    const dt = now - this._touchPrevTime;
-
-    if (this._allowNativePull && dy <= 0) {
-      this._touchPrevY = y;
-      this._touchPrevTime = now;
-      return;
-    }
-
-    this._allowNativePull = false;
-
-    e.preventDefault();
-
-    this._scrollY = this.clamp(this._scrollY + dy);
-
-    if (dt > 0) {
-      const instantV = dy / dt;
-      this._velocityY =
-        this._velocityY * (1 - VELOCITY_EMA_ALPHA) +
-        instantV * VELOCITY_EMA_ALPHA;
-    }
-
-    this._touchPrevY = y;
-    this._touchPrevTime = now;
-  };
-
-  private onTouchEnd = (): void => {
-    this._isTouching = false;
-
-    if (performance.now() - this._touchPrevTime > VELOCITY_CUTOFF_MS) {
-      this._velocityY = 0;
-    }
-  };
-
-  private onResize = (): void => {
-    this._maxScroll = this.calcMaxScroll();
-    this._scrollY = this.clamp(this._scrollY);
-  };
-
-  private onExternalScroll = (): void => {
-    if (this._destroyed || !this._enabled || this._isTouching) return;
-    const y = window.scrollY;
-
-    if (Math.abs(y - this._lastAppliedY) <= SELF_SCROLL_EPS) return;
-
-    this._scrollY = this.clamp(y);
-    this._lastAppliedY = this._scrollY;
-    this._velocityY = 0;
-  };
-
-  private clamp(y: number): number {
-    return Math.min(this._maxScroll, Math.max(0, y));
-  }
-
-  private step(now: number): void {
-    if (this._destroyed) return;
-
-    const dt = this._lastTickTime === 0 ? FRAME_MS : now - this._lastTickTime;
-    this._lastTickTime = now;
-
-    if (!this._isTouching && Math.abs(this._velocityY) > MIN_VELOCITY) {
-      const before = this._scrollY;
-      const next = this.clamp(this._scrollY + this._velocityY * dt);
-      this._scrollY = next;
-
-      if (next === before) {
-        this._velocityY = 0;
-      } else {
-        this._velocityY *= Math.pow(this._friction, dt / FRAME_MS);
-        if (Math.abs(this._velocityY) < MIN_VELOCITY) this._velocityY = 0;
-      }
-    }
-
-    if (this._scrollY !== this._lastAppliedY) {
-      window.scrollTo(0, this._scrollY);
-      this._lastAppliedY = this._scrollY;
-    }
-  }
-
-  private tick = (now: number = performance.now()): void => {
-    if (this._destroyed) return;
-    this.step(now);
-    this._rafId = requestAnimationFrame(this.tick);
-  };
-
+  /**
+   * 所有者の rAF ループから毎フレーム呼ぶ。自走モード（autoStart:true）では Lenis 内部の
+   * rAF が回っているため no-op。
+   * @param now performance.now() 由来の ms タイムスタンプ
+   */
   advance(now: number = performance.now()): void {
+    if (this._destroyed) return;
     if (this._autoStart) return;
-    this.step(now);
+    this._lenis.raf(now);
   }
 
+  /** 現在の（スムージング後の）スクロール量。 */
   get scrollY(): number {
-    return this._scrollY;
+    return this._lenis.scroll;
+  }
+
+  /** 内部 Lenis インスタンス（scrollTo / on('scroll') など高度な操作用）。 */
+  get lenis(): Lenis {
+    return this._lenis;
   }
 
   set enabled(value: boolean) {
-    const wasDisabled = !this._enabled;
-    this._enabled = value;
-    if (!value) {
-
-      this._velocityY = 0;
-      this._isTouching = false;
-    }
-    if (value && wasDisabled) {
-      this._scrollY = window.scrollY;
-      this._lastAppliedY = this._scrollY;
-    }
+    if (this._destroyed) return;
+    if (value) this._lenis.start();
+    else this._lenis.stop();
   }
 
   get enabled(): boolean {
-    return this._enabled;
+    return !this._lenis.isStopped;
   }
 
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
-    cancelAnimationFrame(this._rafId);
-    this._eventAbort.abort();
-    this._resizeObserver?.disconnect();
-    this._resizeObserver = null;
+    this._lenis.destroy();
   }
 }

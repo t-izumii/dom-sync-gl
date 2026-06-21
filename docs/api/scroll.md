@@ -44,33 +44,44 @@
 統合され、生成順依存が無い）。自前で `new RafScroll()` する場合は **`DomSyncGL` より先に生成**しないと
 背景がスクロール中に 1 フレームずれる（[Scroll Sync ガイド](/guide/scroll-sync) 参照）。
 
+スムーズスクロールの実体は [Lenis](https://github.com/darkroomengineering/lenis) に委譲している。
+`rafScroll` には Lenis のオプション（`autoRaf` を除く）をそのまま渡せる。
+
 ```ts
 const app = new DomSyncGL('#canvas', {
   scrollSync: true,
-  rafScroll: { touchFriction: 0.95 },
+  rafScroll: { lerp: 0.1 },
 });
 ```
 
 ### Options
 
+`RafScrollOptions` は `Omit<LenisOptions, 'autoRaf'> & { autoStart?: boolean }`。代表的なもの:
+
 | option | type | default | 説明 |
 |---|---|---|---|
-| `lineHeight` | `number` | `16` | `WheelEvent.deltaMode=LINE` 時の 1 行 px |
-| `touchFriction` | `number` | `0.95` | タッチリリース後の慣性減衰率。`0` で慣性無効 |
-| `autoStart` | `boolean` | `true` | 自前 rAF ループを起動するか。`false` は管理モード（所有者が `advance()` で駆動）。`rafScroll` オプション経由なら自動で `false` |
+| `lerp` | `number` | `0.1` | 線形補間の強度（0〜1） |
+| `duration` | `number` | — | スクロールアニメーションの時間（秒）。`lerp` の代替 |
+| `easing` | `(t:number)=>number` | Lenis 既定 | イージング関数 |
+| `smoothWheel` | `boolean` | `true` | ホイール入力をスムージングするか |
+| `syncTouch` | `boolean` | `false` | タッチ操作もスムージングするか |
+| `wheelMultiplier` / `touchMultiplier` | `number` | `1` | 入力倍率 |
+| `autoStart` | `boolean` | `true` | 内部 rAF ループを自走させるか。`false` は管理モード（所有者が `advance()` で駆動）。`rafScroll` オプション経由なら自動で `false` |
+
+その他は [Lenis のオプション一覧](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
 
 ### Instance members
 
 | member | 型 | 説明 |
 |---|---|---|
-| `scrollY` | `number` (getter) | 内部の virtual scrollY |
-| `advance(now?)` | `void` | 管理モード用。外部 rAF ループから 1 フレーム進める（`scrollTo` を確定）。`autoStart: true` のときは no-op |
-| `enabled` | `boolean` (getter/setter) | `false` で wheel/touch を素通しさせて native スクロール復活。再 enable 時は `window.scrollY` に再同期 |
-| `destroy()` | `void` | rAF・listener・ResizeObserver をすべて解放 |
+| `scrollY` | `number` (getter) | Lenis のスムージング後スクロール量（`lenis.scroll`） |
+| `lenis` | `Lenis` (getter) | 内部 Lenis インスタンス（`scrollTo` / `on('scroll')` 等の高度操作用） |
+| `advance(now?)` | `void` | 管理モード用。外部 rAF ループから 1 フレーム進める（`lenis.raf(now)`）。`autoStart: true` のときは no-op |
+| `enabled` | `boolean` (getter/setter) | `false` で `lenis.stop()`（native スクロール復活）、`true` で `lenis.start()` |
+| `destroy()` | `void` | Lenis を破棄し listener・ResizeObserver をすべて解放 |
 
 ### 挙動メモ
 
-- wheel / touchmove は `preventDefault` して内部 accumulator に積む
-- 毎 rAF tick で `window.scrollTo()` に流すので `window.scrollY` の更新が 1 frame に 1 回
-- 端到達 / 次の touchstart / wheel 入力で慣性は即キャンセル
-- モバイル上端の下方向 swipe（pull-to-refresh）は `preventDefault` しない
+- wheel / touch の取り込み・慣性・端の扱いはすべて Lenis に委譲
+- Lenis は `window` をラッパーとして実スクロールを更新するので `window.scrollY` も整合する
+- 既定ではタッチはネイティブ（`syncTouch: false`）なので pull-to-refresh はそのまま動く

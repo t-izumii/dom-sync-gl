@@ -23,16 +23,18 @@ export default defineConfig({
       fileName: (format) => (format === "es" ? "index.js" : "index.cjs"),
     },
     rollupOptions: {
-      // peerDependencies は bundle に含めず、利用側のものを使わせる。
+      // peerDependencies / dependencies は bundle に含めず、利用側のものを使わせる。
       // three の examples/jsm/* もサブパスごと external 指定する必要がある
       // （正規表現で three の全サブパスをまとめて弾く）。
-      external: ["three", /^three\/.+/, "lil-gui", "stats.js"],
+      // lenis は dependencies なので利用側に自動インストールされる。同梱せず外部化して重複を防ぐ。
+      external: ["three", /^three\/.+/, "lil-gui", "stats.js", "lenis"],
       output: {
         // ESM 出力でも globals は CJS ビルドで利用される。peer 名と揃える。
         globals: {
           three: "THREE",
           "lil-gui": "GUI",
           "stats.js": "Stats",
+          lenis: "Lenis",
         },
       },
     },

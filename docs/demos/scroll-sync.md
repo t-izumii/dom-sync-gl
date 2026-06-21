@@ -91,5 +91,6 @@ wheel / touch を rAF tick に集約して `window.scrollY` の更新を 1 frame
 ```ts
 import { RafScroll } from 'dom-sync-gl';
 
-new RafScroll({ touchFriction: 0.95 });
+// スムーズスクロールの実体は Lenis。Lenis のオプションをそのまま渡せる。
+new RafScroll({ lerp: 0.1 });
 ```

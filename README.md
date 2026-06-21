@@ -113,17 +113,20 @@ tick にまとめて発火させるので、JS が読む scrollY と paint さ�
 **推奨は `rafScroll` オプション**。Core が RafScroll を管理下に置き、自身の単一 rAF ループ内で
 `scrollTo` → `scroll 読み取り` の順に駆動するので、背景・plane が 1 フレームずれない:
 
+スムーズスクロールの実体は [Lenis](https://github.com/darkroomengineering/lenis) に委譲している
+（`rafScroll` には Lenis のオプションをそのまま渡せる）:
+
 ```ts
 const app = new DomSyncGL("#canvas", {
   scrollSync: true,
   rafScroll: {
-    touchFriction: 0.95,  // タッチリリース後の慣性 (0 で慣性なし)
+    lerp: 0.1,  // 補間強度 (小さいほど滑らか・遅延大)
   },
 });
 ```
 
-RafScroll はモバイル上端の下方向 swipe を検出したら preventDefault せず native に任せるので、
-`overscroll-behavior` を `none/contain` にしていなければ pull-to-refresh はそのまま動く。
+既定ではタッチはネイティブのまま (`syncTouch: false`) なので、pull-to-refresh はそのまま動く。
+タッチもスムージングしたい場合は `syncTouch: true` を指定する。
 
 > ⚠️ `new RafScroll()` を**自前で生成して併用する**こともできるが、その場合 RafScroll と Core が
 > **別々の rAF ループ**を持つ。ブラウザは rAF を登録順に実行するため、`DomSyncGL` より**後に**生成
@@ -202,11 +205,19 @@ app.addEffect(new GrainEffect());
 
 ### `RafScrollOptions`
 
+スムーズスクロールは [Lenis](https://github.com/darkroomengineering/lenis) に委譲。
+`Omit<LenisOptions, 'autoRaf'> & { autoStart?: boolean }`。代表的なもの:
+
 | option | type | default | 説明 |
 |---|---|---|---|
-| `lineHeight` | `number` | `16` | `WheelEvent.deltaMode=LINE` 時の 1 行 px |
-| `touchFriction` | `number` | `0.95` | タッチリリース後の慣性減衰率。`0` で慣性無効 |
-| `autoStart` | `boolean` | `true` | 自前 rAF ループを起動するか。`false` は管理モード（所有者が `advance()` で駆動）。`DomSyncGL({ rafScroll })` 経由なら自動で `false` |
+| `lerp` | `number` | `0.1` | 線形補間の強度 (0〜1) |
+| `duration` | `number` | — | スクロールアニメーション時間 (秒)。`lerp` の代替 |
+| `smoothWheel` | `boolean` | `true` | ホイール入力をスムージングするか |
+| `syncTouch` | `boolean` | `false` | タッチ操作もスムージングするか |
+| `wheelMultiplier` / `touchMultiplier` | `number` | `1` | 入力倍率 |
+| `autoStart` | `boolean` | `true` | 内部 rAF ループを自走させるか。`false` は管理モード（所有者が `advance()` で駆動）。`DomSyncGL({ rafScroll })` 経由なら自動で `false` |
+
+その他は [Lenis のオプション一覧](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
 
 ### `CreatePlaneOptions`
 

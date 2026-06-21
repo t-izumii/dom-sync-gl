@@ -8,7 +8,7 @@
 | 機能 | 使いどころ |
 |---|---|
 | `DomSyncGL({ scrollSync: { trackStrength: true } })` | スクロール同期 + スクロール速度の取得 |
-| `RafScroll` | wheel / touch をまとめた慣性スクロール |
+| `RafScroll` | Lenis ベースのスムーズスクロール |
 | `createPlane(null, …)` | ヒーローのフルスクリーン背景シェーダー（viewport 固定）|
 | `createPlane('.work__visual', …)` | 各 Work を DOM 要素にロックした procedural な板に |
 | `onInView` / `onOutView` | 画面内に入ったら下からワイプして出現 |

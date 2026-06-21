@@ -6,8 +6,8 @@ import "./style.css";
 // ---------------------------------------------------------------------------
 // 1. DomSyncGL 初期化
 //    scrollSync / rafScroll はどちらもオプション省略 (= true) でデフォルト構成にしている。
-//    rafScroll は wheel/touch を rAF にまとめた慣性スクロールを Core 管理下で有効化し、
-//    Core の単一 rAF ループ内で scrollTo → scroll 読み取りの順に駆動するので、
+//    rafScroll は Lenis ベースのスムーズスクロールを Core 管理下で有効化し、
+//    Core の単一 rAF ループ内で raf 駆動 → scroll 読み取りの順に動かすので、
 //    生成順を気にせず背景 canvas が 1 フレームずれない。
 //    （スクロール速度 strength を演出に使いたい場合のみ scrollSync: { trackStrength: true } にする）
 // ---------------------------------------------------------------------------

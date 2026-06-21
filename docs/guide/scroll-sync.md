@@ -42,20 +42,32 @@ JS が読む scrollY と paint された位置がフレーム内で揃う。
 **推奨は `rafScroll` オプション**。Core が RafScroll を管理下に置き、自身の単一 rAF ループ内で
 `scrollTo` → `scroll 読み取り` の順に駆動するため、背景・plane が 1 フレームずれない。
 
+スムーズスクロールの実体は [Lenis](https://github.com/darkroomengineering/lenis) に委譲している。
+`rafScroll` には Lenis のオプションをそのまま渡せる。
+
 ```ts
 const app = new DomSyncGL('#canvas', {
   scrollSync: true,
   rafScroll: {
-    touchFriction: 0.95, // タッチリリース後の慣性（0 で慣性なし）
+    lerp: 0.1,        // 補間強度（小さいほど滑らか・遅延大）
+    wheelMultiplier: 1,
+    // syncTouch: true, // タッチ操作もスムージングしたい場合（既定はネイティブタッチ）
   },
 });
 ```
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `lineHeight` | `number` | `16` | `WheelEvent.deltaMode=LINE` 時の 1 行 px |
-| `touchFriction` | `number` | `0.95` | タッチリリース後の慣性減衰率。`0` で慣性無効 |
-| `autoStart` | `boolean` | `true` | 自前 rAF ループを起動するか。`rafScroll` オプション経由なら自動で `false`（管理モード） |
+| `lerp` | `number` | `0.1` | 線形補間の強度（0〜1）。小さいほど滑らかで追従が遅い |
+| `duration` | `number` | — | スクロールアニメーションの時間（秒）。`lerp` の代替指定 |
+| `easing` | `(t:number)=>number` | Lenis 既定 | イージング関数 |
+| `smoothWheel` | `boolean` | `true` | ホイール入力をスムージングするか |
+| `syncTouch` | `boolean` | `false` | タッチ操作もスムージングするか（既定はネイティブタッチ） |
+| `wheelMultiplier` | `number` | `1` | ホイール入力の倍率 |
+| `touchMultiplier` | `number` | `1` | タッチ入力の倍率 |
+| `autoStart` | `boolean` | `true` | 内部 rAF ループを自走させるか。`rafScroll` オプション経由なら自動で `false`（管理モード） |
+
+その他のオプションは [Lenis のドキュメント](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
 
 ::: warning 自前生成するなら順序に注意
 `new RafScroll()` を別途生成して併用する場合、RafScroll と Core は**別々の rAF ループ**を持つ。
@@ -66,9 +78,9 @@ scrollY を読み、背景 canvas がスクロール中だけズレる。自前�
 
 ### pull-to-refresh は壊さない
 
-RafScroll はモバイル上端の下方向 swipe を検出したら `preventDefault` せず native に
-任せる。`overscroll-behavior` を `none/contain` にしていなければ pull-to-refresh は
-そのまま動く。
+既定ではタッチ操作はネイティブのまま（`syncTouch: false`）なので、モバイルの
+pull-to-refresh や端のバウンスはそのまま動く。タッチもスムージングしたい場合は
+`syncTouch: true` を指定する。
 
 ## Demo
 

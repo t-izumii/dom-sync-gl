@@ -224,6 +224,15 @@ describe('Core ⇄ RafScroll の統合（rafScroll オプション）', () => {
         disconnect() {}
       }
     );
+    // Lenis（rafScroll の実体）が Dimensions で ResizeObserver を要求するので最小スタブを差す。
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    );
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 0);
     vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
   });
