@@ -1,9 +1,5 @@
 import * as THREE from 'three';
 
-/**
- * `DomSyncGL.setPostEffect()` で差し込めるポストエフェクトの最小契約。
- * `EffectComposer` は実装している。自前で差し込みたい場合は構造的にこれを満たせばよい。
- */
 export interface EffectLike {
   render(scene: THREE.Scene, camera: THREE.Camera): void;
   resize(width: number, height: number): void;
@@ -27,12 +23,8 @@ const defaultVertexShader = `
   }
 `;
 
-/**
- * addEffect() で返されるハンドル。uniform の更新に使う。
- */
 export class EffectPass {
   readonly material: THREE.ShaderMaterial;
-  /** false の時、EffectComposer はこのパスをスキップする（パススルー扱い）。 */
   enabled = true;
 
   constructor(material: THREE.ShaderMaterial) {
@@ -41,7 +33,6 @@ export class EffectPass {
 
   setUniform(key: string, value: unknown): void {
     if (this.material.uniforms[key] === undefined) {
-      // dev 環境のみ警告。本番（minify 済み）では import.meta.env.DEV が false でスキップされる。
       if (import.meta.env?.DEV) {
         console.warn(
           `[EffectPass] uniform "${key}" は定義されていません。タイポか、` +
@@ -58,18 +49,6 @@ export class EffectPass {
   }
 }
 
-/**
- * 複数のポストエフェクトをチェーンで適用するクラス。
- *
- * RenderTarget はピンポン方式で2つのみ使用。
- * エフェクト数に関わらずメモリ使用量は一定。
- *
- * render flow (エフェクト3つの場合):
- *   scene → TargetA
- *   pass1: A → B
- *   pass2: B → A
- *   pass3: A → canvas (null)
- */
 export class EffectComposer implements EffectTarget, EffectLike {
   private renderer: THREE.WebGLRenderer;
   private passes: Array<EffectPass> = [];
@@ -82,18 +61,13 @@ export class EffectComposer implements EffectTarget, EffectLike {
   private postMesh: THREE.Mesh;
   private geometry: THREE.PlaneGeometry;
 
-  /**
-   * dispose 後の API 呼び出しを no-op にするフラグ。
-   * dispose 済みの RT に render すると INVALID_OPERATION になるため。
-   */
   private _disposed: boolean = false;
 
   constructor(renderer: THREE.WebGLRenderer, width: number, height: number) {
     this.renderer = renderer;
 
     const dpr = renderer.getPixelRatio();
-    // width/height が 0 を取ると WebGL が INVALID_VALUE を出す実装があるので
-    // 1 px 未満にならないようにガードする。
+
     const w = Math.max(1, Math.floor(width * dpr));
     const h = Math.max(1, Math.floor(height * dpr));
 
@@ -133,11 +107,6 @@ export class EffectComposer implements EffectTarget, EffectLike {
     return pass;
   }
 
-  /**
-   * 登録済みパスを 1 つ取り除いて material を dispose する。
-   * `addEffect()` の戻り値か、`BaseEffect.getPass()` の値を渡す。
-   * 存在しない pass を渡した時は何もしない。
-   */
   removeEffect(pass: EffectPass): boolean {
     if (this._disposed) return false;
     const idx = this.passes.indexOf(pass);
@@ -147,15 +116,9 @@ export class EffectComposer implements EffectTarget, EffectLike {
     return true;
   }
 
-  /**
-   * シーンをレンダリングし、登録されたエフェクトを順に適用する。
-   * エフェクトが0個の場合は通常レンダリング。
-   */
   render(scene: THREE.Scene, camera: THREE.Camera): void {
     if (this._disposed) return;
-    // 無効化されたパスは丸ごとスキップ。チェーン途中で off にしても残りが正しく繋がる
-    // よう、active なものだけ走らせる。filter() で配列を毎フレ alloc すると GC 圧に
-    // なるので、active 数のカウントと最後の active index だけ取り出して in-place で回す。
+
     let activeCount = 0;
     let lastActiveIndex = -1;
     const passes = this.passes;
@@ -172,7 +135,6 @@ export class EffectComposer implements EffectTarget, EffectLike {
       return;
     }
 
-    // シーンを TargetA に描画
     this.renderer.setRenderTarget(this.targetA);
     this.renderer.render(scene, camera);
 

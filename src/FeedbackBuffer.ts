@@ -1,62 +1,40 @@
 import * as THREE from 'three';
+import type GUI from 'lil-gui';
 
-/**
- * FeedbackBuffer — ping-pong RenderTarget で「状態を時間蓄積」する feedback プリミティブ。
- *
- * **標準 WebGL の render-to-texture のみ**で実装している（FBO 2 枚を交互に焼く feedback）。
- * float/half-float RT や WebGPU compute（GPGPU）は使わないので、対応ブラウザを選ばない。
- * 蓄積は 8bit RGBA テクスチャ上で行う。
- *
- * `BaseEffect`（post / フィルタ = 描画パイプラインに書き込む sink）とは出力の向きが逆で、
- * **テクスチャを産み出す source（generator）**。前フレームの自分の出力（`uPrev`）を読み、
- * 蓄積した新しい状態を書き出す。マウス軌跡（trail）・流体・拡散・反応拡散などに使う。
- *
- * 利用側はこの出力テクスチャ（{@link FeedbackBuffer.texture}）を別シェーダーの uniform
- * （例: plane の `uTrailTex`）に挿して材料として使う。{@link DomPlane.addFeedback} を使うと
- * この配線・毎フレ駆動・resize/dispose をライブラリ側が肩代わりする。
- *
- * **更新シェーダーに自動で渡る uniform**（宣言すれば使える）:
- * - `uPrev`      sampler2D : 前フレームの出力（蓄積の読み元）
- * - `uMouse`     vec2      : マウス UV (0..1)
- * - `uHover`     float     : hover 量 (0..1)
- * - `uTime`      float     : 経過秒
- * - `uResolution`vec2      : バッファ解像度 (size, size)
- * - `uAspect`    float     : 対象の縦横比 (w/h)
- *
- * @see https://github.com/t-izumii/dom-sync-gl
- */
 export interface FeedbackBufferOptions {
-  /** 蓄積を進める fragment shader（必須）。`uPrev` を読み新しい状態を出力する。 */
   fragmentShader: string;
-  /** 任意の vertex shader。省略時は fullscreen quad の passthrough。 */
   vertexShader?: string;
-  /**
-   * ping-pong バッファの 1 辺の解像度（正方）。縦横比は `uAspect` で補正するので
-   * バッファ自体は正方で固定する。大きいほど精細だが GPU 負荷増。
-   * @default 256
-   */
   size?: number;
-  /** ユーザー定義 uniform（`uDecay` / `uRadius` 等）。実行時は {@link FeedbackBuffer.uniforms} で更新できる。 */
   uniforms?: Record<string, THREE.IUniform>;
+
+  setupGUI?: (gui: GUI, buffer: FeedbackBuffer) => GUI | void;
+  /**
+   * @default 0.0008
+   */
+  moveThreshold?: number;
+  /**
+   *
+   * @default 0.01
+   */
+  moveScale?: number;
+  /**
+   *
+   * @default 0.85
+   */
+  moveRelease?: number;
 }
 
-/** {@link FeedbackBuffer.step} に渡す per-frame の入力。 */
 export interface FeedbackInput {
-  /** マウス UV (0..1)。`uMouse` に流す。 */
   mouse: THREE.Vector2;
-  /** hover 量 (0..1)。`uHover` に流す。 */
   hover: number;
-  /** 経過秒。`uTime` に流す。 */
   time: number;
-  /** 対象の縦横比 (w/h)。`uAspect` に流す。 */
   aspect: number;
 }
 
-const defaultVertexShader = /* glsl */ `
+const defaultVertexShader = `
   varying vec2 vUv;
   void main() {
     vUv = uv;
-    // fullscreen quad: clip 空間に直接出す（camera 非依存）。
     gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
@@ -65,7 +43,6 @@ export class FeedbackBuffer {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly _size: number;
   private readonly scene = new THREE.Scene();
-  // passthrough vertex なので camera は実質ダミー（projection を使わない）。
   private readonly camera = new THREE.Camera();
   private readonly geometry: THREE.PlaneGeometry;
   private readonly material: THREE.ShaderMaterial;
@@ -73,9 +50,19 @@ export class FeedbackBuffer {
   private write: THREE.WebGLRenderTarget;
   private disposed = false;
 
+  private readonly _prevMouse = new THREE.Vector2();
+  private _hasPrevMouse = false;
+  private _moveThreshold: number;
+  private _moveScale: number;
+  private _moveRelease: number;
+  private _gui: GUI | null = null;
+
   constructor(renderer: THREE.WebGLRenderer, options: FeedbackBufferOptions) {
     this.renderer = renderer;
     this._size = options.size ?? 256;
+    this._moveThreshold = options.moveThreshold ?? 0.0008;
+    this._moveScale = options.moveScale ?? 0.01;
+    this._moveRelease = options.moveRelease ?? 0.85;
 
     this.material = new THREE.ShaderMaterial({
       vertexShader: options.vertexShader ?? defaultVertexShader,
@@ -85,10 +72,12 @@ export class FeedbackBuffer {
       uniforms: {
         uPrev: { value: null },
         uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+        uPrevMouse: { value: new THREE.Vector2(0.5, 0.5) },
         uHover: { value: 0 },
         uTime: { value: 0 },
         uResolution: { value: new THREE.Vector2(this._size, this._size) },
         uAspect: { value: 1 },
+        uMove: { value: 0 },
         ...options.uniforms,
       },
     });
@@ -101,10 +90,6 @@ export class FeedbackBuffer {
   }
 
   private makeTarget(): THREE.WebGLRenderTarget {
-    // 標準 WebGL の render-to-texture のみで完結させるため、type は既定の UnsignedByteType
-    // (8bit RGBA) を使う。HalfFloat/Float の RT は拡張 (EXT_color_buffer_float 等) が要り
-    // ブラウザ依存になるので使わない。長時間の減衰蓄積では 8bit のバンディングが出うるが、
-    // 互換性優先。精度が要るケースは将来オプション化する。
     return new THREE.WebGLRenderTarget(this._size, this._size, {
       format: THREE.RGBAFormat,
       depthBuffer: false,
@@ -116,7 +101,6 @@ export class FeedbackBuffer {
     });
   }
 
-  /** read/write を (0,0,0,0) で初期化（first frame のゴミ防止）。renderer の状態は復元する。 */
   private clearTargets(): void {
     const r = this.renderer;
     const prevTarget = r.getRenderTarget();
@@ -131,25 +115,39 @@ export class FeedbackBuffer {
     r.setClearColor(prevColor, prevAlpha);
   }
 
-  /** 最新の出力テクスチャ（直近の蓄積結果）。plane の uniform 等に挿して使う。 */
   get texture(): THREE.Texture {
     return this.read.texture;
   }
 
-  /** 更新シェーダーの uniform。`buffer.uniforms.uDecay.value = ...` で実行時に調整できる。 */
   get uniforms(): { [name: string]: THREE.IUniform } {
     return this.material.uniforms;
   }
 
-  /** バッファ 1 辺の解像度。 */
   get size(): number {
     return this._size;
   }
 
-  /**
-   * 1 フレーム進める。`uPrev`（前フレーム）を読んで write に蓄積を焼き、swap して最新を read にする。
-   * @returns 最新の出力テクスチャ。
-   */
+  get moveThreshold(): number {
+    return this._moveThreshold;
+  }
+  set moveThreshold(v: number) {
+    this._moveThreshold = Math.max(0, v);
+  }
+
+  get moveScale(): number {
+    return this._moveScale;
+  }
+  set moveScale(v: number) {
+    this._moveScale = Math.max(1e-6, v);
+  }
+
+  get moveRelease(): number {
+    return this._moveRelease;
+  }
+  set moveRelease(v: number) {
+    this._moveRelease = Math.min(1, Math.max(0, v));
+  }
+
   step(input: FeedbackInput): THREE.Texture {
     if (this.disposed) return this.read.texture;
 
@@ -160,22 +158,49 @@ export class FeedbackBuffer {
     u.uTime.value = input.time;
     u.uAspect.value = input.aspect;
 
+    let move = 0;
+    if (this._hasPrevMouse) {
+      const dx = (input.mouse.x - this._prevMouse.x) * input.aspect;
+      const dy = input.mouse.y - this._prevMouse.y;
+      const dist = Math.hypot(dx, dy);
+      move =
+        dist > this._moveThreshold ? Math.min(1, dist / this._moveScale) : 0;
+    }
+    (u.uPrevMouse.value as THREE.Vector2).copy(
+      this._hasPrevMouse ? this._prevMouse : input.mouse
+    );
+    this._prevMouse.copy(input.mouse);
+    this._hasPrevMouse = true;
+    u.uMove.value = Math.max(
+      move,
+      (u.uMove.value as number) * this._moveRelease
+    );
+
     const r = this.renderer;
     const prevTarget = r.getRenderTarget();
     r.setRenderTarget(this.write);
     r.render(this.scene, this.camera);
     r.setRenderTarget(prevTarget);
 
-    // swap: 焼いたばかりの write を最新 read にする。
     const tmp = this.read;
     this.read = this.write;
     this.write = tmp;
     return this.read.texture;
   }
 
+  _attachGUI(gui: GUI): void {
+    if (this.disposed) {
+      gui.destroy();
+      return;
+    }
+    this._gui = gui;
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this._gui?.destroy();
+    this._gui = null;
     this.read.dispose();
     this.write.dispose();
     this.geometry.dispose();
