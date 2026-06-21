@@ -33,8 +33,17 @@ export class RafScroll {
     const { autoStart = true, ...lenisOptions } = options;
     this._autoStart = autoStart;
 
+    // scrollSync は「全スクロールを単一 rAF に取り込む」前提でキャンバスを補正するため、
+    // この前提を壊す入力経路を既定で塞いでおく（呼び出し側の指定があればそちらを優先）。
+    //   - syncTouch: true  … タッチも rAF 経由にしないとモバイルで plane がガタつく
+    //   - lerp: 1          … 補間を切り、実スクロールと rAF 読み取りを毎フレーム一致させる
     // autoStart=false（Core 管理モード）では Lenis の自走 rAF を止め、advance() で駆動する。
-    this._lenis = new Lenis({ ...lenisOptions, autoRaf: autoStart });
+    this._lenis = new Lenis({
+      lerp: 1,
+      syncTouch: true,
+      ...lenisOptions,
+      autoRaf: autoStart,
+    });
   }
 
   /**

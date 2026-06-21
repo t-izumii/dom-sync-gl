@@ -58,14 +58,22 @@ const app = new DomSyncGL('#canvas', {
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `lerp` | `number` | `0.1` | 線形補間の強度（0〜1）。小さいほど滑らかで追従が遅い |
+| `lerp` | `number` | **`1`** | 線形補間の強度（0〜1）。小さいほど滑らかで追従が遅い。既定は補間なし（後述） |
+| `syncTouch` | `boolean` | **`true`** | タッチ操作も rAF 経由にするか。既定 true（後述） |
 | `duration` | `number` | — | スクロールアニメーションの時間（秒）。`lerp` の代替指定 |
 | `easing` | `(t:number)=>number` | Lenis 既定 | イージング関数 |
 | `smoothWheel` | `boolean` | `true` | ホイール入力をスムージングするか |
-| `syncTouch` | `boolean` | `false` | タッチ操作もスムージングするか（既定はネイティブタッチ） |
 | `wheelMultiplier` | `number` | `1` | ホイール入力の倍率 |
 | `touchMultiplier` | `number` | `1` | タッチ入力の倍率 |
 | `autoStart` | `boolean` | `true` | 内部 rAF ループを自走させるか。`rafScroll` オプション経由なら自動で `false`（管理モード） |
+
+::: tip 既定値は Lenis と異なる
+`scrollSync` はキャンバスを「全スクロールを単一 rAF に取り込む」前提で補正するため、`RafScroll` は
+Lenis 既定を上書きして **`lerp: 1`** / **`syncTouch: true`** を初期値にしている。
+これにより実スクロールと rAF 読み取りが毎フレーム一致し、`position: fixed` の plane が
+スクロール中にガタつかない。スムージングを効かせたい場合は `rafScroll: { lerp: 0.1 }` のように
+明示指定すれば上書きできる。
+:::
 
 その他のオプションは [Lenis のドキュメント](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
 

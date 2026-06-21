@@ -70,6 +70,20 @@ describe('RafScroll 管理モード (autoStart / advance)', () => {
     rs.destroy();
   });
 
+  it('既定では scrollSync 前提に合わせ lerp:1 / syncTouch:true で Lenis を生成する', () => {
+    const rs = new RafScroll({ autoStart: false });
+    expect(last().options.lerp).toBe(1);
+    expect(last().options.syncTouch).toBe(true);
+    rs.destroy();
+  });
+
+  it('呼び出し側の指定は既定（lerp:1 / syncTouch:true）を上書きする', () => {
+    const rs = new RafScroll({ autoStart: false, lerp: 0.1, syncTouch: false });
+    expect(last().options.lerp).toBe(0.1);
+    expect(last().options.syncTouch).toBe(false);
+    rs.destroy();
+  });
+
   it('管理モード（autoStart:false）の advance() は lenis.raf(now) を駆動する', () => {
     const rs = new RafScroll({ autoStart: false });
     rs.advance(16);
