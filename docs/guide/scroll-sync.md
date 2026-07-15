@@ -34,7 +34,7 @@ new DomSyncGL('#canvas', {
 | `trackStrength` | `boolean` | `false` | `strength`（スクロール速度）の追跡を有効化 |
 | `strengthDecay` | `number` | `10` | strength の指数減衰係数 |
 | `overscan` | `number \| 'auto' \| false` | `'auto'` | canvas を viewport の上下に px 単位で広げる |
-| `attach` | `'translate' \| 'fixed'` | `'translate'` | container の貼り付け方 |
+| `attach` | `'translate' \| 'dom'` | `'translate'` | container の貼り付け方。`'dom'` は container の CSS 配置を尊重する |
 
 各オプションの詳細は [API: Scroll](/api/scroll) を参照。
 
@@ -51,6 +51,17 @@ new DomSyncGL('#canvas', {
   scrollSync: { overscan: false },
 });
 ```
+
+## `attach: 'dom'` で container の CSS を尊重する
+
+既定の `'translate'` は container を viewport 全面の overlay にして毎 tick translate で追従させる。
+`'dom'` にすると ScrollSync は container の position/サイズ/transform を一切上書きせず、
+container 自身の CSS 配置をそのまま尊重する。canvas は container の box に出る。
+
+- container が `position: fixed` なら、canvas も fixed 相当で表示される（ブラウザの fixed 追従に任せる）。
+- 普通配置（通常フロー）の container なら、その container のサイズで canvas が生成される。
+
+`'dom'` モードでは `overscan` は無視される。
 
 ## スクロール速度を演出に使う
 

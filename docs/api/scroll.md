@@ -24,7 +24,7 @@
 | `trackStrength` | `boolean` | `false` | `strength`（スクロール速度）の追跡を有効化 |
 | `strengthDecay` | `number` | `10` | strength の指数減衰係数。大きいほど速く 0 に戻る |
 | `overscan` | `number \| 'auto' \| false` | `'auto'` | canvas を viewport の上下に px 単位で広げる |
-| `attach` | `'translate' \| 'fixed'` | `'translate'` | container の貼り付け方 |
+| `attach` | `'translate' \| 'dom'` | `'translate'` | container の貼り付け方。`'dom'` は container の CSS 配置を尊重する |
 
 #### `overscan`
 
@@ -53,9 +53,13 @@ new DomSyncGL('#canvas', { scrollSync: { overscan: false } });
 #### `attach`
 
 `'translate'`（既定）は container を `position: absolute` にして毎 tick
-`translate3d(scrollX, effectiveScrollY, 0)` を当てる。`'fixed'` は `position: fixed` にして
-transform を一切当てない（ブラウザの fixed 追従に任せる）ので、`update()` の transform 処理は
-no-op になる。
+`translate3d(scrollX, effectiveScrollY, 0)` を当てる。
+
+`'dom'` は container の CSS 配置をそのまま尊重し、position/サイズ/transform を一切上書きしない。
+container が `position: fixed` なら canvas も fixed 相当で表示され、普通配置なら container 自身の
+サイズで canvas が生成される。`overscan` は適用されない。既知の制限として、普通配置（非 fixed）の
+container はスクロールで canvas 自体が動くため `canvasRect` が古くなり DomPlane がドリフトしうる
+（fixed container なら問題ない）。
 
 ### static `ScrollSync.computeEffectiveScrollY()`
 

@@ -315,4 +315,84 @@ describe('ScrollSync', () => {
       expect(sync.logicalRect.height).toBe(1200);
     });
   });
+
+  describe("attach: 'dom'", () => {
+    // jsdom は getBoundingClientRect が 0 を返すので、container の box を mock する。
+    const mockBCR = (rect: DOMRect) => {
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(rect);
+    };
+
+    it("'dom' モードでは container の position を上書きしない", () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      container.style.position = 'fixed';
+
+      new ScrollSync(container, { attach: 'dom' });
+
+      // container の CSS 配置をそのまま尊重する（absolute に上書きしない）。
+      expect(container.style.position).toBe('fixed');
+      // position/サイズ/transform の inline 上書きも行わない。
+      expect(container.style.width).toBe('');
+      expect(container.style.height).toBe('');
+      expect(container.style.top).toBe('');
+      expect(container.style.transform).toBe('');
+    });
+
+    it('logicalRect が container の getBoundingClientRect を反映する', () => {
+      mockBCR(new DOMRect(10, 20, 600, 400));
+
+      const sync = new ScrollSync(container, { attach: 'dom' });
+
+      expect(sync.logicalRect.left).toBe(10);
+      expect(sync.logicalRect.top).toBe(20);
+      expect(sync.logicalRect.width).toBe(600);
+      expect(sync.logicalRect.height).toBe(400);
+    });
+
+    it('update() は dom モードで transform を書き込まない (no-op)', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+
+      const sync = new ScrollSync(container, { attach: 'dom' });
+      sync.update(0, 400);
+
+      expect(container.style.transform).toBe('');
+    });
+
+    it('overscan は dom モードで無視される', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      Object.defineProperty(window, 'matchMedia', {
+        value: (query: string) =>
+          ({
+            matches: query === '(pointer: coarse)',
+            media: query,
+          }) as MediaQueryList,
+        writable: true,
+        configurable: true,
+      });
+
+      const sync = new ScrollSync(container, { attach: 'dom', overscan: 'auto' });
+
+      // overscan を確保しない: top/height の上書きは無く、logicalRect も BCR そのまま。
+      expect(container.style.top).toBe('');
+      expect(container.style.height).toBe('');
+      expect(sync.logicalRect.top).toBe(0);
+      expect(sync.logicalRect.height).toBe(400);
+
+      Reflect.deleteProperty(window, 'matchMedia');
+    });
+
+    it('destroy() が dom モードで container のスタイルを壊さない', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      container.style.position = 'fixed';
+      container.style.width = '600px';
+      container.style.height = '400px';
+
+      const sync = new ScrollSync(container, { attach: 'dom' });
+      sync.destroy();
+
+      // ScrollSync は何も変更していないので、事前の inline style がそのまま残る。
+      expect(container.style.position).toBe('fixed');
+      expect(container.style.width).toBe('600px');
+      expect(container.style.height).toBe('400px');
+    });
+  });
 });

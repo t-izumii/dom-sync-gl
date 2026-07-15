@@ -8,9 +8,17 @@ export interface ScrollSyncOptions {
    *   マウス環境では 0 になるのでオーバーヘッドは無い。
    * - number: 常にその px 数だけ広げる。
    * - false / 0: 余白なし（オプトアウト）。
+   * attach: 'dom' のときは無視される（余白を確保しない）。
    */
   overscan?: number | 'auto' | false;
-  attach?: 'translate' | 'fixed';
+  /**
+   * container の貼り付け方。
+   * - 'translate'（既定）: container を viewport 全面の overlay にして、毎tick translate で追従させる。
+   * - 'dom': container の CSS 配置をそのまま尊重し、canvas を container 自身のサイズ・位置に出す。
+   *   container が `position: fixed` なら canvas も fixed 相当で表示される。
+   *   position/サイズの上書きも translate も overscan も行わない。
+   */
+  attach?: 'translate' | 'dom';
 }
 
 export class ScrollSync {
@@ -18,7 +26,7 @@ export class ScrollSync {
   private _trackStrength: boolean;
   private _strengthDecay: number;
   private _overscan: number;
-  private _attach: 'translate' | 'fixed';
+  private _attach: 'translate' | 'dom';
   private _strength: number = 0;
   private _prevScrollY: number = 0;
   private _prevTime: number = 0;
@@ -66,7 +74,7 @@ export class ScrollSync {
     };
 
     const vh = ScrollSync._measureViewportHeight();
-    this._overscan = ScrollSync._resolveOverscan(options.overscan, vh);
+    this._overscan = this._attach === 'dom' ? 0 : ScrollSync._resolveOverscan(options.overscan, vh);
 
     this.applyContainerStyles();
     this.updateSize();
@@ -99,7 +107,9 @@ export class ScrollSync {
   }
 
   private applyContainerStyles(): void {
-    this.container.style.position = this._attach === 'fixed' ? 'fixed' : 'absolute';
+    // dom モードでは container の CSS をそのまま尊重するため何も上書きしない。
+    if (this._attach === 'dom') return;
+    this.container.style.position = 'absolute';
     this.container.style.left = '0';
     this.container.style.overflow = 'hidden';
     this.container.style.pointerEvents = 'none';
@@ -107,6 +117,16 @@ export class ScrollSync {
   }
 
   updateSize(wrapperWidth?: number, wrapperHeight?: number): void {
+    if (this._attach === 'dom') {
+      // dom モードは container 自身の box をそのまま canvas 領域とする。
+      // position/サイズは container の CSS に任せ、ここでは logicalRect の更新だけ行う。
+      const rect = this.container.getBoundingClientRect();
+      this._viewportWidth = rect.width;
+      this._viewportHeight = rect.height;
+      this._logicalRect = new DOMRect(rect.left, rect.top, rect.width, rect.height);
+      return;
+    }
+
     const docEl = document.documentElement;
     this._viewportWidth = wrapperWidth ?? docEl.clientWidth;
 
@@ -127,13 +147,12 @@ export class ScrollSync {
       this._viewportHeight + 2 * this._overscan,
     );
 
-    if (this._attach !== 'fixed') {
-      // レイアウトが変わった可能性があるため、直前と同じスクロール位置でも
-      // applyTransform 側の早期returnをスキップさせて再計算を強制する。
-      this._lastRawX = NaN;
-      this._lastRawY = NaN;
-      this.applyTransform(window.scrollX, ScrollSync.computeEffectiveScrollY());
-    }
+    // dom モードは上で return 済みなので、ここへ来るのは translate モードのみ。
+    // レイアウトが変わった可能性があるため、直前と同じスクロール位置でも
+    // applyTransform 側の早期returnをスキップさせて再計算を強制する。
+    this._lastRawX = NaN;
+    this._lastRawY = NaN;
+    this.applyTransform(window.scrollX, ScrollSync.computeEffectiveScrollY());
   }
 
   update(scrollX: number, scrollY: number): void {
@@ -145,7 +164,8 @@ export class ScrollSync {
   }
 
   private applyTransform(scrollX: number, scrollY: number): void {
-    if (this._attach === 'fixed') return;
+    // dom モードでは container の CSS 配置を尊重するため transform を当てない。
+    if (this._attach === 'dom') return;
 
     // scrollX/scrollY が前回と同じなら、offsetHeight 読み取り（強制レイアウト）
     // を含む以降の処理を丸ごとスキップする。updateSize() 呼び出し時はレイアウトが
@@ -201,6 +221,10 @@ export class ScrollSync {
     return this._logicalRect;
   }
 
+  get attach(): 'translate' | 'dom' {
+    return this._attach;
+  }
+
   get strength(): number {
     if (!this._trackStrength) {
       if (import.meta.env?.DEV && !this._warnedStrength) {
@@ -225,6 +249,8 @@ export class ScrollSync {
   }
 
   destroy(): void {
+    // dom モードでは container のスタイルを一切変更していないため復元不要。
+    if (this._attach === 'dom') return;
     const o = this._originalStyles;
     const s = this.container.style;
     s.position = o.position;

@@ -248,7 +248,7 @@ app.addEffect(new GrainEffect());
 | `trackStrength` | `boolean` | `false` | `strength` (スクロール速度) の追跡を有効化 |
 | `strengthDecay` | `number` | `10` | strength の指数減衰係数 |
 | `overscan` | `number \| 'auto' \| false` | `'auto'` | canvas を viewport の上下に px 単位で広げる。`'auto'` は coarse pointer でのみ `vh * 0.25`、マウス環境では 0。切るなら `false` |
-| `attach` | `'translate' \| 'fixed'` | `'translate'` | container の貼り付け方 |
+| `attach` | `'translate' \| 'dom'` | `'translate'` | container の貼り付け方。`'dom'` は container の CSS 配置をそのまま尊重する |
 
 > `trackStrength: false` のまま `strength` を読むと常に `0`（DEV では一度だけ warn）。
 

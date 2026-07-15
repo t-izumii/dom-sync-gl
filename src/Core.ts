@@ -392,7 +392,9 @@ export class DomSyncGL {
       { signal },
     );
 
-    if (!this.scrollSync) {
+    // dom モードは canvas がスクロールで動きうるので、scrollSync 無しの場合と同様に
+    // スクロールで pointer のキャッシュした rect を無効化する必要がある。
+    if (!this.scrollSync || this.scrollSync.attach === 'dom') {
       window.addEventListener('scroll', this.pointer.invalidateRect, {
         signal,
         passive: true,
