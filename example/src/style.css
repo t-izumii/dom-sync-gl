@@ -37,6 +37,12 @@ body {
   line-height: 1.7;
   letter-spacing: 0.01em;
   overflow-x: hidden;
+}
+
+/* ネイティブカーソルを隠すのは、main.ts が自前カーソルを実際に有効化したときだけ。
+   coarse pointer / prefers-reduced-motion では .cursor を消すので、
+   無条件に cursor: none にするとカーソルが一切見えなくなってしまう。 */
+body.custom-cursor {
   cursor: none;
 }
 
@@ -438,6 +444,33 @@ main {
 /* =========================================================================
    ケイパビリティ
    ========================================================================= */
+/* =========================================================================
+   DomTextPlane デモ
+   文字は WebGL 側の板として描かれる。DOM の文字は DomTextPlane が
+   color: transparent で視覚的にだけ隠す（レイアウト・選択・SEO は維持される）ので、
+   ここでは font-size / line-height など「板の見た目そのもの」を CSS で決めてよい。
+   ========================================================================= */
+.text-planes {
+  padding: clamp(7rem, 16vh, 14rem) 0;
+}
+.text-plane-demo {
+  max-width: min(94vw, 30ch);
+  font-family: "Zen Old Mincho", serif;
+  font-size: clamp(1.4rem, 3.4vw, 2.6rem);
+  line-height: 1.6;
+  font-weight: 400;
+  margin-bottom: clamp(2.5rem, 6vh, 5rem);
+}
+/* font-family は loadFont() が document.fonts に登録する family 名と一致させる。
+   font-size は clamp() の fluid 値のまま。DomTextPlane は getComputedStyle 由来で
+   解決するので、ブレークポイントを別途 JS に書く必要はない。 */
+.text-plane-fontface-demo {
+  font-family: "DemoSpaceMono", ui-monospace, monospace;
+  font-size: clamp(1.2rem, 3vw, 2.2rem);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
 .caps {
   padding: clamp(7rem, 16vh, 14rem) 0;
 }

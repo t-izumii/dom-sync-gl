@@ -153,6 +153,28 @@ export const workFragment = /* glsl */ `
 `;
 
 // ----------------------------------------------------------------------------
+// DomTextPlane 用の plane effect。plane.addEffect() 経由で PlaneComposer に繋がるので、
+// tDiffuse には「その板だけを描いたテクスチャ」（＝ラスタライズ済みテキスト）が入る。
+// uHover は main 側で lerp した値を setHover() で流し込む。
+// 文字の alpha は 3 サンプルの最大値で保ち、色だけを左右にずらして滲みを出す。
+// ----------------------------------------------------------------------------
+export const textHoverFragment = /* glsl */ `
+  precision highp float;
+  uniform sampler2D tDiffuse;
+  uniform float uHover;
+  varying vec2 vUv;
+
+  void main() {
+    float off = 0.008 * uHover;
+    vec4 r = texture2D(tDiffuse, vUv + vec2(off, 0.0));
+    vec4 g = texture2D(tDiffuse, vUv);
+    vec4 b = texture2D(tDiffuse, vUv - vec2(off, 0.0));
+    float a = max(max(r.a, g.a), b.a);
+    gl_FragColor = vec4(r.r, g.g, b.b, a);
+  }
+`;
+
+// ----------------------------------------------------------------------------
 // フルスクリーン post effect。光の地に合わせて極めて控えめに仕上げる。
 // スクロール中だけ僅かな色収差、淡いフィルムグレイン、やわらかいビネット。
 // （ダーク版の強い収差 / 走査線 / 濃いビネットは紙の地に合わないため外した）

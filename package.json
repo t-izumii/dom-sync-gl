@@ -20,7 +20,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "npm run docs:dev",
-    "example": "vite --config example/vite.config.ts",
+    "example": "vite --host --config example/vite.config.ts",
     "example:build": "vite build --config example/vite.config.ts",
     "build": "vite build",
     "build:watch": "vite build --watch",

@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    /* vite.config.ts の alias と同じ解決をエディタ / tsc にも与える。
+       これが無いと "dom-sync-gl" が publish 済みの dist/index.d.ts（古い型）に
+       解決されてしまい、src の最新 API が「存在しない」と誤判定される。 */
+    "paths": {
+      "dom-sync-gl": ["../src/index.ts"]
+    },
+    "types": ["vite/client"]
+  },
+  /* vite.config.ts は含めない。__dirname / node:path を使うため @types/node が要るが、
+     リポジトリに未インストールで、ルートの tsconfig でも同じエラーが出る既知の状態。 */
+  "include": ["src"]
+}
