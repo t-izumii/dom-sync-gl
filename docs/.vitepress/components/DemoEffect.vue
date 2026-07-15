@@ -51,7 +51,7 @@ class GrainEffect extends BaseEffect {
 
 onMounted(() => {
   if (!stage.value) return;
-  app = new DomSyncGL(stage.value, { showGUI: false });
+  app = new DomSyncGL(stage.value);
   app.createPlane(null, { fragmentShader: baseShader });
   grain = new GrainEffect();
   app.addEffect(grain);

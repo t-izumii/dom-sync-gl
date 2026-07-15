@@ -32,7 +32,7 @@ const fragmentShader = /* glsl */ `
 
 onMounted(() => {
   if (!card.value) return;
-  app = new DomSyncGL(card.value, { showGUI: false });
+  app = new DomSyncGL(card.value);
   // element=null = フルスクリーン plane（canvas 全体を埋める）。
   const plane = app.createPlane(null, { fragmentShader });
 
