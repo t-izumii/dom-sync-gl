@@ -13,6 +13,7 @@ export interface EffectOptions {
 
 export interface EffectTarget {
   addEffect(options: EffectOptions): EffectPass;
+  removeEffect(pass: EffectPass): boolean;
 }
 
 const defaultVertexShader = `
@@ -60,6 +61,10 @@ export class EffectComposer implements EffectTarget, EffectLike {
   private postCamera: THREE.OrthographicCamera;
   private postMesh: THREE.Mesh;
   private geometry: THREE.PlaneGeometry;
+  // postMesh.material は render() 中に各 pass.material へ差し替えられるため、
+  // 構築時に THREE.Mesh が自動生成する既定 material 自体はどの pass にも
+  // 属さず誰も dispose しない。dispose() で確実に解放できるよう個別に保持する。
+  private readonly postMeshDefaultMaterial: THREE.Material;
 
   private _disposed: boolean = false;
 
@@ -85,6 +90,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
     this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.geometry = new THREE.PlaneGeometry(2, 2);
     this.postMesh = new THREE.Mesh(this.geometry);
+    this.postMeshDefaultMaterial = this.postMesh.material as THREE.Material;
     this.postScene.add(this.postMesh);
   }
 
@@ -175,6 +181,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
     this.targetA.dispose();
     this.targetB.dispose();
     this.geometry.dispose();
+    this.postMeshDefaultMaterial.dispose();
     for (const pass of this.passes) {
       pass.material.dispose();
     }

@@ -4,18 +4,18 @@ import type GUI from 'lil-gui';
 import { Camera } from './Camera';
 import { Light } from './Light';
 import { DomPlane } from './DomPlane';
+import { DomTextPlane } from './DomTextPlane';
 import { Dom3DObject } from './Dom3DObject';
 import { ScrollSync } from './ScrollSync';
-import { RafScroll } from './RafScroll';
 import type { EffectLike } from './EffectComposer';
 import type { ScrollSyncOptions } from './ScrollSync';
-import type { RafScrollOptions } from './RafScroll';
 import type { BaseEffect } from './effects/BaseEffect';
 import { PointerController, type PointerType } from './PointerController';
 import { EffectManager } from './EffectManager';
 import { DevTools } from './DevTools';
 import type {
   CreatePlaneOptions,
+  CreateTextPlaneOptions,
   Create3DObjectOptions,
   DomSyncGLOptions,
 } from './types';
@@ -35,7 +35,6 @@ export class DomSyncGL {
   dom3DObjects: Dom3DObject[];
   clock: THREE.Clock;
   scrollSync: ScrollSync | null = null;
-  private rafScroll: RafScroll | null = null;
   private options: DomSyncGLOptions;
   private rafId: number = 0;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -76,24 +75,19 @@ export class DomSyncGL {
     this.domPlanes = [];
     this.dom3DObjects = [];
     this.clock = new THREE.Clock();
-    this.options = { showGUI: false, ...options };
+    this.options = { ...options };
 
     this.options.enablePointerTracking =
       options.enablePointerTracking ?? options.enableMouseTracking ?? true;
 
-    const showGUI = this.options.showGUI === true;
+    const gui = options.gui ?? null;
     this.devTools = new DevTools({
-      showStats: !!options.showStats,
-      statsParent: options.statsParent ?? document.body,
-      showGUI,
-      guiTitle: options.guiTitle ?? 'Effects',
-      isDestroyed: () => this.destroyed,
+      stats: options.stats ?? null,
+      gui,
     });
     this.effectManager = new EffectManager({
       renderer: this.renderer,
-      showGUI,
-      ensureGUI: () => this.devTools.ensureGUI(),
-      isDestroyed: () => this.destroyed,
+      gui,
     });
     this.pointer = new PointerController({
       canvas: this.canvas,
@@ -110,20 +104,14 @@ export class DomSyncGL {
       this.rect = this.scrollSync.logicalRect;
     }
 
-    if (options.rafScroll) {
-      const rafScrollOptions: RafScrollOptions =
-        typeof options.rafScroll === 'object' ? options.rafScroll : {};
-      this.rafScroll = new RafScroll({ ...rafScrollOptions, autoStart: false });
-    }
-
     this.refreshScrollCache();
 
     this.init();
 
-    this.devTools.loadStats();
-
     this.setupEventListeners();
-    this.animate();
+    if (this.options.autoRaf !== false) {
+      this.animate();
+    }
   }
 
   private init() {
@@ -165,10 +153,6 @@ export class DomSyncGL {
 
   getScroll(): Readonly<{ x: number; y: number }> {
     return this._scroll;
-  }
-
-  getRafScroll(): RafScroll | null {
-    return this.rafScroll;
   }
 
   private refreshScrollCache(): void {
@@ -236,9 +220,7 @@ export class DomSyncGL {
       this.clock,
     );
 
-    if (this.options.showGUI === true) {
-      domPlane._setGuiProvider(() => this._ensureGUIAsync());
-    }
+    domPlane._setGui(this.devTools.getGUI());
     this.domPlanes.push(domPlane);
 
     if (element) {
@@ -248,6 +230,38 @@ export class DomSyncGL {
     }
 
     return domPlane;
+  }
+
+  createTextPlane(
+    selector: string | HTMLElement,
+    options?: CreateTextPlaneOptions,
+  ): DomTextPlane {
+    if (this.destroyed) {
+      throw new Error('[DomSyncGL] createTextPlane(): destroy 済みのインスタンスでは使えません。');
+    }
+    const element =
+      typeof selector === 'string'
+        ? (document.querySelector(selector) as HTMLElement | null)
+        : selector;
+    if (!element) {
+      throw new Error(`Element not found: ${selector}`);
+    }
+
+    const plane = new DomTextPlane(
+      element,
+      this.scene,
+      this.rect,
+      this._scroll,
+      this.renderer,
+      options,
+      this.clock,
+    );
+    plane._setGui(this.devTools.getGUI());
+    this.domPlanes.push(plane);
+    const mesh = plane.getMesh();
+    this.domPlaneMeshes.push(mesh);
+    this.domPlaneByMesh.set(mesh, plane);
+    return plane;
   }
 
   removePlane(domPlane: DomPlane) {
@@ -345,16 +359,8 @@ export class DomSyncGL {
     return this.effectManager.addEffect(effect, this.rect.width, this.rect.height);
   }
 
-  _ensureGUIAsync(): Promise<GUI> {
-    return this.devTools.ensureGUI();
-  }
-
   getGUI(): GUI | null {
     return this.devTools.getGUI();
-  }
-
-  getGUIAsync(): Promise<GUI | null> {
-    return this.devTools.getGUIAsync();
   }
 
   setPostEffect(postEffect: EffectLike): void {
@@ -471,21 +477,29 @@ export class DomSyncGL {
     this.scrollSync?.destroy();
     this.scrollSync = null;
 
-    this.rafScroll?.destroy();
-    this.rafScroll = null;
-
     this.effectManager.dispose();
     this.controls?.dispose();
     this.controls = null;
     this.renderer.dispose();
     this.canvas.remove();
-
-    this.devTools.dispose();
   }
 
   private animate = () => {
     if (this.destroyed) return;
     this.rafId = requestAnimationFrame(this.animate);
+    this.tick();
+  };
+
+  /**
+   * 1 フレーム分の更新・描画を実行する。
+   * `autoRaf: false` で初期化した場合に、アプリ側の rAF ループから呼び出す。
+   * Lenis と併用する場合は `lenis.raf(time)` の後に呼ぶことで、
+   * スクロール確定後の値で WebGL を配置でき、同一フレーム内で同期する。
+   *
+   * @param _time rAF のタイムスタンプ（Lenis との API 対称性のために受け取るが内部では未使用）
+   */
+  tick = (_time?: number) => {
+    if (this.destroyed) return;
     this.devTools.beginStats();
 
     if (this.controls) {
@@ -495,7 +509,6 @@ export class DomSyncGL {
     const planes = this.domPlanes;
     const objects = this.dom3DObjects;
 
-    this.rafScroll?.advance();
     this.refreshScrollCache();
     const scrollX = this._scroll.x;
     const scrollY = this._scroll.y;

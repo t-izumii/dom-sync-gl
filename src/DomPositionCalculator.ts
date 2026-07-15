@@ -6,6 +6,7 @@ export class DomPositionCalculator {
   private positionInfo: DOMPositionInfo;
   rect: DOMRect;
   private readonly _outPosition = { x: 0, y: 0 };
+  private _isSticky: boolean = false;
 
   constructor(
     element: HTMLElement,
@@ -38,7 +39,12 @@ export class DomPositionCalculator {
 
   refreshPositionType(): void {
     const position = window.getComputedStyle(this.element).position;
-    this.positionInfo.isFixed = position === "fixed" || position === "sticky";
+    // sticky は「stick する前は通常フロー、stick 後は viewport 固定」と状態が
+    // スクロール位置そのものに依存するため、fixed 用の（毎フレーム rect を読み直さない）
+    // キャッシュ経路には乗せられない。isFixed は立てず、呼び出し側で毎フレーム
+    // updatePositionInfo() を強制させるためだけに isSticky を独立して持つ。
+    this.positionInfo.isFixed = position === "fixed";
+    this._isSticky = position === "sticky";
   }
 
   calculateWebGLPosition(
@@ -77,6 +83,10 @@ export class DomPositionCalculator {
 
   get isFixed(): boolean {
     return this.positionInfo.isFixed;
+  }
+
+  get isSticky(): boolean {
+    return this._isSticky;
   }
 
   get pageTop(): number {

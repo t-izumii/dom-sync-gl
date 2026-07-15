@@ -6,9 +6,7 @@ import type { BaseEffect } from './effects/BaseEffect';
 
 export class EffectManager {
   private readonly renderer: THREE.WebGLRenderer;
-  private readonly showGUI: boolean;
-  private readonly ensureGUI: () => Promise<GUI>;
-  private readonly isDestroyed: () => boolean;
+  private readonly gui: GUI | null;
 
   private effects: BaseEffect[] = [];
   private postEffect: EffectLike | null = null;
@@ -16,14 +14,10 @@ export class EffectManager {
 
   constructor(opts: {
     renderer: THREE.WebGLRenderer;
-    showGUI: boolean;
-    ensureGUI: () => Promise<GUI>;
-    isDestroyed: () => boolean;
+    gui: GUI | null;
   }) {
     this.renderer = opts.renderer;
-    this.showGUI = opts.showGUI;
-    this.ensureGUI = opts.ensureGUI;
-    this.isDestroyed = opts.isDestroyed;
+    this.gui = opts.gui;
   }
 
   hasEffects(): boolean {
@@ -35,6 +29,9 @@ export class EffectManager {
         '[DomSyncGL] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
         '内部 EffectComposer で上書きします。カスタム postEffect は手動で dispose してください。';
 
+      // DEV: 誤用に開発中すぐ気付けるよう即 throw（fail-fast）。
+      // production: アプリを落とさず warn ログのみに留め、後続のフォールバック処理
+      // （内部 EffectComposer で上書き）を続行する。
       if (import.meta.env?.DEV) throw new Error(msg);
       console.warn(msg);
     }
@@ -47,19 +44,9 @@ export class EffectManager {
     effect._register(this.internalComposer);
     effect.resize?.(width, height);
 
-    if (this.showGUI && effect.setupGUI) {
-      this.ensureGUI()
-        .then((gui) => {
-          if (this.isDestroyed()) return;
-          effect.setupGUI!(gui);
-        })
-        .catch((err) => {
-          console.warn(
-            '[DomSyncGL] showGUI: true ですが lil-gui が読み込めませんでした。' +
-              'npm install lil-gui してください。',
-            err,
-          );
-        });
+    if (this.gui && effect.setupGUI) {
+      const folder = effect.setupGUI(this.gui);
+      if (folder) effect._attachGUI(folder);
     }
     this.effects.push(effect);
     return effect;
@@ -71,6 +58,8 @@ export class EffectManager {
         '[DomSyncGL] setPostEffect() が呼ばれましたが、addEffect() で追加した effect が既に存在します。' +
         '内部 EffectComposer を破棄してカスタム postEffect に差し替えます。' +
         '事前に clearEffects() を呼ぶことを推奨します。';
+      // DEV: fail-fast で即 throw。production: warn のみでフォールバック
+      // （clearEffects() して差し替え）を続行する。上の addEffect() と同じ方針。
       if (import.meta.env?.DEV) throw new Error(msg);
       console.warn(msg);
 
@@ -87,13 +76,13 @@ export class EffectManager {
     if (pass && this.internalComposer) {
       this.internalComposer.removeEffect(pass);
     }
-    effect.dispose?.();
+    effect._dispose();
     return true;
   }
 
   clearEffects(): void {
     for (const effect of this.effects) {
-      effect.dispose?.();
+      effect._dispose();
     }
     this.effects = [];
     this.postEffect?.dispose();
@@ -128,7 +117,7 @@ export class EffectManager {
 
   dispose(): void {
     for (const effect of this.effects) {
-      effect.dispose?.();
+      effect._dispose();
     }
     this.effects = [];
     this.postEffect?.dispose();

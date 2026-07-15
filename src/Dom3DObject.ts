@@ -61,7 +61,9 @@ export class Dom3DObject {
 
   public _tickRead(scrollX: number, scrollY: number): void {
     if (!this.model || !this.isVisible || !this.positionCalculator) return;
-    if (this.updateRectEveryFrame) {
+    // position: sticky は stick 前後で挙動が変わり、rect のキャッシュが効かないため
+    // updateRectEveryFrame の指定に関わらず毎フレーム読み直す。
+    if (this.updateRectEveryFrame || this.positionCalculator.isSticky) {
       this.positionCalculator.updatePositionInfo(scrollX, scrollY);
     }
   }

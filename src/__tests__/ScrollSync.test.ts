@@ -178,6 +178,22 @@ describe('ScrollSync', () => {
     expect(s2).toBeLessThan(s1);
   });
 
+  it('viewportHeight=0 のとき strength が NaN 汚染されない（0除算の回帰）', () => {
+    const sync = new ScrollSync(container, {
+      trackStrength: true,
+      strengthDecay: 10,
+    });
+    // レイアウト崩壊等で viewportHeight が 0 になった状態を模す
+    sync.updateSize(1000, 0);
+
+    mockNow = 16;
+    sync.update(0, 100);
+
+    // 0 除算で NaN になっていれば Number.isFinite は false になる
+    expect(Number.isFinite(sync.strength)).toBe(true);
+    expect(sync.strength).toBe(0);
+  });
+
   it('strength: trackStrength=false なら常に 0', () => {
     const sync = new ScrollSync(container, { trackStrength: false });
     mockNow = 16;

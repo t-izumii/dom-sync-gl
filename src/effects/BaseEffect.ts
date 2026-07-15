@@ -9,6 +9,9 @@ export interface BaseEffectConfig {
 
 export abstract class BaseEffect {
   protected pass: EffectPass | null = null;
+  private target: EffectTarget | null = null;
+  private _guiFolder: GUI | null = null;
+  private _disposed = false;
 
   private _enabled = true;
   get enabled(): boolean {
@@ -22,17 +25,29 @@ export abstract class BaseEffect {
   protected abstract getConfig(): BaseEffectConfig;
 
   _register(target: EffectTarget): void {
-    if (this.pass !== null && import.meta.env?.DEV) {
-      console.warn(
-        "[BaseEffect] 同じ effect インスタンスを複数の target に register しています。" +
-        "`webgl.addEffect()` と `domPlane.addEffect()` を併用する場合は別インスタンスを作ってください。"
-      );
-    }
+    // getConfig() はサブクラス実装で例外を投げうる。先に呼んでおくことで、
+    // 例外時に旧 pass/target を破棄済みの不整合な状態にしないようにする。
     const config = this.getConfig();
+
+    // 二重 register は致命的ではない（下で旧 pass を古い target から dispose した上で
+    // 新しい pass に差し替えるため動作は継続する）ため throw はしない。DEV でのみ
+    // 警告を出し、production のコンソールを汚さない。
+    if (this.pass !== null) {
+      if (import.meta.env?.DEV) {
+        console.warn(
+          "[BaseEffect] 同じ effect インスタンスを複数の target に register しています。" +
+          "`webgl.addEffect()` と `domPlane.addEffect()` を併用する場合は別インスタンスを作ってください。"
+        );
+      }
+      // 古い pass を古い target から確実に取り除いて dispose する
+      // （放置すると EffectPass/ShaderMaterial が回収不能になる）。
+      this.target?.removeEffect(this.pass);
+    }
     this.pass = target.addEffect({
       fragmentShader: config.fragmentShader,
       uniforms: config.uniforms,
     });
+    this.target = target;
     this.pass.enabled = this._enabled;
   }
 
@@ -44,7 +59,31 @@ export abstract class BaseEffect {
 
   setupGUI?(gui: GUI): GUI | void;
 
+  /**
+   * setupGUI() が返したフォルダを登録する。呼び出し元は保持しない（`_dispose()` が破棄する）。
+   * 既に _dispose() 済みなら（FeedbackBuffer._attachGUI() と同様）即座に破棄する。
+   */
+  _attachGUI(folder: GUI): void {
+    if (this._disposed) {
+      folder.destroy();
+      return;
+    }
+    this._guiFolder = folder;
+  }
+
   dispose?(): void;
+
+  /**
+   * `EffectManager` / `DomPlane` からの唯一の破棄経路。
+   * setupGUI() で作られた GUI フォルダを破棄した上で、サブクラスの dispose() を呼ぶ。
+   */
+  _dispose(): void {
+    if (this._disposed) return;
+    this._disposed = true;
+    this._guiFolder?.destroy();
+    this._guiFolder = null;
+    this.dispose?.();
+  }
 
   setUniform(key: string, value: unknown): void {
     this.pass?.setUniform(key, value);

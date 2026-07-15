@@ -54,7 +54,7 @@ export class DomPlane {
   private feedbacks: { buffer: FeedbackBuffer; outputUniform: string }[] = [];
   private readonly _feedbackMouseUV: THREE.Vector2 = new THREE.Vector2();
   private readonly _effectMouseUV: THREE.Vector2 = new THREE.Vector2();
-  private guiProvider: (() => Promise<GUI>) | null = null;
+  private gui: GUI | null = null;
   private ownsTexture: boolean = false;
   private crossOrigin: string | undefined;
   private readonly scroll: { x: number; y: number };
@@ -140,7 +140,9 @@ export class DomPlane {
 
   public _tickRead(scrollX: number, scrollY: number): void {
     if (!this.isVisible || !this.positionCalculator) return;
-    if (this.updateRectEveryFrame) {
+    // position: sticky は stick 前後で挙動が変わり、rect のキャッシュが効かないため
+    // updateRectEveryFrame の指定に関わらず毎フレーム読み直す。
+    if (this.updateRectEveryFrame || this.positionCalculator.isSticky) {
       this.positionCalculator.updatePositionInfo(scrollX, scrollY);
     }
   }
@@ -163,7 +165,7 @@ export class DomPlane {
     this.resize();
   }
 
-  private loadTexture() {
+  protected loadTexture() {
     const texturePath = this.element?.getAttribute("data-texture");
 
     if (texturePath) {
@@ -217,6 +219,11 @@ export class DomPlane {
       scrollY,
     );
     this.mesh.position.set(x, y, 0);
+    // post effect 有効時、PlaneComposer が mesh を mainScene から外す（parent === null）ため、
+    // レンダーループでの matrixWorld 自動更新が走らなくなる。PointerController のレイキャストは
+    // mesh.matrixWorld を参照するので、ここで明示的に更新して常に最新の位置を反映させる。
+    // scene 所属時（post effect 無し）でも無害（レンダー時に再計算されるだけ）。
+    this.mesh.updateMatrixWorld();
   }
 
   public setCanvasRect(canvasRect: DOMRect) {
@@ -239,6 +246,9 @@ export class DomPlane {
     } else {
       this.updateSize();
       this.mesh.position.set(0, 0, 0);
+      // setPosition() を通らない経路なので、ここでも matrixWorld を更新しておく
+      // （post effect 有効時に mesh が scene から外れていても位置/スケールが反映されるように）。
+      this.mesh.updateMatrixWorld();
     }
 
     if (this.planeComposer) {
@@ -352,19 +362,9 @@ export class DomPlane {
     effect._register(composer);
     const rect = this.positionCalculator?.rect ?? this.canvasRect;
     effect.resize?.(rect.width, rect.height);
-    if (this.guiProvider && effect.setupGUI) {
-      this.guiProvider()
-        .then((gui) => {
-          if (this.destroyed) return;
-          effect.setupGUI!(gui);
-        })
-        .catch((err) => {
-          console.warn(
-            '[DomPlane] effect.setupGUI に渡す lil-gui の読み込みに失敗しました。' +
-            'npm install lil-gui してください。',
-            err,
-          );
-        });
+    if (this.gui && effect.setupGUI) {
+      const folder = effect.setupGUI(this.gui);
+      if (folder) effect._attachGUI(folder);
     }
     this.effects.push(effect);
     return effect;
@@ -377,20 +377,9 @@ export class DomPlane {
     }
     this.material.uniforms[options.outputUniform].value = buffer.texture;
     this.feedbacks.push({ buffer, outputUniform: options.outputUniform });
-    if (this.guiProvider && options.setupGUI) {
-      this.guiProvider()
-        .then((gui) => {
-          if (this.destroyed) return;
-          const folder = options.setupGUI!(gui, buffer);
-          if (folder) buffer._attachGUI(folder);
-        })
-        .catch((err) => {
-          console.warn(
-            '[DomPlane] feedback の setupGUI に渡す lil-gui の読み込みに失敗しました。' +
-            'npm install lil-gui してください。',
-            err,
-          );
-        });
+    if (this.gui && options.setupGUI) {
+      const folder = options.setupGUI(this.gui, buffer);
+      if (folder) buffer._attachGUI(folder);
     }
     return buffer;
   }
@@ -435,12 +424,12 @@ export class DomPlane {
     if (pass && this.planeComposer) {
       this.planeComposer.removeEffect(pass);
     }
-    effect.dispose?.();
+    effect._dispose();
     return true;
   }
 
-  public _setGuiProvider(provider: (() => Promise<GUI>) | null): void {
-    this.guiProvider = provider;
+  public _setGui(gui: GUI | null): void {
+    this.gui = gui;
   }
 
   public destroy() {
@@ -449,7 +438,7 @@ export class DomPlane {
     this.observer?.disconnect();
 
     for (const effect of this.effects) {
-      effect.dispose?.();
+      effect._dispose();
     }
     this.effects = [];
 

@@ -97,6 +97,78 @@ describe('DomPositionCalculator', () => {
     expect(calc.isFixed).toBe(true);
   });
 
+  describe('position: sticky', () => {
+    it('refreshPositionType は sticky を isFixed とみなさない（回帰）', () => {
+      // Given: position: sticky の要素
+      const el = makeElement({ top: 0, left: 0, width: 10, height: 10 });
+      vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+        position: 'sticky',
+      } as CSSStyleDeclaration);
+      const calc = new DomPositionCalculator(el, new DOMRect(0, 0, 1000, 1000), 0, 0);
+
+      // When: 型判定を更新する
+      calc.refreshPositionType();
+
+      // Then: fixed 用の（スクロールを無視する）経路には乗らず、isSticky で個別に判別できる
+      expect(calc.isFixed).toBe(false);
+      expect(calc.isSticky).toBe(true);
+    });
+
+    it('sticky（stick する前 = 通常フロー）は isFixed=false と同じ式で scrollY を考慮する', () => {
+      // Given: stick する前の sticky 要素（rect は通常要素と同様、スクロールに追従して動く）
+      const el = makeElement({ top: 100, left: 100, width: 100, height: 100 });
+      vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+        position: 'sticky',
+      } as CSSStyleDeclaration);
+      const canvasRect = new DOMRect(0, 0, 1000, 1000);
+      const calc = new DomPositionCalculator(el, canvasRect, 0, 0);
+      calc.refreshPositionType();
+      calc.updatePositionInfo(0, 0);
+
+      // When: 追加スクロール分だけ rect.top が同じ量だけ減る（通常フロー中の実際の挙動）
+      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({
+        top: -100,
+        left: 100,
+        right: 200,
+        bottom: 0,
+        width: 100,
+        height: 100,
+        x: 100,
+        y: -100,
+        toJSON: () => ({}),
+      } as DOMRect);
+      calc.updatePositionInfo(0, 200);
+      const pos = calc.calculateWebGLPosition(0, 200);
+
+      // Then: fixed 用の式（scrollY 無視）ではなく通常要素と同じ式（scrollY 加算）で計算される。
+      // rect.top が scrollY と同量だけ減っている（= 通常フロー中の実際の挙動）ため、
+      // pageTop は不変（100）になり、既存の「isFixed=false, scrollY=200」テスト
+      // （57行目）と同じ入力から同じ結果 550 になる。
+      expect(pos.y).toBe(550);
+    });
+
+    it('sticky（stick 中 = viewport 固定）は rect が変化しなくても画面上の位置が不変', () => {
+      // Given: stick して viewport に固定された sticky 要素（rect.top はスクロールしても変化しない）
+      const el = makeElement({ top: 20, left: 100, width: 100, height: 100 });
+      vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+        position: 'sticky',
+      } as CSSStyleDeclaration);
+      const canvasRect = new DOMRect(0, 0, 1000, 1000);
+      const calc = new DomPositionCalculator(el, canvasRect, 0, 0);
+      calc.refreshPositionType();
+      calc.updatePositionInfo(0, 0);
+      const before = { ...calc.calculateWebGLPosition(0, 0) };
+
+      // When: スクロールが進んでも rect は同じ（stick 中なので viewport 上動かない）
+      calc.updatePositionInfo(0, 300);
+      const after = calc.calculateWebGLPosition(0, 300);
+
+      // Then: 毎フレーム rect を読み直す限り、stick 中は画面上の位置が変わらない
+      expect(after.y).toBeCloseTo(before.y);
+      expect(after.x).toBeCloseTo(before.x);
+    });
+  });
+
   it('setCanvasRect で canvasRect を差し替えると結果が変わる', () => {
     const el = makeElement({ top: 0, left: 0, width: 100, height: 100 });
     const calc = new DomPositionCalculator(el, new DOMRect(0, 0, 1000, 1000), 0, 0);
