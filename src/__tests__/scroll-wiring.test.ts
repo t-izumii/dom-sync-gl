@@ -54,7 +54,6 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
 }));
 
 import { DomSyncGL } from '../Core';
-import { RafScroll } from '../RafScroll';
 import type { DomPlane } from '../DomPlane';
 import type { Dom3DObject } from '../Dom3DObject';
 
@@ -203,79 +202,6 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
     expect(plane.removeFeedback(fb)).toBe(true);
     expect(plane.material.uniforms.uTrailTex.value).toBeNull();
 
-    app.destroy();
-  });
-});
-
-describe('Core ⇄ RafScroll の統合（rafScroll オプション）', () => {
-  let container: HTMLElement;
-
-  beforeEach(() => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(
-      new DOMRect(0, 0, 800, 600)
-    );
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
-    // Lenis（rafScroll の実体）が Dimensions で ResizeObserver を要求するので最小スタブを差す。
-    vi.stubGlobal(
-      'ResizeObserver',
-      class {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 0);
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    document.body.innerHTML = '';
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
-  });
-
-  it('rafScroll 未指定なら getRafScroll() は null', () => {
-    const app = new DomSyncGL(container);
-    expect(app.getRafScroll()).toBeNull();
-    app.destroy();
-  });
-
-  it('rafScroll オプションで管理下の RafScroll を構築し getRafScroll() で取得できる', () => {
-    const app = new DomSyncGL(container, { rafScroll: true });
-    expect(app.getRafScroll()).toBeInstanceOf(RafScroll);
-    app.destroy();
-  });
-
-  it('animate ループ内で RafScroll.advance() を refreshScrollCache() より前に駆動する', () => {
-    // Given: 管理下 RafScroll を持つ app
-    const app = new DomSyncGL(container, { rafScroll: true });
-    const rs = app.getRafScroll();
-    expect(rs).not.toBeNull();
-
-    // When: advance / refreshScrollCache の呼び出し順を記録して 1 フレーム回す
-    const order: string[] = [];
-    vi.spyOn(rs!, 'advance').mockImplementation(() => {
-      order.push('advance');
-    });
-    vi.spyOn(
-      app as unknown as { refreshScrollCache: () => void },
-      'refreshScrollCache'
-    ).mockImplementation(() => {
-      order.push('refresh');
-    });
-    (app as unknown as { animate: () => void }).animate();
-
-    // Then: scrollTo(advance) → scroll 読み取り(refresh) の順（= 背景がズレない不変条件）
-    expect(order).toEqual(['advance', 'refresh']);
     app.destroy();
   });
 });

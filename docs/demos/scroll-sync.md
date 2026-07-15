@@ -82,15 +82,24 @@ transform に流して viewport に追従させる。iOS Safari の rubber-band 
 pull-to-refresh も殺さない（詳細は
 [Guide: Scroll Sync](/guide/scroll-sync)）。
 
-### 3. RafScroll を併用するともっと揃う
+### 3. Lenis と 1 本の rAF にまとめるともっと揃う
 
-wheel / touch を rAF tick に集約して `window.scrollY` の更新を 1 frame に 1 回に
-する。JS が読む値と paint された位置がフレーム内で揃うので、plane と DOM の
-1 frame ズレがほぼ消える:
+スムーズスクロールを入れる場合、Lenis と Core の自前 rAF を両方止めて 1 本のループで
+順に駆動する。JS が読む値と paint された位置がフレーム内で揃うので、plane と DOM の
+1 frame ズレが消える:
 
 ```ts
-import { RafScroll } from 'dom-sync-gl';
+import Lenis from 'lenis';
 
-// スムーズスクロールの実体は Lenis。Lenis のオプションをそのまま渡せる。
-new RafScroll({ lerp: 0.1 });
+const lenis = new Lenis({ autoRaf: false });
+const app = new DomSyncGL('#stage', { scrollSync: true, autoRaf: false });
+
+const raf = (time: number) => {
+  lenis.raf(time);   // 先にスクロールを確定させ、
+  app.tick(time);    // 確定後の値で WebGL を配置する
+  requestAnimationFrame(raf);
+};
+requestAnimationFrame(raf);
 ```
+
+詳細は [Scroll Sync ガイド](/guide/scroll-sync#スムーズスクロール-lenis) を参照。

@@ -23,15 +23,35 @@ new DomSyncGL(selector: string | HTMLElement, options?: DomSyncGLOptions)
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
-| `rafScroll` | `boolean \| RafScrollOptions` | `false` | RafScroll を Core 管理下で有効化（単一 rAF に統合し生成順依存を排除）。詳細は [Scroll](/api/scroll) |
-| `enableMouseTracking` | `boolean` | `true` | マウス座標と hover 判定を更新 |
+| `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化。詳細は [Scroll](/api/scroll) |
+| `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` にすると自前の rAF から [`tick()`](#tick-time) で駆動する |
+| `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限（モバイルは `1.5` 推奨） |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
-| `showStats` | `boolean` | `false` | stats.js の FPS パネルを表示 |
-| `statsParent` | `HTMLElement` | `document.body` | パネルの append 先 |
-| `showGUI` | `boolean` | `false` | `true` のとき `setupGUI()` を実装したエフェクトに lil-gui を渡す（opt-in。lil-gui は optional peer） |
-| `guiTitle` | `string` | `'Effects'` | lil-gui ルートタイトル |
+| `stats` | `Stats \| null` | `null` | 呼び出し元が生成した stats.js インスタンス。渡すと毎フレーム `begin()`/`end()` を呼ぶ |
+| `gui` | `GUI \| null` | `null` | 呼び出し元が生成した lil-gui インスタンス。渡すと `setupGUI()` 系のフックが有効になる |
+
+::: tip stats.js / lil-gui は「渡す」もの
+以前の `showStats` / `showGUI` / `statsParent` / `guiTitle` は廃止された。生成・DOM への挿入・
+破棄はすべて呼び出し元の責務で、ライブラリはインスタンスを受け取って使うだけ。本番バンドルに
+含めたくない場合は、動的 import で開発時だけ生成すればよい。
+
+```ts
+let stats: Stats | undefined;
+let gui: GUI | undefined;
+if (import.meta.env.DEV) {
+  stats = new (await import('stats.js')).default();
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+  gui = new (await import('lil-gui')).default({ title: 'Effects' });
+}
+
+const app = new DomSyncGL('#canvas', { stats, gui });
+```
+:::
+
+`enableMouseTracking` は `enablePointerTracking` の別名として残っているが、新しいコードでは
+後者を使う。
 
 ## Methods
 
@@ -48,6 +68,39 @@ const plane = app.createPlane('.card', {
 });
 app.removePlane(plane); // 1 つだけ取り外して destroy
 ```
+
+### `createTextPlane(selector, options?)`
+
+DOM 要素のテキストを canvas にラスタライズして、その要素にロックした plane に貼る。
+返り値は [`DomTextPlane`](/api/dom-text-plane)（`DomPlane` のサブクラス）。
+
+```ts
+const textPlane = app.createTextPlane('.headline', {
+  updateRectEveryFrame: true,
+});
+```
+
+`createPlane()` と違い `selector` に `null` は渡せない（元になる DOM 要素が必須）。
+取り外しは `removePlane()` を使う。
+
+### `tick(time?)`
+
+1 フレーム分の更新・描画を実行する。`autoRaf: false` で初期化したときに、アプリ側の rAF
+ループから呼ぶ。Lenis と併用する場合は `lenis.raf(time)` の**後**に呼ぶ。
+
+```ts
+const app = new DomSyncGL('#canvas', { autoRaf: false });
+
+const raf = (time: number) => {
+  lenis.raf(time);
+  app.tick(time);
+  requestAnimationFrame(raf);
+};
+requestAnimationFrame(raf);
+```
+
+`time` は Lenis との API 対称性のために受け取るだけで、内部では使っていない（経過時間は
+内部の `THREE.Clock` から取る）。省略しても動く。
 
 ### `create3DObject(selector, options)` / `remove3DObject(obj)`
 
@@ -66,7 +119,7 @@ app.remove3DObject(obj);
 | `modelPath` | `string` | — | GLTF へのパス |
 | `scale` | `number` | `1` | フィット後に掛けるスケール |
 | `offset` | `Offset3D` | `{x:0,y:0,z:0}` | フィット後のオフセット |
-| `fitMode` | `'maxSide' \| 'contain' \| 'cover'` | `'maxSide'` | bbox を DOM サイズに合わせる方法 |
+| `fitMode` | `'maxSide' \| 'contain'` | `'maxSide'` | bbox を DOM サイズに合わせる方法 |
 | `updateRectEveryFrame` | `boolean` | `false` | 毎フレ DOM rect を取り直す |
 
 ### `addEffect(effect)` / `removeEffect(effect)` / `clearEffects()`
@@ -96,9 +149,10 @@ const off = app.addUpdateCallback(() => {
 off(); // unsubscribe
 ```
 
-### `setMouseTrackingEnabled(enabled)`
+### `setPointerTrackingEnabled(enabled)`
 
-mousemove listener の動的 ON/OFF。重い UI を開いている間など、hover 判定を止めたいときに。
+pointer listener の動的 ON/OFF。重い UI を開いている間など、hover 判定を止めたいときに。
+`setMouseTrackingEnabled()` は別名として残っている。
 
 ### Getters
 
@@ -113,11 +167,11 @@ mousemove listener の動的 ON/OFF。重い UI を開いている間など、ho
 | `getScroll()` | `Readonly<{ x: number; y: number }>` | Core が rAF tick で確定した現フレのスクロール値キャッシュ（live 参照。保持時は clone） |
 | `getPrevMouse()` | `THREE.Vector2` | 前フレの UV |
 | `getMouseDelta()` | `THREE.Vector2` | `current - prev`（毎フレ scratch なので保持したいときは clone） |
+| `isPointerActive()` | `boolean` | ポインタが canvas 内にあるか |
+| `getPointerType()` | `'mouse' \| 'touch' \| 'pen' \| 'none'` | 現在のポインタ種別 |
 | `getControls()` | `OrbitControls \| null` | `enableOrbitControls()` 後のインスタンス |
-| `getScrollSync()` | `ScrollSync \| null` | `scrollSync: true` で構築した場合の内部インスタンス |
-| `getRafScroll()` | `RafScroll \| null` | `rafScroll` オプションで構築した管理下インスタンス |
-| `getGUI()` | `GUI \| null` | lil-gui のルート（load 完了前は null） |
-| `getGUIAsync()` | `Promise<GUI \| null>` | lil-gui を必要に応じて load してから返す |
+| `getScrollSync()` | `ScrollSync \| null` | `scrollSync` を有効にした場合の内部インスタンス |
+| `getGUI()` | `GUI \| null` | `gui` オプションで渡した lil-gui インスタンス |
 
 ### `enableOrbitControls()`
 

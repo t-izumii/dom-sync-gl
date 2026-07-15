@@ -1,47 +1,18 @@
 import type Stats from 'stats.js';
 import type GUI from 'lil-gui';
 
+/**
+ * stats.js / lil-gui のインスタンスは呼び出し元が生成して渡す。
+ * このクラスは毎フレームの begin()/end() 呼び出しと GUI の受け渡しのみを担い、
+ * インスタンスの生成・DOM 挿入・破棄は一切行わない（呼び出し元の所有物のため）。
+ */
 export class DevTools {
-  private readonly showStats: boolean;
-  private readonly statsParent: HTMLElement;
-  private readonly showGUI: boolean;
-  private readonly guiTitle: string;
-  private readonly isDestroyed: () => boolean;
+  private readonly stats: Stats | null;
+  private readonly gui: GUI | null;
 
-  private stats: Stats | null = null;
-  private gui: GUI | null = null;
-  private guiLoadPromise: Promise<GUI> | null = null;
-
-  constructor(opts: {
-    showStats: boolean;
-    statsParent: HTMLElement;
-    showGUI: boolean;
-    guiTitle: string;
-    isDestroyed: () => boolean;
-  }) {
-    this.showStats = opts.showStats;
-    this.statsParent = opts.statsParent;
-    this.showGUI = opts.showGUI;
-    this.guiTitle = opts.guiTitle;
-    this.isDestroyed = opts.isDestroyed;
-  }
-
-  loadStats(): void {
-    if (!this.showStats) return;
-    void import('stats.js')
-      .then(({ default: StatsCtor }) => {
-        if (this.isDestroyed()) return;
-        this.stats = new StatsCtor();
-        this.stats.showPanel(0);
-        this.statsParent.appendChild(this.stats.dom);
-      })
-      .catch((err) => {
-        console.warn(
-          '[DomSyncGL] showStats: true ですが stats.js が読み込めませんでした。' +
-            'npm install stats.js してください。',
-          err,
-        );
-      });
+  constructor(opts: { stats?: Stats | null; gui?: GUI | null }) {
+    this.stats = opts.stats ?? null;
+    this.gui = opts.gui ?? null;
   }
 
   beginStats(): void {
@@ -52,37 +23,7 @@ export class DevTools {
     this.stats?.end();
   }
 
-  ensureGUI(): Promise<GUI> {
-    if (this.gui) return Promise.resolve(this.gui);
-    if (!this.guiLoadPromise) {
-      this.guiLoadPromise = import('lil-gui').then(({ default: GuiCtor }) => {
-        if (!this.gui) {
-          this.gui = new GuiCtor({ title: this.guiTitle });
-        }
-        return this.gui;
-      });
-    }
-    return this.guiLoadPromise;
-  }
-
   getGUI(): GUI | null {
-    if (!this.showGUI) return null;
     return this.gui;
-  }
-
-  getGUIAsync(): Promise<GUI | null> {
-    if (!this.showGUI) return Promise.resolve(null);
-    return this.ensureGUI();
-  }
-
-  dispose(): void {
-    if (this.stats) {
-      this.stats.dom.remove();
-      this.stats = null;
-    }
-    if (this.gui) {
-      this.gui.destroy();
-      this.gui = null;
-    }
   }
 }

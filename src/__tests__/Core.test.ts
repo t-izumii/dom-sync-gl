@@ -37,6 +37,14 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', () => ({
 }));
 
 import { DomSyncGL } from '../Core';
+import type GUI from 'lil-gui';
+import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
+
+class TestEffect extends BaseEffect {
+  protected getConfig(): BaseEffectConfig {
+    return { fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' };
+  }
+}
 
 describe('DomSyncGL', () => {
   let container: HTMLElement;
@@ -239,5 +247,70 @@ describe('DomSyncGL', () => {
     const app = new DomSyncGL(container);
     app.destroy();
     expect(() => app.destroy()).not.toThrow();
+  });
+
+  describe('createTextPlane の配線', () => {
+    beforeEach(() => {
+      // createTextPlane は要素必須のため DomPlane 内部で IntersectionObserver を生成する。
+      // 既存の createPlane(null) テストは使わない経路なので、このブロックだけスタブする。
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(_callback: IntersectionObserverCallback) {}
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        }
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function makeTextEl(): HTMLElement {
+      const el = document.createElement('div');
+      el.textContent = 'hello';
+      el.className = 'text-target';
+      document.body.appendChild(el);
+      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 200, 100)
+      );
+      return el;
+    }
+
+    it('removePlane(textPlane) 後に domPlanes が空になる', () => {
+      const app = new DomSyncGL(container);
+      makeTextEl();
+      const plane = app.createTextPlane('.text-target');
+
+      expect(app.domPlanes).toContain(plane);
+
+      app.removePlane(plane);
+
+      expect(app.domPlanes.length).toBe(0);
+      app.destroy();
+    });
+
+    it('gui オプションあり → _setGui 経由で addEffect の setupGUI が呼ばれる', () => {
+      const gui = { destroy: vi.fn() } as unknown as GUI;
+      const app = new DomSyncGL(container, { gui });
+      makeTextEl();
+      const plane = app.createTextPlane('.text-target');
+      const effect = new TestEffect();
+      effect.setupGUI = vi.fn();
+
+      plane.addEffect(effect);
+
+      expect(effect.setupGUI).toHaveBeenCalledWith(gui);
+      app.destroy();
+    });
+
+    it('destroy 済みインスタンスで createTextPlane → throw', () => {
+      const app = new DomSyncGL(container);
+      makeTextEl();
+      app.destroy();
+      expect(() => app.createTextPlane('.text-target')).toThrow(/destroy 済み/);
+    });
   });
 });

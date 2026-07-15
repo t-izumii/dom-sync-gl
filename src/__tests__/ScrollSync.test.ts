@@ -178,6 +178,22 @@ describe('ScrollSync', () => {
     expect(s2).toBeLessThan(s1);
   });
 
+  it('viewportHeight=0 のとき strength が NaN 汚染されない（0除算の回帰）', () => {
+    const sync = new ScrollSync(container, {
+      trackStrength: true,
+      strengthDecay: 10,
+    });
+    // レイアウト崩壊等で viewportHeight が 0 になった状態を模す
+    sync.updateSize(1000, 0);
+
+    mockNow = 16;
+    sync.update(0, 100);
+
+    // 0 除算で NaN になっていれば Number.isFinite は false になる
+    expect(Number.isFinite(sync.strength)).toBe(true);
+    expect(sync.strength).toBe(0);
+  });
+
   it('strength: trackStrength=false なら常に 0', () => {
     const sync = new ScrollSync(container, { trackStrength: false });
     mockNow = 16;
@@ -225,5 +241,158 @@ describe('ScrollSync', () => {
     expect(container.style.position).toBe('relative');
     expect(container.style.pointerEvents).toBe('auto');
     expect(container.style.overflow).toBe('auto');
+  });
+
+  describe('overscan', () => {
+    // jsdom は matchMedia を実装していないので spyOn できない（= 実装側の
+    // `typeof window.matchMedia === 'function'` ガードが効いて 0 になる）。
+    // ここでは実ブラウザを模して matchMedia 自体を生やす。
+    // (pointer: coarse) にマッチするかだけ切り替え、他のクエリは常に false。
+    const mockPointer = (coarse: boolean) => {
+      Object.defineProperty(window, 'matchMedia', {
+        value: (query: string) =>
+          ({
+            matches: coarse && query === '(pointer: coarse)',
+            media: query,
+          }) as MediaQueryList,
+        writable: true,
+        configurable: true,
+      });
+    };
+
+    afterEach(() => {
+      // 他の describe に matchMedia が漏れないよう未実装の状態へ戻す。
+      Reflect.deleteProperty(window, 'matchMedia');
+    });
+
+    it('matchMedia が無い環境 (SSR / 旧ブラウザ) では auto でも 0 に落ちる', () => {
+      expect(window.matchMedia).toBeUndefined();
+      new ScrollSync(container, { overscan: 'auto' });
+      expect(container.style.top).toBe('0px');
+      expect(container.style.height).toBe('800px');
+    });
+
+    it('既定 (未指定) は auto 扱いで、coarse pointer では viewportHeight * 0.25 を上下に確保する', () => {
+      mockPointer(true);
+      new ScrollSync(container);
+      // vh=800 → overscan=200。上に -200 ずらし、高さは 800 + 200*2。
+      expect(container.style.top).toBe('-200px');
+      expect(container.style.height).toBe('1200px');
+    });
+
+    it('既定 (未指定) でも fine pointer では 0 になり余白のオーバーヘッドが無い', () => {
+      mockPointer(false);
+      new ScrollSync(container);
+      expect(container.style.top).toBe('0px');
+      expect(container.style.height).toBe('800px');
+    });
+
+    it("overscan: 'auto' を明示しても既定と同じ挙動になる", () => {
+      mockPointer(true);
+      new ScrollSync(container, { overscan: 'auto' });
+      expect(container.style.top).toBe('-200px');
+      expect(container.style.height).toBe('1200px');
+    });
+
+    it('overscan: false で coarse pointer でも余白なしにオプトアウトできる', () => {
+      mockPointer(true);
+      new ScrollSync(container, { overscan: false });
+      expect(container.style.top).toBe('0px');
+      expect(container.style.height).toBe('800px');
+    });
+
+    it('overscan に数値を渡すと pointer の種別に関係なくその px を使う', () => {
+      mockPointer(false);
+      new ScrollSync(container, { overscan: 50 });
+      expect(container.style.top).toBe('-50px');
+      expect(container.style.height).toBe('900px');
+    });
+
+    it('logicalRect が overscan ぶん広がる', () => {
+      mockPointer(true);
+      const sync = new ScrollSync(container);
+      expect(sync.logicalRect.y).toBe(-200);
+      expect(sync.logicalRect.height).toBe(1200);
+    });
+  });
+
+  describe("attach: 'dom'", () => {
+    // jsdom は getBoundingClientRect が 0 を返すので、container の box を mock する。
+    const mockBCR = (rect: DOMRect) => {
+      vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(rect);
+    };
+
+    it("'dom' モードでは container の position を上書きしない", () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      container.style.position = 'fixed';
+
+      new ScrollSync(container, { attach: 'dom' });
+
+      // container の CSS 配置をそのまま尊重する（absolute に上書きしない）。
+      expect(container.style.position).toBe('fixed');
+      // position/サイズ/transform の inline 上書きも行わない。
+      expect(container.style.width).toBe('');
+      expect(container.style.height).toBe('');
+      expect(container.style.top).toBe('');
+      expect(container.style.transform).toBe('');
+    });
+
+    it('logicalRect が container の getBoundingClientRect を反映する', () => {
+      mockBCR(new DOMRect(10, 20, 600, 400));
+
+      const sync = new ScrollSync(container, { attach: 'dom' });
+
+      expect(sync.logicalRect.left).toBe(10);
+      expect(sync.logicalRect.top).toBe(20);
+      expect(sync.logicalRect.width).toBe(600);
+      expect(sync.logicalRect.height).toBe(400);
+    });
+
+    it('update() は dom モードで transform を書き込まない (no-op)', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+
+      const sync = new ScrollSync(container, { attach: 'dom' });
+      sync.update(0, 400);
+
+      expect(container.style.transform).toBe('');
+    });
+
+    it('overscan は dom モードで無視される', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      Object.defineProperty(window, 'matchMedia', {
+        value: (query: string) =>
+          ({
+            matches: query === '(pointer: coarse)',
+            media: query,
+          }) as MediaQueryList,
+        writable: true,
+        configurable: true,
+      });
+
+      const sync = new ScrollSync(container, { attach: 'dom', overscan: 'auto' });
+
+      // overscan を確保しない: top/height の上書きは無く、logicalRect も BCR そのまま。
+      expect(container.style.top).toBe('');
+      expect(container.style.height).toBe('');
+      expect(sync.logicalRect.top).toBe(0);
+      expect(sync.logicalRect.height).toBe(400);
+
+      Reflect.deleteProperty(window, 'matchMedia');
+    });
+
+    it('destroy() が dom モードで container のスタイルを壊さない', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      container.style.position = 'fixed';
+      container.style.width = '600px';
+      container.style.height = '400px';
+
+      const sync = new ScrollSync(container, { attach: 'dom' });
+      sync.destroy();
+
+      // ScrollSync は何も変更していないので、事前の inline style がそのまま残る。
+      expect(container.style.position).toBe('fixed');
+      expect(container.style.width).toBe('600px');
+      expect(container.style.height).toBe('400px');
+    });
   });
 });

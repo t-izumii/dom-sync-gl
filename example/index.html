@@ -135,9 +135,22 @@
         </article>
       </section>
 
+      <!-- DomTextPlane — テキストレイヤーも WebGL 管理下に置くデモ -->
+      <!--
+        本文の p には data-reveal を付けない。DOM 側の opacity は GL の板には効かないので、
+        reveal 中に DOM だけ透明・GL の文字は出たまま、という食い違いが起きるため。
+        テキストは 1 行で書く。DomTextPlane は textContent をそのままラスタライズし、
+        改行を段落区切りとして扱うので、インデントの改行が空行になってしまう。
+      -->
+      <section class="text-planes" id="text">
+        <span class="section-index" data-reveal>(03) — DomTextPlane</span>
+        <p class="text-plane-demo">この段落は DOM のまま WebGL のテクスチャへ焼かれ、板として描かれています。</p>
+        <p class="text-plane-fontface-demo">loadFont() — hover me.</p>
+      </section>
+
       <!-- ケイパビリティ -->
       <section class="caps">
-        <span class="section-index" data-reveal>(03) — Capabilities</span>
+        <span class="section-index" data-reveal>(04) — Capabilities</span>
         <ul class="caps__list">
           <li data-reveal><span>01</span> Creative Development</li>
           <li data-reveal><span>02</span> WebGL / Shader 表現</li>
@@ -148,7 +161,7 @@
 
       <!-- フッター CTA -->
       <footer class="footer" id="contact">
-        <p class="footer__index" data-reveal>(04) — ご挨拶</p>
+        <p class="footer__index" data-reveal>(05) — ご挨拶</p>
         <a class="footer__cta" href="mailto:hello@nagi.studio" data-reveal>
           Let’s make<br />something <em>still</em>.
         </a>

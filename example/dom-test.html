@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>attach: 'dom' — fixed fullscreen GLSL test</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: system-ui, sans-serif; color: #fff; }
+
+      /* dom モードのテスト対象。ライブラリは position を上書きしないので、
+         ここで CSS で fixed 全画面にする。canvas はこの box のサイズで生成される。 */
+      #bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+      }
+      #bg canvas,
+      #inline canvas { display: block; }
+
+      /* ページ途中に「通常の DOM と同じ配置（通常フロー・非fixed）」で置く対象。
+         attach:'dom' なので、ライブラリは position を上書きせず、この box のサイズで
+         canvas が生成される。高さは明示しておく（生成時に box 高が要るため）。 */
+      #inline {
+        width: min(680px, 82vw);
+        height: 420px;
+        margin: 0 auto;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .inline-wrap {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+      .inline-wrap p {
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+
+      /* スクロールしても #bg(fixed) が背面に貼り付いたままか検証するための前景コンテンツ。 */
+      main { position: relative; z-index: 1; }
+      section {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(1.5rem, 6vw, 4rem);
+        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
+        letter-spacing: 0.02em;
+      }
+      .tag {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 2;
+        font-size: 13px;
+        font-family: ui-monospace, monospace;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 6px 10px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- attach:'dom' の対象。CSS で fixed 全画面にしてある。 -->
+    <div id="bg"></div>
+
+    <div class="tag">attach: 'dom' / #bg = position:fixed inset:0 / fullscreen GLSL</div>
+
+    <main>
+      <section>Scroll ↓ — 背景 GLSL は fixed のまま</section>
+      <section>02 — canvas は #bg のサイズで生成</section>
+
+      <!-- ページ途中の「通常配置」テスト。#inline は通常フローの block。 -->
+      <div class="inline-wrap">
+        <p>attach: 'dom' / #inline = 通常フローの block（680×420）/ その box サイズで canvas 生成</p>
+        <div id="inline"></div>
+        <p>↑ この枠内だけに GLSL が描かれ、ページと一緒にスクロールすれば成功</p>
+      </div>
+
+      <section>03 — DOM は上に重なる</section>
+      <section>04 — 最後まで背面固定なら成功</section>
+    </main>
+
+    <script type="module" src="/src/dom-test.ts"></script>
+  </body>
+</html>

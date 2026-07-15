@@ -1,12 +1,32 @@
 export interface ScrollSyncOptions {
   trackStrength?: boolean;
   strengthDecay?: number;
+  /**
+   * canvas を viewport の上下に px 単位で広げる余白。
+   * - 'auto'（既定）: (pointer: coarse) の環境でのみ viewportHeight * 0.25 を確保する。
+   *   モバイルの URL バー伸縮で viewport 高が変わったとき、canvas の縁が欠けるのを防ぐ。
+   *   マウス環境では 0 になるのでオーバーヘッドは無い。
+   * - number: 常にその px 数だけ広げる。
+   * - false / 0: 余白なし（オプトアウト）。
+   * attach: 'dom' のときは無視される（余白を確保しない）。
+   */
+  overscan?: number | 'auto' | false;
+  /**
+   * container の貼り付け方。
+   * - 'translate'（既定）: container を viewport 全面の overlay にして、毎tick translate で追従させる。
+   * - 'dom': container の CSS 配置をそのまま尊重し、canvas を container 自身のサイズ・位置に出す。
+   *   container が `position: fixed` なら canvas も fixed 相当で表示される。
+   *   position/サイズの上書きも translate も overscan も行わない。
+   */
+  attach?: 'translate' | 'dom';
 }
 
 export class ScrollSync {
   private container: HTMLElement;
   private _trackStrength: boolean;
   private _strengthDecay: number;
+  private _overscan: number;
+  private _attach: 'translate' | 'dom';
   private _strength: number = 0;
   private _prevScrollY: number = 0;
   private _prevTime: number = 0;
@@ -15,6 +35,8 @@ export class ScrollSync {
   private _enabled: boolean = true;
   private _lastAppliedX: number = NaN;
   private _lastAppliedY: number = NaN;
+  private _lastRawX: number = NaN;
+  private _lastRawY: number = NaN;
 
   private _logicalRect: DOMRect = new DOMRect();
 
@@ -34,6 +56,7 @@ export class ScrollSync {
     this.container = container;
     this._trackStrength = options.trackStrength ?? false;
     this._strengthDecay = options.strengthDecay ?? 10;
+    this._attach = options.attach ?? 'translate';
     this._prevScrollY = window.scrollY;
     this._prevTime = performance.now() / 1000;
 
@@ -50,36 +73,85 @@ export class ScrollSync {
       willChange: s.willChange,
     };
 
+    const vh = ScrollSync._measureViewportHeight();
+    this._overscan = this._attach === 'dom' ? 0 : ScrollSync._resolveOverscan(options.overscan, vh);
+
     this.applyContainerStyles();
     this.updateSize();
   }
 
+  private static _measureViewportHeight(): number {
+    const docEl = document.documentElement;
+    const probe = document.createElement('div');
+    probe.style.height = '100lvh';
+    document.body.appendChild(probe);
+    const lvh = probe.offsetHeight;
+    probe.remove();
+    return Math.max(lvh, docEl.clientHeight, window.innerHeight);
+  }
+
+  private static _resolveOverscan(
+    raw: number | 'auto' | false | undefined,
+    vh: number,
+  ): number {
+    // 未指定は 'auto' 扱い。モバイルの URL バー伸縮で縁が欠けるのは既定で避けたいが、
+    // マウス環境では余白が無駄なので 0 に落ちる。明示的に切るなら false / 0 を渡す。
+    if (raw === false) return 0;
+    if (raw === 'auto' || raw == null) {
+      if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
+        return Math.round(vh * 0.25);
+      }
+      return 0;
+    }
+    return Math.max(0, raw);
+  }
+
   private applyContainerStyles(): void {
+    // dom モードでは container の CSS をそのまま尊重するため何も上書きしない。
+    if (this._attach === 'dom') return;
     this.container.style.position = 'absolute';
     this.container.style.left = '0';
-    this.container.style.top = '0';
-
     this.container.style.overflow = 'hidden';
-
     this.container.style.pointerEvents = 'none';
     this.container.style.willChange = 'transform';
   }
 
   updateSize(wrapperWidth?: number, wrapperHeight?: number): void {
+    if (this._attach === 'dom') {
+      // dom モードは container 自身の box をそのまま canvas 領域とする。
+      // position/サイズは container の CSS に任せ、ここでは logicalRect の更新だけ行う。
+      const rect = this.container.getBoundingClientRect();
+      this._viewportWidth = rect.width;
+      this._viewportHeight = rect.height;
+      this._logicalRect = new DOMRect(rect.left, rect.top, rect.width, rect.height);
+      return;
+    }
+
     const docEl = document.documentElement;
     this._viewportWidth = wrapperWidth ?? docEl.clientWidth;
-    this._viewportHeight = wrapperHeight ?? docEl.clientHeight;
+
+    if (wrapperHeight != null) {
+      this._viewportHeight = wrapperHeight;
+    } else {
+      this._viewportHeight = ScrollSync._measureViewportHeight();
+    }
 
     this.container.style.width = `${this._viewportWidth}px`;
-    this.container.style.height = `${this._viewportHeight}px`;
+    this.container.style.top = `${this._overscan === 0 ? 0 : -this._overscan}px`;
+    this.container.style.height = `${this._viewportHeight + 2 * this._overscan}px`;
 
     this._logicalRect = new DOMRect(
       0,
-      0,
+      this._overscan === 0 ? 0 : -this._overscan,
       this._viewportWidth,
-      this._viewportHeight,
+      this._viewportHeight + 2 * this._overscan,
     );
 
+    // dom モードは上で return 済みなので、ここへ来るのは translate モードのみ。
+    // レイアウトが変わった可能性があるため、直前と同じスクロール位置でも
+    // applyTransform 側の早期returnをスキップさせて再計算を強制する。
+    this._lastRawX = NaN;
+    this._lastRawY = NaN;
     this.applyTransform(window.scrollX, ScrollSync.computeEffectiveScrollY());
   }
 
@@ -92,12 +164,33 @@ export class ScrollSync {
   }
 
   private applyTransform(scrollX: number, scrollY: number): void {
+    // dom モードでは container の CSS 配置を尊重するため transform を当てない。
+    if (this._attach === 'dom') return;
 
-    if (scrollX === this._lastAppliedX && scrollY === this._lastAppliedY) return;
+    // scrollX/scrollY が前回と同じなら、offsetHeight 読み取り（強制レイアウト）
+    // を含む以降の処理を丸ごとスキップする。updateSize() 呼び出し時はレイアウトが
+    // 変わっている可能性があるため、そちらで _lastRawX/_lastRawY を無効化している。
+    if (scrollX === this._lastRawX && scrollY === this._lastRawY) return;
+    this._lastRawX = scrollX;
+    this._lastRawY = scrollY;
+
+    let effectiveY = scrollY;
+
+    if (scrollY > 0) {
+      const parent = this.container.offsetParent as HTMLElement | null;
+      if (parent) {
+        const maxY = parent.offsetHeight - this._viewportHeight - this._overscan;
+        if (maxY > 0 && scrollY > maxY) {
+          effectiveY = maxY;
+        }
+      }
+    }
+
+    if (scrollX === this._lastAppliedX && effectiveY === this._lastAppliedY) return;
     this._lastAppliedX = scrollX;
-    this._lastAppliedY = scrollY;
+    this._lastAppliedY = effectiveY;
     this.container.style.transform =
-      `translate3d(${scrollX}px, ${scrollY}px, 0)`;
+      `translate3d(${scrollX}px, ${effectiveY}px, 0)`;
   }
 
   static computeEffectiveScrollY(): number {
@@ -110,8 +203,12 @@ export class ScrollSync {
     const dt = now - this._prevTime;
 
     if (dt > 0) {
+      // _viewportHeight が 0（未計測・レイアウト崩壊時）だと 0/0 = NaN になり、
+      // 以後 _strength が減衰でも回復しない NaN 汚染を起こすため 0 にフォールバックする。
       const targetStrength =
-        (Math.abs(scrollDelta) * 10) / this._viewportHeight;
+        this._viewportHeight > 0
+          ? (Math.abs(scrollDelta) * 10) / this._viewportHeight
+          : 0;
       this._strength *= Math.exp(-dt * this._strengthDecay);
       this._strength += Math.min(targetStrength, 5);
     }
@@ -122,6 +219,10 @@ export class ScrollSync {
 
   get logicalRect(): DOMRect {
     return this._logicalRect;
+  }
+
+  get attach(): 'translate' | 'dom' {
+    return this._attach;
   }
 
   get strength(): number {
@@ -148,6 +249,8 @@ export class ScrollSync {
   }
 
   destroy(): void {
+    // dom モードでは container のスタイルを一切変更していないため復元不要。
+    if (this._attach === 'dom') return;
     const o = this._originalStyles;
     const s = this.container.style;
     s.position = o.position;

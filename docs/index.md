@@ -24,6 +24,8 @@ features:
     details: createPlane(selector) で要素の bbox に追従する Three.js mesh を生成。CSS で動いてもピクセル単位で付いてくる。
   - title: Scroll sync
     details: ネイティブスクロールと canvas のズレを毎フレーム補正。iOS Safari の rubber-band / pull-to-refresh も殺さない。
+  - title: Text planes
+    details: createTextPlane() で DOM のテキストを板に。スタイルは CSS 由来のまま、DOM も残るのでレイアウト・a11y・選択は壊さない。
   - title: Composable post effects
     details: BaseEffect を継承するだけで ping-pong 合成。plane 単位 / 画面全体の両方に挿せる。
 ---

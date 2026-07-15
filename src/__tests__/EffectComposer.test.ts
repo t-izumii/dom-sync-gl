@@ -96,6 +96,18 @@ describe('EffectComposer', () => {
     newComposer.dispose();
   });
 
+  it('dispose: postMesh に自動生成された既定 material も dispose される（回収漏れの回帰）', () => {
+    const composer = new EffectComposer(makeRenderer(), 100, 100);
+    const defaultMaterial = (
+      composer as unknown as { postMeshDefaultMaterial: THREE.Material }
+    ).postMeshDefaultMaterial;
+    const disposeSpy = vi.spyOn(defaultMaterial, 'dispose');
+
+    composer.dispose();
+
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('resize で内部 RenderTarget の解像度が更新される', () => {
     const composer = new EffectComposer(makeRenderer(), 100, 100);
     // 内部 targetA / targetB は private なので、resize が例外なく通ることを確認

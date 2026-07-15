@@ -26,6 +26,10 @@ export class PlaneComposer implements EffectTarget {
   private postCamera: THREE.OrthographicCamera;
   private postMesh: THREE.Mesh;
   private postGeo: THREE.PlaneGeometry;
+  // postMesh.material は render() 中に各 pass.material へ差し替えられるため、
+  // 構築時に THREE.Mesh が自動生成する既定 material 自体はどの pass にも
+  // 属さず誰も dispose しない。dispose() で確実に解放できるよう個別に保持する。
+  private readonly postMeshDefaultMaterial: THREE.Material;
 
   private proxyMesh: THREE.Mesh;
   private proxyMaterial: THREE.MeshBasicMaterial;
@@ -74,6 +78,7 @@ export class PlaneComposer implements EffectTarget {
     this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.postGeo = new THREE.PlaneGeometry(2, 2);
     this.postMesh = new THREE.Mesh(this.postGeo);
+    this.postMeshDefaultMaterial = this.postMesh.material as THREE.Material;
     this.postScene.add(this.postMesh);
 
     mainScene.remove(sourceMesh);
@@ -204,6 +209,7 @@ export class PlaneComposer implements EffectTarget {
     this.targetA.dispose();
     this.targetB.dispose();
     this.postGeo.dispose();
+    this.postMeshDefaultMaterial.dispose();
     this.proxyGeo.dispose();
     this.proxyMaterial.dispose();
     for (const pass of this.passes) {

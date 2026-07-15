@@ -2,17 +2,23 @@ export { DomSyncGL } from "./Core";
 export { Camera } from "./Camera";
 export { Light } from "./Light";
 export { DomPlane } from "./DomPlane";
+export { DomTextPlane } from "./DomTextPlane";
+export { resolveTextStyle, layoutLines, rasterizeText } from "./TextRasterizer";
+export type { ResolvedTextStyle } from "./TextRasterizer";
+export { loadFont } from "./FontLoader";
+export type { FontFaceSource } from "./FontLoader";
 export { Dom3DObject } from "./Dom3DObject";
 export { ScrollSync } from "./ScrollSync";
 export type { ScrollSyncOptions } from "./ScrollSync";
-export { RafScroll } from "./RafScroll";
-export type { RafScrollOptions } from "./RafScroll";
 
 export { DomPositionCalculator } from "./DomPositionCalculator";
+export type { PointerType } from "./PointerController";
 
 export type {
   DomSyncGLOptions,
   CreatePlaneOptions,
+  CreateTextPlaneOptions,
+  TextStyleOverrides,
   Create3DObjectOptions,
   Dom3DObjectFitMode,
   Offset3D,

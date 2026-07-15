@@ -25,6 +25,7 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Scroll Sync', link: '/guide/scroll-sync' },
+            { text: 'Text Planes', link: '/guide/text-planes' },
             { text: 'Post Effects', link: '/guide/post-effects' },
           ],
         },
@@ -46,6 +47,8 @@ export default defineConfig({
           items: [
             { text: 'DomSyncGL', link: '/api/dom-sync-gl' },
             { text: 'DomPlane', link: '/api/dom-plane' },
+            { text: 'DomTextPlane', link: '/api/dom-text-plane' },
+            { text: 'loadFont', link: '/api/load-font' },
             { text: 'Scroll', link: '/api/scroll' },
             { text: 'BaseEffect', link: '/api/base-effect' },
           ],

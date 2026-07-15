@@ -1,6 +1,7 @@
 import * as THREE from "three";
+import type GUI from "lil-gui";
+import type Stats from "stats.js";
 import type { ScrollSyncOptions } from "./ScrollSync";
-import type { RafScrollOptions } from "./RafScroll";
 
 export interface Offset3D {
   x: number;
@@ -12,13 +13,19 @@ export interface DomSyncGLOptions {
   enablePointerTracking?: boolean;
   enableMouseTracking?: boolean;
   scrollSync?: boolean | ScrollSyncOptions;
-  rafScroll?: boolean | RafScrollOptions;
-  showStats?: boolean;
-  statsParent?: HTMLElement;
   outputColorSpace?: THREE.ColorSpace;
   maxPixelRatio?: number;
-  showGUI?: boolean;
-  guiTitle?: string;
+  /**
+   * 内部で requestAnimationFrame ループを回すか。
+   * - true（既定）: ライブラリが自前で毎フレーム描画する（Lenis なしの単体利用向け）。
+   * - false: 内部ループを止める。アプリ側の rAF から `app.tick(time)` を呼んで駆動する。
+   *   Lenis 等のスムーズスクロールと 1 本の rAF で順序を保証したい場合に使う。
+   */
+  autoRaf?: boolean;
+  /** 呼び出し元が生成した lil-gui インスタンス。渡された場合のみ setupGUI() 系のフックが有効になる（生成・破棄は呼び出し元の責務）。 */
+  gui?: GUI | null;
+  /** 呼び出し元が生成した stats.js インスタンス。渡された場合のみ毎フレーム begin()/end() を呼ぶ（DOM への挿入・破棄は呼び出し元の責務）。 */
+  stats?: Stats | null;
 }
 
 export interface CreatePlaneOptions {
@@ -34,7 +41,29 @@ export interface CreatePlaneOptions {
   crossOrigin?: string;
 }
 
-export type Dom3DObjectFitMode = "maxSide" | "contain" | "cover";
+export interface TextStyleOverrides {
+  fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: string | number;
+  fontStyle?: string;
+  color?: string;
+  lineHeight?: number;
+  letterSpacing?: number;
+  textAlign?: "left" | "center" | "right";
+}
+
+export interface CreateTextPlaneOptions extends CreatePlaneOptions {
+  /** getComputedStyle の抽出結果を個別に上書きする */
+  style?: TextStyleOverrides;
+  /** Canvas 解像度倍率。既定: min(devicePixelRatio, 2) */
+  pixelRatio?: number;
+  /** 元 DOM テキストを color: transparent で視覚的に隠す。既定: true */
+  hideElementText?: boolean;
+  /** element.textContent の代わりに描画するテキスト */
+  text?: string;
+}
+
+export type Dom3DObjectFitMode = "maxSide" | "contain";
 
 export interface Create3DObjectOptions {
   modelPath: string;
