@@ -53,7 +53,8 @@ canvas サイズが変わるたびに呼ばれる。自前 RT を持つエフェ
 
 ### `setupGUI?(gui)`
 
-`showGUI: true` のとき lil-gui へフォルダを生やすフック。
+`new DomSyncGL(..., { gui })` で lil-gui インスタンスを渡したときに呼ばれ、パネルへフォルダを
+生やすフック。`gui` を渡していなければ呼ばれない。
 
 ```ts
 setupGUI(gui) {

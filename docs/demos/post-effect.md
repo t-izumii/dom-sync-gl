@@ -20,7 +20,7 @@ WebGL を載せるコンテナ 1 つだけ。
 ```ts
 import { DomSyncGL, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
 
-const app = new DomSyncGL('#stage', { showGUI: false });
+const app = new DomSyncGL('#stage');
 
 // 1. 全画面背景 plane（selector に null を渡す）
 app.createPlane(null, {
@@ -128,5 +128,6 @@ class GrainEffect extends BaseEffect {
 }
 ```
 
-`new DomSyncGL(..., { showGUI: true })` のとき、`setupGUI()` が自動で呼ばれる。
-`lil-gui` は optional peer なので、使うときだけ `npm install lil-gui`。
+`new DomSyncGL(..., { gui: new GUI() })` のように lil-gui インスタンスを渡したとき、
+`setupGUI()` が自動で呼ばれる。`lil-gui` は optional peer なので、使うときだけ
+`npm install lil-gui`。

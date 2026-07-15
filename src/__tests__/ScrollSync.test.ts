@@ -242,4 +242,77 @@ describe('ScrollSync', () => {
     expect(container.style.pointerEvents).toBe('auto');
     expect(container.style.overflow).toBe('auto');
   });
+
+  describe('overscan', () => {
+    // jsdom は matchMedia を実装していないので spyOn できない（= 実装側の
+    // `typeof window.matchMedia === 'function'` ガードが効いて 0 になる）。
+    // ここでは実ブラウザを模して matchMedia 自体を生やす。
+    // (pointer: coarse) にマッチするかだけ切り替え、他のクエリは常に false。
+    const mockPointer = (coarse: boolean) => {
+      Object.defineProperty(window, 'matchMedia', {
+        value: (query: string) =>
+          ({
+            matches: coarse && query === '(pointer: coarse)',
+            media: query,
+          }) as MediaQueryList,
+        writable: true,
+        configurable: true,
+      });
+    };
+
+    afterEach(() => {
+      // 他の describe に matchMedia が漏れないよう未実装の状態へ戻す。
+      Reflect.deleteProperty(window, 'matchMedia');
+    });
+
+    it('matchMedia が無い環境 (SSR / 旧ブラウザ) では auto でも 0 に落ちる', () => {
+      expect(window.matchMedia).toBeUndefined();
+      new ScrollSync(container, { overscan: 'auto' });
+      expect(container.style.top).toBe('0px');
+      expect(container.style.height).toBe('800px');
+    });
+
+    it('既定 (未指定) は auto 扱いで、coarse pointer では viewportHeight * 0.25 を上下に確保する', () => {
+      mockPointer(true);
+      new ScrollSync(container);
+      // vh=800 → overscan=200。上に -200 ずらし、高さは 800 + 200*2。
+      expect(container.style.top).toBe('-200px');
+      expect(container.style.height).toBe('1200px');
+    });
+
+    it('既定 (未指定) でも fine pointer では 0 になり余白のオーバーヘッドが無い', () => {
+      mockPointer(false);
+      new ScrollSync(container);
+      expect(container.style.top).toBe('0px');
+      expect(container.style.height).toBe('800px');
+    });
+
+    it("overscan: 'auto' を明示しても既定と同じ挙動になる", () => {
+      mockPointer(true);
+      new ScrollSync(container, { overscan: 'auto' });
+      expect(container.style.top).toBe('-200px');
+      expect(container.style.height).toBe('1200px');
+    });
+
+    it('overscan: false で coarse pointer でも余白なしにオプトアウトできる', () => {
+      mockPointer(true);
+      new ScrollSync(container, { overscan: false });
+      expect(container.style.top).toBe('0px');
+      expect(container.style.height).toBe('800px');
+    });
+
+    it('overscan に数値を渡すと pointer の種別に関係なくその px を使う', () => {
+      mockPointer(false);
+      new ScrollSync(container, { overscan: 50 });
+      expect(container.style.top).toBe('-50px');
+      expect(container.style.height).toBe('900px');
+    });
+
+    it('logicalRect が overscan ぶん広がる', () => {
+      mockPointer(true);
+      const sync = new ScrollSync(container);
+      expect(sync.logicalRect.y).toBe(-200);
+      expect(sync.logicalRect.height).toBe(1200);
+    });
+  });
 });

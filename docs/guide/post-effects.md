@@ -62,9 +62,19 @@ grain.enabled = false; // パススルー
 
 ## lil-gui 連携
 
-`setupGUI(gui)` を実装したエフェクトは、`new DomSyncGL(..., { showGUI: true })` のときに
-lil-gui パネルへ自動でフォルダが生える（**`showGUI` の既定は `false`** なので、GUI を出すには
-明示的に有効化する。lil-gui は optional peer なので、使うときだけ `npm install lil-gui`）。
+`setupGUI(gui)` を実装したエフェクトは、`gui` オプションに lil-gui インスタンスを**渡したとき**に
+限り、パネルへ自動でフォルダが生える。lil-gui の生成・破棄は呼び出し元の責務で、ライブラリは
+受け取ったインスタンスを使うだけ（optional peer なので、使うときだけ `npm install lil-gui`）。
+
+```ts
+import GUI from 'lil-gui';
+
+const app = new DomSyncGL('#canvas', {
+  gui: new GUI({ title: 'Effects' }),
+});
+```
+
+`gui` を渡さなければ `setupGUI()` は呼ばれない。以前の `showGUI` / `guiTitle` は廃止された。
 
 ```ts
 class GrainEffect extends BaseEffect {

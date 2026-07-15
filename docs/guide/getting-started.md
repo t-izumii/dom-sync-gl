@@ -12,6 +12,13 @@ npm install dom-sync-gl three
 npm install lil-gui stats.js
 ```
 
+スムーズスクロールを併用したい場合は [Lenis](https://github.com/darkroomengineering/lenis) も
+（ライブラリは含まない。[Scroll Sync](/guide/scroll-sync#スムーズスクロール-lenis) 参照）:
+
+```bash
+npm install lenis
+```
+
 ## 最小コード
 
 ```html
@@ -60,9 +67,35 @@ app.createPlane('.hero-card', {
 app.createPlane(null, { fragmentShader: bgShader });
 ```
 
+## テキストを板にする
+
+`createTextPlane()` を使うと、DOM のテキストを canvas に焼いて板として描ける。DOM 側は
+`color: transparent` になるだけなので、レイアウト・アクセシビリティ・テキスト選択は残る。
+
+```ts
+app.createTextPlane('.headline');
+```
+
+## rAF を自分で持つ
+
+既定ではライブラリが内部で rAF を回す。Lenis のようなスムーズスクロールと順序を揃えたい
+場合は `autoRaf: false` にして、自前のループから `tick()` を呼ぶ。
+
+```ts
+const app = new DomSyncGL('#canvas', { autoRaf: false });
+
+const raf = (time: number) => {
+  lenis.raf(time);
+  app.tick(time);
+  requestAnimationFrame(raf);
+};
+requestAnimationFrame(raf);
+```
+
 ## 次に
 
 - [Demos](/demos/) — 動くサンプル + コピペ可能なコード
 - [Scroll Sync](/guide/scroll-sync) — スクロールと canvas を 1 frame で揃える
+- [Text Planes](/guide/text-planes) — テキストレイヤーを WebGL 管理下に置く
 - [Post Effects](/guide/post-effects) — `BaseEffect` でエフェクトを書く
 - [API: DomSyncGL](/api/dom-sync-gl) — 全オプション

@@ -1,6 +1,14 @@
 export interface ScrollSyncOptions {
   trackStrength?: boolean;
   strengthDecay?: number;
+  /**
+   * canvas を viewport の上下に px 単位で広げる余白。
+   * - 'auto'（既定）: (pointer: coarse) の環境でのみ viewportHeight * 0.25 を確保する。
+   *   モバイルの URL バー伸縮で viewport 高が変わったとき、canvas の縁が欠けるのを防ぐ。
+   *   マウス環境では 0 になるのでオーバーヘッドは無い。
+   * - number: 常にその px 数だけ広げる。
+   * - false / 0: 余白なし（オプトアウト）。
+   */
   overscan?: number | 'auto' | false;
   attach?: 'translate' | 'fixed';
 }
@@ -78,8 +86,10 @@ export class ScrollSync {
     raw: number | 'auto' | false | undefined,
     vh: number,
   ): number {
-    if (raw === false || raw == null) return 0;
-    if (raw === 'auto') {
+    // 未指定は 'auto' 扱い。モバイルの URL バー伸縮で縁が欠けるのは既定で避けたいが、
+    // マウス環境では余白が無駄なので 0 に落ちる。明示的に切るなら false / 0 を渡す。
+    if (raw === false) return 0;
+    if (raw === 'auto' || raw == null) {
       if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
         return Math.round(vh * 0.25);
       }

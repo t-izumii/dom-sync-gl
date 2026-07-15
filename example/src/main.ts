@@ -52,9 +52,9 @@ if (import.meta.env?.DEV) {
 const app = new DomSyncGL("#gl", {
   // trackStrength: スクロール速度 strength を演出に流し込むので有効化する。
   //   （false のままだと strength は常に 0 で、DEV では警告が出る）
-  // overscan: 'auto' — coarse pointer では URL バーの伸縮で viewport 高が変わるため、
-  //   上下に余白を持たせて縁が欠けるのを防ぐ。fine pointer では 0（＝オーバーヘッドなし）。
-  scrollSync: { trackStrength: true, overscan: "auto" },
+  // overscan は既定の 'auto' に任せる。coarse pointer では URL バーの伸縮で viewport 高が
+  //   変わるため上下に余白を持たせ、fine pointer では 0（＝オーバーヘッドなし）になる。
+  scrollSync: { trackStrength: true },
   maxPixelRatio: MAX_DPR,
   autoRaf: false,
   stats,

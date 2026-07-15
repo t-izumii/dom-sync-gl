@@ -1,12 +1,17 @@
 # Scroll
 
-スクロール周りの 2 つのクラス: `ScrollSync` と `RafScroll`。
-役割は別だが、両方を組み合わせて使うことが多い。
+スクロール周りは `ScrollSync` の 1 クラスだけ。
 
 | クラス | 役割 |
 |---|---|
-| `ScrollSync` | container を `position: absolute` で document に貼り、毎 rAF で viewport に追従させる |
-| `RafScroll` | wheel / touch を rAF tick に集約して、`window.scrollY` の更新を 1 frame に 1 回に揃える |
+| `ScrollSync` | container を `position: absolute` で document に貼り、毎 tick で viewport に追従させる |
+
+::: warning RafScroll は廃止された
+以前あった `RafScroll`（Lenis のラッパー）は削除された。スムーズスクロールは**アプリ側の関心事**
+であり、ライブラリが抱えるものではない、という整理による。Lenis を使いたい場合は
+[Lenis と組み合わせる](#lenis-と組み合わせる) の形にする。`rafScroll` オプション・
+`getRafScroll()` も無くなっている。
+:::
 
 ## ScrollSync
 
@@ -16,8 +21,41 @@
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `trackStrength` | `boolean` | `false` | スクロール速度の getter を有効化 |
-| `strengthDecay` | `number` | `10` | strength の指数減衰係数 |
+| `trackStrength` | `boolean` | `false` | `strength`（スクロール速度）の追跡を有効化 |
+| `strengthDecay` | `number` | `10` | strength の指数減衰係数。大きいほど速く 0 に戻る |
+| `overscan` | `number \| 'auto' \| false` | `'auto'` | canvas を viewport の上下に px 単位で広げる |
+| `attach` | `'translate' \| 'fixed'` | `'translate'` | container の貼り付け方 |
+
+#### `overscan`
+
+canvas の高さを `viewportHeight + 2 * overscan` にし、上に `-overscan` ずらす。モバイルの
+URL バー伸縮で viewport 高が変わったときに、canvas の縁が欠けて見えるのを防ぐための余白。
+
+既定の `'auto'` は `(pointer: coarse)` の環境でだけ `viewportHeight * 0.25` を確保し、
+マウス環境では `0`（＝オーバーヘッドなし）になる。つまり**何も指定しなければ、タッチ端末では
+対策が入り、デスクトップでは無駄が出ない**。
+
+数値を渡すとポインタ種別に関係なくその px 数を使う。余白を完全に切りたい場合は `false`（or `0`）。
+
+```ts
+// 既定。指定しなくても同じ
+new DomSyncGL('#canvas', { scrollSync: true });
+
+// 常に 200px 確保する
+new DomSyncGL('#canvas', { scrollSync: { overscan: 200 } });
+
+// 余白なしにオプトアウトする
+new DomSyncGL('#canvas', { scrollSync: { overscan: false } });
+```
+
+`window.matchMedia` が無い環境（SSR / 旧ブラウザ）では `'auto'` は `0` に落ちる。
+
+#### `attach`
+
+`'translate'`（既定）は container を `position: absolute` にして毎 tick
+`translate3d(scrollX, effectiveScrollY, 0)` を当てる。`'fixed'` は `position: fixed` にして
+transform を一切当てない（ブラウザの fixed 追従に任せる）ので、`update()` の transform 処理は
+no-op になる。
 
 ### static `ScrollSync.computeEffectiveScrollY()`
 
@@ -28,67 +66,56 @@
 
 | member | 型 | 説明 |
 |---|---|---|
-| `logicalRect` | `DOMRect` (getter) | viewport ぴったりの `(0, 0, vw, vh)`。canvas drawing buffer サイズに使う |
+| `logicalRect` | `DOMRect` (getter) | canvas の論理 rect。`overscan: 0` なら `(0, 0, vw, vh)` |
 | `strength` | `number` (getter) | スクロール速度 (0〜1)。`trackStrength: false` の時は常に 0 |
 | `enabled` | `boolean` (getter/setter) | `false` にすると `update()` が no-op になり transform 更新が止まる |
-| `update(scrollX, scrollY)` | `void` | 毎 rAF で呼ぶ。**plane と同一の effectiveScrollY を渡すこと** |
-| `updateSize(width?, height?)` | `void` | viewport サイズが変わった時に呼ぶ。引数省略で `window.innerWidth/Height` |
+| `update(scrollX, scrollY)` | `void` | 毎 tick で呼ぶ。**plane と同一の effectiveScrollY を渡すこと** |
+| `updateSize(width?, height?)` | `void` | viewport サイズが変わった時に呼ぶ |
 | `destroy()` | `void` | container の inline style を構築前の値に復元する |
 
 通常は `DomSyncGL(..., { scrollSync: true })` 経由で使い、`update` / `updateSize` /
 `destroy` は Core 側が自動で呼ぶ。直接 `new ScrollSync()` した場合のみ自前で繋ぐ。
 
-## RafScroll
-
-通常は `DomSyncGL({ scrollSync: true, rafScroll: {...} })` 経由で使うのが推奨（Core の単一 rAF に
-統合され、生成順依存が無い）。自前で `new RafScroll()` する場合は **`DomSyncGL` より先に生成**しないと
-背景がスクロール中に 1 フレームずれる（[Scroll Sync ガイド](/guide/scroll-sync) 参照）。
-
-スムーズスクロールの実体は [Lenis](https://github.com/darkroomengineering/lenis) に委譲している。
-`rafScroll` には Lenis のオプション（`autoRaf` を除く）をそのまま渡せる。
-
-```ts
-const app = new DomSyncGL('#canvas', {
-  scrollSync: true,
-  rafScroll: { lerp: 0.1 },
-});
-```
-
-### Options
-
-`RafScrollOptions` は `Omit<LenisOptions, 'autoRaf'> & { autoStart?: boolean }`。代表的なもの:
-
-| option | type | default | 説明 |
-|---|---|---|---|
-| `lerp` | `number` | **`1`** | 線形補間の強度（0〜1）。既定は補間なし（下記） |
-| `syncTouch` | `boolean` | **`true`** | タッチ操作も rAF 経由にするか（下記） |
-| `duration` | `number` | — | スクロールアニメーションの時間（秒）。`lerp` の代替 |
-| `easing` | `(t:number)=>number` | Lenis 既定 | イージング関数 |
-| `smoothWheel` | `boolean` | `true` | ホイール入力をスムージングするか |
-| `wheelMultiplier` / `touchMultiplier` | `number` | `1` | 入力倍率 |
-| `autoStart` | `boolean` | `true` | 内部 rAF ループを自走させるか。`false` は管理モード（所有者が `advance()` で駆動）。`rafScroll` オプション経由なら自動で `false` |
-
-::: tip Lenis 既定の上書き
-`RafScroll` は Lenis 既定（`lerp: 0.1` / `syncTouch: false`）を上書きして **`lerp: 1`** / **`syncTouch: true`** を
-初期値にしている。`scrollSync` が「全スクロールを単一 rAF に取り込む」前提でキャンバスを補正するため、
-これを満たさないと `position: fixed` の plane がスクロール中にガタつくため。スムージングを効かせたい
-場合は `rafScroll: { lerp: 0.1 }` のように明示指定して上書きする。
+::: tip strength は trackStrength とセット
+`trackStrength: false`（既定）のまま `strength` を読むと常に `0` が返る。DEV ビルドでは
+一度だけ `console.warn` で知らせる。演出に使うなら必ず `{ trackStrength: true }` にすること。
 :::
 
-その他は [Lenis のオプション一覧](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
+## Lenis と組み合わせる
 
-### Instance members
+ライブラリは Lenis を含まない。スムーズスクロールを入れるなら、アプリ側で Lenis を生成し、
+**1 本の rAF で `lenis.raf()` → `app.tick()` の順に駆動する**。
 
-| member | 型 | 説明 |
-|---|---|---|
-| `scrollY` | `number` (getter) | Lenis のスムージング後スクロール量（`lenis.scroll`） |
-| `lenis` | `Lenis` (getter) | 内部 Lenis インスタンス（`scrollTo` / `on('scroll')` 等の高度操作用） |
-| `advance(now?)` | `void` | 管理モード用。外部 rAF ループから 1 フレーム進める（`lenis.raf(now)`）。`autoStart: true` のときは no-op |
-| `enabled` | `boolean` (getter/setter) | `false` で `lenis.stop()`（native スクロール復活）、`true` で `lenis.start()` |
-| `destroy()` | `void` | Lenis を破棄し listener・ResizeObserver をすべて解放 |
+```bash
+npm install lenis
+```
 
-### 挙動メモ
+```ts
+import { DomSyncGL } from 'dom-sync-gl';
+import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 
-- wheel / touch の取り込み・慣性・端の扱いはすべて Lenis に委譲
-- Lenis は `window` をラッパーとして実スクロールを更新するので `window.scrollY` も整合する
-- 既定ではタッチはネイティブ（`syncTouch: false`）なので pull-to-refresh はそのまま動く
+// どちらも自前の rAF を持たせない
+const lenis = new Lenis({ autoRaf: false });
+const app = new DomSyncGL('#canvas', {
+  scrollSync: true,
+  autoRaf: false,
+});
+
+const raf = (time: number) => {
+  lenis.raf(time);   // 先にスクロールを確定させ、
+  app.tick(time);    // 確定後の値で WebGL を配置する
+  requestAnimationFrame(raf);
+};
+requestAnimationFrame(raf);
+```
+
+::: warning 2 本の rAF に分けない
+`autoRaf` を両方 `true` のままにすると、Lenis と Core が**別々の rAF ループ**を持つ。ブラウザは
+rAF を登録順に実行するので、Core が先に登録されていると 1 フレーム古い scrollY を読み、背景 canvas
+がスクロール中だけズレる。上のように 1 本にまとめれば、登録順に関係なく順序が保証される。
+:::
+
+Lenis のオプション（`lerp` / `duration` / `smoothWheel` / `syncTouch` など）は
+[Lenis のドキュメント](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
+既定ではタッチはネイティブのまま（`syncTouch: false`）なので、pull-to-refresh はそのまま動く。

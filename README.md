@@ -8,10 +8,11 @@ DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、
 ## Features
 
 - DOM 要素の bbox に追従する Three.js mesh を `createPlane(selector)` で作れる
+- `createTextPlane(selector)` で DOM のテキストを板に（スタイルは CSS 由来のまま、DOM も残る）
 - ネイティブスクロールと canvas のズレを毎フレーム補正する
-- モバイルのタッチ慣性スクロールに対応
 - `BaseEffect` を継承するだけでポストエフェクトを ping-pong で連結
-- iOS Safari の動的アドレスバーに canvas 高を追従させる
+- iOS Safari の動的アドレスバーに canvas 高を追従させる（`overscan`）
+- rAF を自前で持てる（`autoRaf: false` + `tick()`）ので、Lenis 等と 1 本のループに統合できる
 - lil-gui / stats.js は optional（使うときだけ install）
 
 ## Install
@@ -24,6 +25,12 @@ npm install dom-sync-gl three
 
 ```bash
 npm install lil-gui stats.js
+```
+
+スムーズスクロールを併用したい場合は Lenis も（ライブラリは含まない。[Scroll sync](#scroll-sync) 参照）:
+
+```bash
+npm install lenis
 ```
 
 ## Quick start
@@ -100,39 +107,72 @@ visual viewport の offset が乗って負に振れる。この同じ値を cont
 const app = new DomSyncGL("#canvas", {
   scrollSync: true,
 });
-// strength tracking を有効化
+
+// スクロール速度 (strength) を演出に使う場合
 const app = new DomSyncGL("#canvas", {
   scrollSync: { trackStrength: true },
 });
 ```
 
-`RafScroll`（rAF 同期 virtual scroll + touch 慣性）を併用すると wheel / touch の入力を rAF
-tick にまとめて発火させるので、JS が読む scrollY と paint された位置がフレーム内で揃う（plane
-と DOM がフレーム境界でズレにくくなる）。
+モバイルの URL バー伸縮で canvas の縁が欠ける対策 (`overscan`) は既定 (`'auto'`) で入る。
+`(pointer: coarse)` の環境でだけ上下に余白を確保し、マウス環境では 0 なので無駄は無い。
+切りたい場合だけ `scrollSync: { overscan: false }` を渡す。
 
-**推奨は `rafScroll` オプション**。Core が RafScroll を管理下に置き、自身の単一 rAF ループ内で
-`scrollTo` → `scroll 読み取り` の順に駆動するので、背景・plane が 1 フレームずれない:
+### スムーズスクロール (Lenis)
 
-スムーズスクロールの実体は [Lenis](https://github.com/darkroomengineering/lenis) に委譲している
-（`rafScroll` には Lenis のオプションをそのまま渡せる）:
+ライブラリは Lenis を含まない。スムーズスクロールはアプリ側の関心事として切り離してある。
+入れる場合は、**Lenis と Core の両方の自前 rAF を止めて、1 本のループで順に駆動する**:
 
 ```ts
+import { DomSyncGL } from "dom-sync-gl";
+import Lenis from "lenis";
+import "lenis/dist/lenis.css";
+
+const lenis = new Lenis({ autoRaf: false });
 const app = new DomSyncGL("#canvas", {
   scrollSync: true,
-  rafScroll: {
-    lerp: 0.1,  // 補間強度 (小さいほど滑らか・遅延大)
-  },
+  autoRaf: false,
 });
+
+const raf = (time: number) => {
+  lenis.raf(time);   // 先にスクロールを確定させ、
+  app.tick(time);    // 確定後の値で WebGL を配置する
+  requestAnimationFrame(raf);
+};
+requestAnimationFrame(raf);
 ```
 
-既定ではタッチはネイティブのまま (`syncTouch: false`) なので、pull-to-refresh はそのまま動く。
-タッチもスムージングしたい場合は `syncTouch: true` を指定する。
+これで「スクロールの確定 → WebGL の配置」が同一フレーム・同じ順序で起きるのでズレない。
 
-> ⚠️ `new RafScroll()` を**自前で生成して併用する**こともできるが、その場合 RafScroll と Core が
-> **別々の rAF ループ**を持つ。ブラウザは rAF を登録順に実行するため、`DomSyncGL` より**後に**生成
-> すると Core が 1 フレーム古い scrollY を読み、背景 canvas がスクロール中だけズレる。自前生成する
-> なら必ず `DomSyncGL` より**先に**生成すること。順序を気にしたくなければ上記の `rafScroll` オプション
-> を使う。
+> ⚠️ `autoRaf` を両方 `true` のままにすると Lenis と Core が**別々の rAF ループ**を持つ。
+> ブラウザは rAF を登録順に実行するため、Core が先に登録されていると 1 フレーム古い scrollY を
+> 読み、背景 canvas がスクロール中だけズレる。1 本にまとめれば登録順に関係なく順序が保証される。
+>
+> 以前あった `rafScroll` オプション / `RafScroll` クラス / `getRafScroll()` は、この整理に伴い**廃止**。
+
+既定ではタッチはネイティブのまま (`syncTouch: false`) なので、pull-to-refresh はそのまま動く。
+
+### DOM text plane
+
+`createTextPlane(selector)` は DOM 要素のテキストを canvas に焼いて板に貼る。スタイルは
+`getComputedStyle` 由来なので `font-size: clamp(...)` のような fluid 指定もそのまま解決される。
+
+```ts
+app.createTextPlane(".headline", { updateRectEveryFrame: true });
+```
+
+元の DOM テキストは `color: transparent` になるだけで消えない。レイアウト・スクリーンリーダー・
+テキスト選択・SEO はそのまま残り、見た目だけが WebGL に差し替わる。
+
+Web フォントを動的に読む場合は `loadFont()` の解決を待ってから板を作る（フォントの取得・登録は
+`DomTextPlane` の責務ではなく、独立ユーティリティの責務として分けてある）:
+
+```ts
+import { loadFont } from "dom-sync-gl";
+
+const ready = loadFont({ family: "SpaceMono", url: "/fonts/space-mono.woff2" });
+ready.then(() => app.createTextPlane(".headline"));
+```
 
 ### Post effects
 
@@ -167,7 +207,8 @@ app.addEffect(new GrainEffect());
 ```
 
 `plane.addEffect(effect)` で plane 単位のチェーンにもできる。
-`setupGUI(gui)` を実装しておくと、`showGUI: true` のときに lil-gui へコントロールが出る。
+`setupGUI(gui)` を実装しておくと、`gui` オプションに lil-gui インスタンスを渡したときだけ
+コントロールが出る。
 
 ## API reference
 
@@ -176,53 +217,51 @@ app.addEffect(new GrainEffect());
 | option | type | default | 説明 |
 |---|---|---|---|
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
-| `rafScroll` | `boolean \| RafScrollOptions` | `false` | RafScroll を Core 管理下で有効化（単一 rAF に統合・順序依存なし） |
-| `enableMouseTracking` | `boolean` | `true` | マウス座標と hover 判定を更新 |
+| `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` なら自前の rAF から `tick()` で駆動 |
+| `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限 (モバイルは `1.5` 推奨) |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
-| `showStats` | `boolean` | `false` | stats.js の FPS パネルを表示 |
-| `statsParent` | `HTMLElement` | `document.body` | パネルの append 先 |
-| `showGUI` | `boolean` | `true` | `setupGUI()` を実装したエフェクトに lil-gui を渡す |
-| `guiTitle` | `string` | `'Effects'` | lil-gui ルートタイトル |
+| `stats` | `Stats \| null` | `null` | 呼び出し元が生成した stats.js インスタンス |
+| `gui` | `GUI \| null` | `null` | 呼び出し元が生成した lil-gui インスタンス |
+
+> `stats` / `gui` は**インスタンスを渡す**方式。生成・DOM への挿入・破棄はすべて呼び出し元の責務で、
+> ライブラリは受け取ったものを使うだけ。以前の `showStats` / `showGUI` / `statsParent` / `guiTitle` は**廃止**。
+> `enableMouseTracking` / `setMouseTrackingEnabled()` は `enablePointerTracking` 系の別名として残っている。
 
 #### Main methods
 
 - `createPlane(selector, options?)` — DOM 要素にロックした plane を生成 (`selector` が `null` だと全画面背景)
+- `createTextPlane(selector, options?)` — DOM のテキストを焼いた plane を生成
 - `create3DObject(selector, options)` — GLTF モデルを DOM 要素にフィット
+- `tick(time?)` — 1 フレーム進める (`autoRaf: false` のとき自前の rAF から呼ぶ)
 - `addEffect(effect)` / `removeEffect(effect)` — フルスクリーンチェーンの管理
 - `addObject(obj3d)` / `removeObject(obj3d)` — シーンに直接追加
 - `addUpdateCallback(fn)` — 毎フレ呼ばれるコールバック登録 (unsubscribe 関数を返す)
 - `addResizeCallback(fn)` — リサイズ時のコールバック登録
-- `getScene()` / `getCamera()` / `getRenderer()` / `getMouse()` — 内部インスタンスへのアクセス
+- `getScene()` / `getCamera()` / `getRenderer()` / `getMouse()` / `getScrollSync()` — 内部インスタンスへのアクセス
 - `destroy()` — リスナー・テクスチャ・RT をすべて解放
 
 ### `ScrollSyncOptions`
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `trackStrength` | `boolean` | `false` | スクロール速度の getter を有効化 |
+| `trackStrength` | `boolean` | `false` | `strength` (スクロール速度) の追跡を有効化 |
 | `strengthDecay` | `number` | `10` | strength の指数減衰係数 |
+| `overscan` | `number \| 'auto' \| false` | `'auto'` | canvas を viewport の上下に px 単位で広げる。`'auto'` は coarse pointer でのみ `vh * 0.25`、マウス環境では 0。切るなら `false` |
+| `attach` | `'translate' \| 'fixed'` | `'translate'` | container の貼り付け方 |
 
-### `RafScrollOptions`
+> `trackStrength: false` のまま `strength` を読むと常に `0`（DEV では一度だけ warn）。
 
-スムーズスクロールは [Lenis](https://github.com/darkroomengineering/lenis) に委譲。
-`Omit<LenisOptions, 'autoRaf'> & { autoStart?: boolean }`。代表的なもの:
+### `CreateTextPlaneOptions`
+
+`CreatePlaneOptions` を継承し、以下が追加される:
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `lerp` | `number` | **`1`** | 線形補間の強度 (0〜1)。既定は補間なし (下記) |
-| `syncTouch` | `boolean` | **`true`** | タッチ操作も rAF 経由にするか (下記) |
-| `duration` | `number` | — | スクロールアニメーション時間 (秒)。`lerp` の代替 |
-| `smoothWheel` | `boolean` | `true` | ホイール入力をスムージングするか |
-| `wheelMultiplier` / `touchMultiplier` | `number` | `1` | 入力倍率 |
-| `autoStart` | `boolean` | `true` | 内部 rAF ループを自走させるか。`false` は管理モード（所有者が `advance()` で駆動）。`DomSyncGL({ rafScroll })` 経由なら自動で `false` |
-
-> ⚠️ `RafScroll` は Lenis 既定 (`lerp: 0.1` / `syncTouch: false`) を上書きして **`lerp: 1`** / **`syncTouch: true`** を
-> 初期値にしている。`scrollSync` が「全スクロールを単一 rAF に取り込む」前提でキャンバスを補正するためで、
-> これを満たさないと `position: fixed` の plane がスクロール中にガタつく。スムージングを効かせたい場合は
-> `rafScroll: { lerp: 0.1 }` のように明示指定して上書きする。
-
-その他は [Lenis のオプション一覧](https://github.com/darkroomengineering/lenis#instance-settings) を参照。
+| `text` | `string` | `element.textContent` | 代わりに描画するテキスト |
+| `style` | `TextStyleOverrides` | `{}` | `getComputedStyle` の抽出結果を個別に上書き |
+| `pixelRatio` | `number` | `min(devicePixelRatio, 2)` | canvas の解像度倍率 |
+| `hideElementText` | `boolean` | `true` | 元 DOM テキストを `color: transparent` で隠すか |
 
 ### `CreatePlaneOptions`
 
@@ -242,11 +281,13 @@ app.addEffect(new GrainEffect());
 ```ts
 import {
   // Core
-  DomSyncGL, Camera, Light, DomPlane, Dom3DObject,
+  DomSyncGL, Camera, Light, DomPlane, DomTextPlane, Dom3DObject,
   // Scroll
-  ScrollSync, RafScroll,
+  ScrollSync,
+  // Text
+  loadFont, resolveTextStyle, layoutLines, rasterizeText,
   // Post effects
-  EffectComposer, EffectPass, PlaneComposer, BaseEffect,
+  EffectComposer, EffectPass, PlaneComposer, BaseEffect, FeedbackBuffer,
   // Extension base
   BaseScene,
   // Utility
@@ -258,16 +299,23 @@ import {
 import type {
   DomSyncGLOptions,
   CreatePlaneOptions,
+  CreateTextPlaneOptions,
+  TextStyleOverrides,
+  ResolvedTextStyle,
+  FontFaceSource,
   Create3DObjectOptions,
   Dom3DObjectFitMode,
   Offset3D,
   DOMPositionInfo,
   ScrollSyncOptions,
-  RafScrollOptions,
+  PointerType,
   BaseEffectConfig,
   EffectOptions,
   EffectTarget,
   EffectLike,
+  FeedbackBufferOptions,
+  FeedbackInput,
+  AddFeedbackOptions,
 } from "dom-sync-gl";
 ```
 
@@ -281,19 +329,21 @@ import type {
 
 | 形式 | サイズ | gzip |
 |---|---:|---:|
-| ESM (`dist/index.js`) | 73.1 kB | **20.2 kB** |
-| CJS (`dist/index.cjs`) | 39.4 kB | **10.1 kB** |
+| ESM (`dist/index.js`) | 62.8 kB | **15.1 kB** |
+| CJS (`dist/index.cjs`) | 49.0 kB | **13.0 kB** |
 
 `three` / `lil-gui` / `stats.js` はバンドルしていない（peer dependency）。`sideEffects: false` なので tree-shaking も効く。
+Lenis もランタイム依存には含まない（使う場合はアプリ側で install する）。
 
 ## Develop
 
 ```bash
 npm install
-npm run dev        # examples/basic/ を vite で起動
+npm run dev        # docs/ を vitepress で起動
+npm run example    # example/ を vite で起動 (http://localhost:5180)
 npm run build      # dist/ にビルド
 npm run test       # vitest
-npm run typecheck
+npm run typecheck  # ライブラリ本体 (src/)
 ```
 
 ## License
