@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { EffectComposer } from '../EffectComposer';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
@@ -20,101 +20,54 @@ class TestEffect extends BaseEffect {
   }
 }
 
-class ThrowsOnSecondGetConfig extends BaseEffect {
-  private calls = 0;
-  protected getConfig(): BaseEffectConfig {
-    this.calls++;
-    if (this.calls === 2) throw new Error('boom');
-    return { fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' };
-  }
-}
-
 function makeGUI(): { destroy: ReturnType<typeof vi.fn> } {
   return { destroy: vi.fn() };
 }
 
 describe('BaseEffect._register()', () => {
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    warnSpy.mockRestore();
-  });
-
-  it('初回 register では警告なく pass が作られる', () => {
+  it('初回 register では pass が作られる', () => {
     const composer = new EffectComposer(makeRenderer(), 100, 100);
     const effect = new TestEffect();
 
     effect._register(composer);
 
     expect(effect.getPass()).not.toBeNull();
-    expect(warnSpy).not.toHaveBeenCalled();
     composer.dispose();
   });
 
-  it('同じ target への 2 回目の register は旧 pass を dispose してから新しい pass に差し替える（回収不能の回帰）', () => {
+  it('同じ target への 2 回目の register は throw する（単一 owner・使い捨て契約）', () => {
     const composer = new EffectComposer(makeRenderer(), 100, 100);
     const effect = new TestEffect();
 
     effect._register(composer);
-    const oldPass = effect.getPass()!;
-    const oldMaterialDisposeSpy = vi.spyOn(oldPass.material, 'dispose');
+    const pass = effect.getPass()!;
 
-    effect._register(composer);
-    const newPass = effect.getPass()!;
-
-    expect(newPass).not.toBe(oldPass);
-    expect(oldMaterialDisposeSpy).toHaveBeenCalledTimes(1);
-    // 旧 pass は EffectComposer 側の passes 配列からも取り除かれている
-    // （残っていると removeEffect が true を返すはずなので false で確認）
-    expect(composer.removeEffect(oldPass)).toBe(false);
+    expect(() => effect._register(composer)).toThrow(/既に別の owner に登録済み/);
+    // 旧 pass はそのまま保持され、副作用で差し替わっていない
+    expect(effect.getPass()).toBe(pass);
     composer.dispose();
   });
 
-  it('別 target への re-register でも旧 target 側の pass を dispose する', () => {
+  it('別 target への re-register も throw する（owner をまたいだ二重登録の禁止）', () => {
     const composerA = new EffectComposer(makeRenderer(), 100, 100);
     const composerB = new EffectComposer(makeRenderer(), 100, 100);
     const effect = new TestEffect();
 
     effect._register(composerA);
-    const oldPass = effect.getPass()!;
-    const oldMaterialDisposeSpy = vi.spyOn(oldPass.material, 'dispose');
 
-    effect._register(composerB);
-
-    expect(oldMaterialDisposeSpy).toHaveBeenCalledTimes(1);
-    expect(composerA.removeEffect(oldPass)).toBe(false); // 既に除去済み
+    expect(() => effect._register(composerB)).toThrow(/既に別の owner に登録済み/);
     composerA.dispose();
     composerB.dispose();
   });
 
-  it('re-register 後も enabled の状態が新しい pass に引き継がれる', () => {
+  it('dispose 済みの effect を register しようとすると throw する', () => {
     const composer = new EffectComposer(makeRenderer(), 100, 100);
     const effect = new TestEffect();
     effect._register(composer);
-    effect.enabled = false;
+    composer.removeEffect(effect.getPass()!);
+    effect._dispose();
 
-    effect._register(composer);
-
-    expect(effect.getPass()!.enabled).toBe(false);
-    composer.dispose();
-  });
-
-  it('getConfig() が例外を投げても旧 pass は破棄されず、getPass() は旧 pass を返し続ける', () => {
-    const composer = new EffectComposer(makeRenderer(), 100, 100);
-    const effect = new ThrowsOnSecondGetConfig();
-    effect._register(composer);
-    const pass = effect.getPass()!;
-    const disposeSpy = vi.spyOn(pass.material, 'dispose');
-
-    expect(() => effect._register(composer)).toThrow('boom');
-
-    expect(disposeSpy).not.toHaveBeenCalled();
-    expect(effect.getPass()).toBe(pass);
-    expect(composer.removeEffect(pass)).toBe(true); // まだ composer に登録されたまま
+    expect(() => effect._register(composer)).toThrow(/dispose 済み/);
     composer.dispose();
   });
 });

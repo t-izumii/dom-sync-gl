@@ -7,9 +7,19 @@ export interface BaseEffectConfig {
   uniforms?: { [key: string]: IUniform };
 }
 
+/**
+ * ポストエフェクトの基底クラス。
+ *
+ * effect インスタンスは単一 owner・使い捨てで、`new → registered → disposed` の
+ * 一方向ライフサイクルを取る:
+ * - `new`: 生成直後。まだどの owner にも属さない。
+ * - `registered`: `EffectManager.addEffect()` または `DomPlane.addEffect()` で
+ *   1 つの owner に登録済み。別の owner への再登録は throw する。
+ * - `disposed`: owner の `removeEffect()` / `dispose()` で破棄済み。以後の再登録は
+ *   throw する。使い回す場合は新しいインスタンスを生成すること。
+ */
 export abstract class BaseEffect {
   protected pass: EffectPass | null = null;
-  private target: EffectTarget | null = null;
   private _guiFolder: GUI | null = null;
   private _disposed = false;
 
@@ -25,29 +35,28 @@ export abstract class BaseEffect {
   protected abstract getConfig(): BaseEffectConfig;
 
   _register(target: EffectTarget): void {
-    // getConfig() はサブクラス実装で例外を投げうる。先に呼んでおくことで、
-    // 例外時に旧 pass/target を破棄済みの不整合な状態にしないようにする。
-    const config = this.getConfig();
-
-    // 二重 register は致命的ではない（下で旧 pass を古い target から dispose した上で
-    // 新しい pass に差し替えるため動作は継続する）ため throw はしない。DEV でのみ
-    // 警告を出し、production のコンソールを汚さない。
-    if (this.pass !== null) {
-      if (import.meta.env?.DEV) {
-        console.warn(
-          "[BaseEffect] 同じ effect インスタンスを複数の target に register しています。" +
-          "`webgl.addEffect()` と `domPlane.addEffect()` を併用する場合は別インスタンスを作ってください。"
-        );
-      }
-      // 古い pass を古い target から確実に取り除いて dispose する
-      // （放置すると EffectPass/ShaderMaterial が回収不能になる）。
-      this.target?.removeEffect(this.pass);
+    // effect は単一 owner・使い捨て。二重 register を許すと owner をまたいで
+    // update が二重実行される・一方の owner が他方で使用中の effect を dispose
+    // できる、といった registry の破壊が起きるため throw する。
+    if (this._disposed) {
+      throw new Error(
+        "[BaseEffect] dispose 済みの effect は再登録できません。" +
+          "使い回す場合は新しいインスタンスを作ってください。",
+      );
     }
+    if (this.pass !== null) {
+      throw new Error(
+        "[BaseEffect] この effect インスタンスは既に別の owner に登録済みです。" +
+          "1 つの effect インスタンスは 1 つの owner にしか追加できません。" +
+          "`webgl.addEffect()` と `domPlane.addEffect()` を併用する場合など、" +
+          "使い回す場合は新しいインスタンスを作ってください。",
+      );
+    }
+    const config = this.getConfig();
     this.pass = target.addEffect({
       fragmentShader: config.fragmentShader,
       uniforms: config.uniforms,
     });
-    this.target = target;
     this.pass.enabled = this._enabled;
   }
 

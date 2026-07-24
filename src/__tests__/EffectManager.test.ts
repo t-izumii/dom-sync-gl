@@ -194,6 +194,35 @@ describe('EffectManager', () => {
     expect(manager.hasEffects()).toBe(true);
   });
 
+  it('同じ effect を同じ manager に 2 回 addEffect すると throw する（単一 owner・使い捨て契約）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new TestEffect();
+
+    manager.addEffect(effect, 100, 100);
+
+    expect(() => manager.addEffect(effect, 100, 100)).toThrow(/既に別の owner に登録済み/);
+  });
+
+  it('別の manager にまたがる二重登録も throw する', () => {
+    const managerA = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const managerB = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new TestEffect();
+
+    managerA.addEffect(effect, 100, 100);
+
+    expect(() => managerB.addEffect(effect, 100, 100)).toThrow(/既に別の owner に登録済み/);
+  });
+
+  it('removeEffect で dispose 済みの effect は再 addEffect できず throw する', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new TestEffect();
+
+    manager.addEffect(effect, 100, 100);
+    manager.removeEffect(effect);
+
+    expect(() => manager.addEffect(effect, 100, 100)).toThrow(/dispose 済み/);
+  });
+
   it('setPostEffect: 既に addEffect 済みの effect があると DEV は throw、production は warn して差し替える', () => {
     const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
     const effect = new TestEffect();
