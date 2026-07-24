@@ -94,6 +94,17 @@ export class EffectComposer implements EffectTarget, EffectLike {
     this.postScene.add(this.postMesh);
   }
 
+  /**
+   * fullscreen pass を追加する。
+   *
+   * alpha 契約: 中間 RenderTarget の内容は premultiplied alpha として扱う。
+   * fragmentShader が受け取る tDiffuse も premultiplied alpha であり、
+   * 各 pass は前段の結果を丸ごと置き換える（blend しない）。この前提のもと
+   * pass material は NoBlending で描き、premultiplied なデータを素通しする。
+   * 最終 pass は screen(null) へ NoBlending で書き出すが、canvas の WebGL
+   * context は premultipliedAlpha: true（three の既定）なのでブラウザ合成と
+   * 整合する。
+   */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
       throw new Error('[EffectComposer] dispose 済みのインスタンスでは addEffect() できません。');
@@ -105,7 +116,12 @@ export class EffectComposer implements EffectTarget, EffectLike {
       },
       vertexShader: defaultVertexShader,
       fragmentShader: options.fragmentShader,
-      transparent: true,
+      // 前段の premultiplied な結果を丸ごと置き換えるだけで blend 不要。
+      // NormalBlending だと alpha が再乗算され pass ごとに透明部が暗くなる。
+      transparent: false,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.NoBlending,
     });
 
     const pass = new EffectPass(material);

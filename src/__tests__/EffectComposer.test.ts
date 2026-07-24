@@ -43,6 +43,20 @@ describe('EffectComposer', () => {
     composer.dispose();
   });
 
+  it('addEffect の material は premultiplied 契約に沿った素通し設定になる（CR-03）', () => {
+    const composer = new EffectComposer(makeRenderer(), 100, 100);
+    const pass = composer.addEffect({
+      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
+    });
+
+    // 前段の premultiplied な結果を丸ごと置き換えるだけで blend しない。
+    expect(pass.material.blending).toBe(THREE.NoBlending);
+    expect(pass.material.transparent).toBe(false);
+    expect(pass.material.depthTest).toBe(false);
+    expect(pass.material.depthWrite).toBe(false);
+    composer.dispose();
+  });
+
   it('render: pass が 0 個ならフォールバック描画（setRenderTarget(null) + render を 1 回）', () => {
     const renderer = makeRenderer();
     const composer = new EffectComposer(renderer, 100, 100);
