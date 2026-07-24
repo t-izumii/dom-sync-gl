@@ -16,6 +16,10 @@ export class PointerController {
   private readonly mouseDeltaBuf = new THREE.Vector2();
   private readonly ndcBuf = new THREE.Vector2();
   private readonly raycaster = new THREE.Raycaster();
+  // Raycaster.intersectObjects は Object3D.visible を除外しないため、
+  // 可視 mesh だけを詰め直して渡す。毎フレームのアロケーションを避けて
+  // 使い回す（mouseDeltaBuf / ndcBuf と同じバッファ方針）。
+  private readonly visibleMeshBuf: THREE.Mesh[] = [];
   private hoveredPlane: DomPlane | null = null;
 
   private active = false;
@@ -179,6 +183,13 @@ export class PointerController {
 
     if (this.planeMeshes.length === 0) return;
 
+    // hover 中の plane が非表示になると raycast 対象から外れ、通常経路では
+    // 二度と hover 解除されないため、先にここで解除する。
+    if (this.hoveredPlane && !this.hoveredPlane.isVisible) {
+      this.hoveredPlane.setHoverInfo(false, null);
+      this.hoveredPlane = null;
+    }
+
     if (!this.active) {
       if (this.hoveredPlane) {
         this.hoveredPlane.setHoverInfo(false, null);
@@ -187,9 +198,19 @@ export class PointerController {
       return;
     }
 
+    // 非表示 mesh は画面外に取り残された過去位置のまま raycast に残り、
+    // 可視 plane より手前で hit して hover を奪うため、可視 mesh だけを
+    // 使い回しバッファに詰め直して渡す。
+    const targets = this.visibleMeshBuf;
+    targets.length = 0;
+    const meshes = this.planeMeshes;
+    for (let i = 0, n = meshes.length; i < n; i++) {
+      if (meshes[i].visible) targets.push(meshes[i]);
+    }
+
     this.ndcBuf.set(this.mouse.x * 2 - 1, this.mouse.y * 2 - 1);
     this.raycaster.setFromCamera(this.ndcBuf, this.camera.instance);
-    const intersects = this.raycaster.intersectObjects(this.planeMeshes, false);
+    const intersects = this.raycaster.intersectObjects(targets, false);
 
     if (intersects.length > 0) {
       const intersect = intersects[0];
@@ -197,7 +218,8 @@ export class PointerController {
       if (intersect.uv) {
         const hitMesh = intersect.object as THREE.Mesh;
         const plane = this.planeByMesh.get(hitMesh);
-        if (plane) {
+        // 防御的な二重チェック: 非表示 plane には hover を渡さない。
+        if (plane && plane.isVisible) {
 
           if (this.hoveredPlane && this.hoveredPlane !== plane) {
             this.hoveredPlane.setHoverInfo(false, null);
