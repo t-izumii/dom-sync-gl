@@ -317,6 +317,14 @@ export class DomSyncGL {
     }
   }
 
+  /**
+   * 毎フレームの更新処理に呼ばれる callback を登録し、解除関数を返す。
+   *
+   * dispatch セマンティクス: 各フレームの呼び出しは登録配列の snapshot に対して行う。
+   * このため dispatch 中（callback 内）に追加した callback は次フレームから呼ばれ、
+   * dispatch 中に解除した callback はその回はまだ呼ばれうる。snapshot を取るのは、
+   * 解除関数が配列を splice して後続要素を前へ詰めても固定長ループが破綻しないようにするため。
+   */
   addUpdateCallback(callback: () => void): () => void {
     if (this.destroyed) return () => {};
     this.updateCallbacks.push(callback);
@@ -326,6 +334,13 @@ export class DomSyncGL {
     };
   }
 
+  /**
+   * resize 時に呼ばれる callback を登録し、解除関数を返す。
+   *
+   * dispatch セマンティクス: addUpdateCallback と同じく resize ごとの呼び出しは snapshot に対して行う。
+   * dispatch 中に追加した callback は次回の resize から呼ばれ、
+   * dispatch 中に解除した callback はその回はまだ呼ばれうる。
+   */
   addResizeCallback(callback: () => void): () => void {
     if (this.destroyed) return () => {};
     this.resizeCallbacks.push(callback);
@@ -453,7 +468,9 @@ export class DomSyncGL {
 
     this.effectManager.resize(this.rect.width, this.rect.height);
 
-    const resizeCallbacks = this.resizeCallbacks;
+    // dispatch 中に callback 自身や他の callback が解除されると配列長が縮み、
+    // 固定長ループでは undefined を呼んで落ちる。snapshot に対して回すことで回避する。
+    const resizeCallbacks = this.resizeCallbacks.slice();
     for (let i = 0, n = resizeCallbacks.length; i < n; i++) {
       resizeCallbacks[i]();
     }
@@ -518,7 +535,9 @@ export class DomSyncGL {
     this.pointer.update();
     const mouse = this.pointer.getMouse();
 
-    const callbacks = this.updateCallbacks;
+    // dispatch 中に callback 自身や他の callback が解除されると配列長が縮み、
+    // 固定長ループでは undefined を呼んで落ちる。snapshot に対して回すことで回避する。
+    const callbacks = this.updateCallbacks.slice();
     for (let i = 0, n = callbacks.length; i < n; i++) {
       callbacks[i]();
     }
