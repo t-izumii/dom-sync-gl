@@ -68,6 +68,10 @@ export class EffectComposer implements EffectTarget, EffectLike {
 
   private targetA: THREE.WebGLRenderTarget;
   private targetB: THREE.WebGLRenderTarget;
+  // MSAA は scene を最初に描く target でのみ意味を持つ（中間の fullscreen pass に
+  // は不要）。samples>0 のときだけ scene 描画専用の MSAA target を1枚確保し、
+  // ping-pong 用の targetA/B は samples なしに保つ。null は MSAA 無効。
+  private sceneTarget: THREE.WebGLRenderTarget | null = null;
 
   private postScene: THREE.Scene;
   private postCamera: THREE.OrthographicCamera;
@@ -80,7 +84,12 @@ export class EffectComposer implements EffectTarget, EffectLike {
 
   private _disposed: boolean = false;
 
-  constructor(renderer: THREE.WebGLRenderer, width: number, height: number) {
+  constructor(
+    renderer: THREE.WebGLRenderer,
+    width: number,
+    height: number,
+    samples: number = 0,
+  ) {
     this.renderer = renderer;
 
     const dpr = renderer.getPixelRatio();
@@ -97,6 +106,16 @@ export class EffectComposer implements EffectTarget, EffectLike {
 
     this.targetA = new THREE.WebGLRenderTarget(w, h, rtOptions);
     this.targetB = new THREE.WebGLRenderTarget(w, h, rtOptions);
+
+    // WebGL1 等で maxSamples が 0 のときは MSAA 無効に落とす。
+    const maxSamples = renderer.capabilities?.maxSamples ?? 0;
+    const effectiveSamples = Math.min(Math.max(0, samples), maxSamples);
+    if (effectiveSamples > 0) {
+      this.sceneTarget = new THREE.WebGLRenderTarget(w, h, {
+        ...rtOptions,
+        samples: effectiveSamples,
+      });
+    }
 
     this.postScene = new THREE.Scene();
     this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -171,11 +190,21 @@ export class EffectComposer implements EffectTarget, EffectLike {
       return;
     }
 
-    this.renderer.setRenderTarget(this.targetA);
+    // MSAA 有効時は専用の sceneTarget へ、無効時は targetA へ scene を描く。
+    // three は MSAA target の texture 読み出し時に自動 resolve する。
+    const sceneRT = this.sceneTarget ?? this.targetA;
+    this.renderer.setRenderTarget(sceneRT);
     this.renderer.render(scene, camera);
 
-    let readTarget = this.targetA;
-    let writeTarget = this.targetB;
+    // ping-pong は samples なしの targetA/B のみで往復する。sceneTarget を使う
+    // 場合は両方空くので targetA(index 0) から、使わない場合は targetA が読み取り
+    // 元なので targetB(index 1) から書き始める。
+    const pingPong: [THREE.WebGLRenderTarget, THREE.WebGLRenderTarget] = [
+      this.targetA,
+      this.targetB,
+    ];
+    let readTarget = sceneRT;
+    let writeIndex = this.sceneTarget ? 0 : 1;
 
     for (let i = 0; i < passes.length; i++) {
       const pass = passes[i];
@@ -185,13 +214,13 @@ export class EffectComposer implements EffectTarget, EffectLike {
       pass.material.uniforms['tDiffuse'].value = readTarget.texture;
       this.postMesh.material = pass.material;
 
+      const writeTarget = pingPong[writeIndex];
       this.renderer.setRenderTarget(isLast ? outputTarget : writeTarget);
       this.renderer.render(this.postScene, this.postCamera);
 
       if (!isLast) {
-        const tmp = readTarget;
         readTarget = writeTarget;
-        writeTarget = tmp;
+        writeIndex = writeIndex === 0 ? 1 : 0;
       }
     }
 
@@ -205,6 +234,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
     const h = Math.max(1, Math.floor(height * dpr));
     this.targetA.setSize(w, h);
     this.targetB.setSize(w, h);
+    this.sceneTarget?.setSize(w, h);
   }
 
   dispose(): void {
@@ -212,6 +242,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
     this._disposed = true;
     this.targetA.dispose();
     this.targetB.dispose();
+    this.sceneTarget?.dispose();
     this.geometry.dispose();
     this.postMeshDefaultMaterial.dispose();
     for (const pass of this.passes) {

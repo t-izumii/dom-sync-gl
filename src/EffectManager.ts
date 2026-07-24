@@ -7,17 +7,28 @@ import type { BaseEffect } from './effects/BaseEffect';
 export class EffectManager {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly gui: GUI | null;
+  // scene 描画 RenderTarget の MSAA サンプル数。既定値の解決は Core が行い、
+  // 直接生成した場合は 0（MSAA 無効）。
+  private readonly effectSamples: number;
 
   private effects: BaseEffect[] = [];
   private postEffect: EffectLike | null = null;
+  // postEffect を EffectManager が所有するか。所有する場合のみ置き換え・
+  // clearEffects()・dispose() で dispose する（{ owned: false } で opt-out）。
+  private postEffectOwned = true;
   private internalComposer: EffectComposer | null = null;
+  // 直近の viewport サイズ。setPostEffect 直後に現在サイズで resize するために保持。
+  private lastWidth: number | undefined;
+  private lastHeight: number | undefined;
 
   constructor(opts: {
     renderer: THREE.WebGLRenderer;
     gui: GUI | null;
+    effectSamples?: number;
   }) {
     this.renderer = opts.renderer;
     this.gui = opts.gui;
+    this.effectSamples = opts.effectSamples ?? 0;
   }
 
   hasEffects(): boolean {
@@ -36,9 +47,17 @@ export class EffectManager {
       console.warn(msg);
     }
     if (!this.internalComposer) {
-      this.internalComposer = new EffectComposer(this.renderer, width, height);
+      this.internalComposer = new EffectComposer(
+        this.renderer,
+        width,
+        height,
+        this.effectSamples,
+      );
       this.postEffect = this.internalComposer;
+      this.postEffectOwned = true;
     }
+    this.lastWidth = width;
+    this.lastHeight = height;
 
     effect._setRenderer?.(this.renderer);
     effect._register(this.internalComposer);
@@ -52,7 +71,23 @@ export class EffectManager {
     return effect;
   }
 
-  setPostEffect(postEffect: EffectLike): void {
+  /**
+   * ポストエフェクトパイプラインをカスタム実装に差し替える。
+   *
+   * 所有権契約: EffectManager は設定された postEffect を所有し、置き換え
+   * （再呼び出し）・clearEffects()・dispose() の際に前の postEffect を dispose
+   * する。呼び出し側で dispose を管理したい場合は `{ owned: false }` を渡すと、
+   * EffectManager からは一切 dispose しない。
+   *
+   * width/height を渡すと（省略時は直近の viewport サイズがあればそれで）設定
+   * 直後に resize し、次のリサイズを待たずに現在サイズを反映する。
+   */
+  setPostEffect(
+    postEffect: EffectLike,
+    width?: number,
+    height?: number,
+    options?: { owned?: boolean },
+  ): void {
     if (this.effects.length > 0) {
       const msg =
         '[DomSyncGL] setPostEffect() が呼ばれましたが、addEffect() で追加した effect が既に存在します。' +
@@ -65,7 +100,21 @@ export class EffectManager {
 
       this.clearEffects();
     }
+    // 置き換え時に前の postEffect を取りこぼさない（所有している場合のみ。
+    // 同一インスタンスの再設定では dispose すると使用中のまま壊れるため除外）。
+    if (this.postEffect && this.postEffectOwned && this.postEffect !== postEffect) {
+      this.postEffect.dispose();
+    }
     this.postEffect = postEffect;
+    this.postEffectOwned = options?.owned ?? true;
+
+    const w = width ?? this.lastWidth;
+    const h = height ?? this.lastHeight;
+    if (w !== undefined && h !== undefined) {
+      this.lastWidth = w;
+      this.lastHeight = h;
+      postEffect.resize(w, h);
+    }
   }
 
   removeEffect(effect: BaseEffect): boolean {
@@ -77,6 +126,16 @@ export class EffectManager {
       this.internalComposer.removeEffect(pass);
     }
     effect._dispose();
+    // 最後の effect が外れたら internalComposer（RenderTarget を抱える）を解放する。
+    // 次の addEffect で再生成される。
+    if (this.effects.length === 0 && this.internalComposer) {
+      this.internalComposer.dispose();
+      if (this.postEffect === this.internalComposer) {
+        this.postEffect = null;
+        this.postEffectOwned = true;
+      }
+      this.internalComposer = null;
+    }
     return true;
   }
 
@@ -85,8 +144,9 @@ export class EffectManager {
       effect._dispose();
     }
     this.effects = [];
-    this.postEffect?.dispose();
+    if (this.postEffectOwned) this.postEffect?.dispose();
     this.postEffect = null;
+    this.postEffectOwned = true;
     this.internalComposer = null;
   }
 
@@ -117,6 +177,8 @@ export class EffectManager {
   }
 
   resize(width: number, height: number): void {
+    this.lastWidth = width;
+    this.lastHeight = height;
     this.postEffect?.resize(width, height);
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
@@ -129,8 +191,9 @@ export class EffectManager {
       effect._dispose();
     }
     this.effects = [];
-    this.postEffect?.dispose();
+    if (this.postEffectOwned) this.postEffect?.dispose();
     this.postEffect = null;
+    this.postEffectOwned = true;
     this.internalComposer = null;
   }
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as THREE from 'three';
 import { EffectComposer, EffectPass } from '../EffectComposer';
 
-function makeRenderer(): THREE.WebGLRenderer {
+function makeRenderer(maxSamples = 0): THREE.WebGLRenderer {
   let current: THREE.WebGLRenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
@@ -11,6 +11,7 @@ function makeRenderer(): THREE.WebGLRenderer {
       current = t;
     }),
     render: vi.fn(),
+    capabilities: { maxSamples },
   } as unknown as THREE.WebGLRenderer;
 }
 
@@ -242,6 +243,75 @@ describe('EffectComposer', () => {
 
     expect(renderer.getRenderTarget()).toBe(ext);
     composer.dispose();
+  });
+
+  it('samples 指定で scene 描画専用の MSAA sceneTarget が確保される（CR-17）', () => {
+    const composer = new EffectComposer(makeRenderer(4), 100, 100, 4);
+    const sceneTarget = (
+      composer as unknown as { sceneTarget: THREE.WebGLRenderTarget | null }
+    ).sceneTarget;
+    expect(sceneTarget).not.toBeNull();
+    expect(sceneTarget!.samples).toBe(4);
+    composer.dispose();
+  });
+
+  it('samples は renderer.capabilities.maxSamples で clamp される（CR-17）', () => {
+    const composer = new EffectComposer(makeRenderer(4), 100, 100, 8);
+    const sceneTarget = (
+      composer as unknown as { sceneTarget: THREE.WebGLRenderTarget | null }
+    ).sceneTarget;
+    expect(sceneTarget!.samples).toBe(4);
+    composer.dispose();
+  });
+
+  it('samples=0 なら sceneTarget を作らない（無駄な RT を増やさない・CR-17）', () => {
+    const composer = new EffectComposer(makeRenderer(4), 100, 100, 0);
+    const sceneTarget = (
+      composer as unknown as { sceneTarget: THREE.WebGLRenderTarget | null }
+    ).sceneTarget;
+    expect(sceneTarget).toBeNull();
+    composer.dispose();
+  });
+
+  it('maxSamples=0(WebGL1 等) なら samples 指定でも sceneTarget を作らない（CR-17）', () => {
+    const composer = new EffectComposer(makeRenderer(0), 100, 100, 4);
+    const sceneTarget = (
+      composer as unknown as { sceneTarget: THREE.WebGLRenderTarget | null }
+    ).sceneTarget;
+    expect(sceneTarget).toBeNull();
+    composer.dispose();
+  });
+
+  it('sceneTarget 有効時は scene を sceneTarget へ描き、ping-pong は targetA/B のみ（CR-17）', () => {
+    const renderer = makeRenderer(4);
+    const composer = new EffectComposer(renderer, 100, 100, 4);
+    composer.addEffect({
+      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
+    });
+    const internals = composer as unknown as {
+      sceneTarget: THREE.WebGLRenderTarget;
+    };
+
+    composer.render(new THREE.Scene(), new THREE.PerspectiveCamera());
+
+    // scene→sceneTarget、最終 pass→outputTarget(null) の 2 回描画
+    expect(renderer.render).toHaveBeenCalledTimes(2);
+    const calls = (renderer.setRenderTarget as ReturnType<typeof vi.fn>).mock
+      .calls;
+    // 最初の描画先が MSAA の sceneTarget
+    expect(calls[0][0]).toBe(internals.sceneTarget);
+    composer.dispose();
+  });
+
+  it('sceneTarget を含めて resize/dispose が例外なく通る（CR-17）', () => {
+    const composer = new EffectComposer(makeRenderer(4), 100, 100, 4);
+    expect(() => composer.resize(200, 150)).not.toThrow();
+    const sceneTarget = (
+      composer as unknown as { sceneTarget: THREE.WebGLRenderTarget }
+    ).sceneTarget;
+    const disposeSpy = vi.spyOn(sceneTarget, 'dispose');
+    composer.dispose();
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
   });
 
   it('render: 外部 RT をバインド中でも呼び出し後に復元する（pass 有り・CR-05）', () => {

@@ -26,6 +26,12 @@ export interface DomSyncGLOptions {
   gui?: GUI | null;
   /** 呼び出し元が生成した stats.js インスタンス。渡された場合のみ毎フレーム begin()/end() を呼ぶ（DOM への挿入・破棄は呼び出し元の責務）。 */
   stats?: Stats | null;
+  /**
+   * EffectComposer の scene 描画 RenderTarget の MSAA サンプル数。既定 4、0 で無効化。
+   * GPU 上限（renderer.capabilities.maxSamples）で clamp される。
+   * effect 有効時に 3D geometry のエッジがジャギーになるのを防ぐ。
+   */
+  effectSamples?: number;
 }
 
 export interface CreatePlaneOptions {

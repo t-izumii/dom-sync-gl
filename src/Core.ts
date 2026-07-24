@@ -92,6 +92,7 @@ export class DomSyncGL {
     this.effectManager = new EffectManager({
       renderer: this.renderer,
       gui,
+      effectSamples: this.options.effectSamples ?? 4,
     });
     this.pointer = new PointerController({
       canvas: this.canvas,
@@ -387,11 +388,16 @@ export class DomSyncGL {
     return this.devTools.getGUI();
   }
 
-  setPostEffect(postEffect: EffectLike): void {
+  setPostEffect(postEffect: EffectLike, options?: { owned?: boolean }): void {
     if (this.destroyed) {
       throw new Error('[DomSyncGL] setPostEffect(): destroy 済みのインスタンスでは使えません。');
     }
-    this.effectManager.setPostEffect(postEffect);
+    this.effectManager.setPostEffect(
+      postEffect,
+      this.rect.width,
+      this.rect.height,
+      options,
+    );
   }
 
   removeEffect(effect: BaseEffect): boolean {

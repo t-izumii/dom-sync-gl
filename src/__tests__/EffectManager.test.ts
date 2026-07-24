@@ -4,7 +4,7 @@ import type GUI from 'lil-gui';
 import { EffectManager } from '../EffectManager';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 
-function makeRenderer(): THREE.WebGLRenderer {
+function makeRenderer(maxSamples = 0): THREE.WebGLRenderer {
   let current: THREE.WebGLRenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
@@ -13,6 +13,7 @@ function makeRenderer(): THREE.WebGLRenderer {
       current = t;
     }),
     render: vi.fn(),
+    capabilities: { maxSamples },
   } as unknown as THREE.WebGLRenderer;
 }
 
@@ -280,5 +281,102 @@ describe('EffectManager', () => {
       expect(warnSpy).toHaveBeenCalled();
       expect(manager.hasEffects()).toBe(false); // clearEffects() されている
     }
+  });
+
+  it('setPostEffect(A) → setPostEffect(B) で所有する A が dispose される（CR-12）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const a = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    const b = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+
+    manager.setPostEffect(a);
+    manager.setPostEffect(b);
+
+    expect(a.dispose).toHaveBeenCalledTimes(1);
+    expect(b.dispose).not.toHaveBeenCalled();
+  });
+
+  it('setPostEffect(A, { owned: false }) の A は置き換え時に dispose されない（CR-12）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const a = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    const b = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+
+    manager.setPostEffect(a, undefined, undefined, { owned: false });
+    manager.setPostEffect(b);
+
+    expect(a.dispose).not.toHaveBeenCalled();
+  });
+
+  it('setPostEffect(A, { owned: false }) の A は clearEffects/dispose でも dispose されない（CR-12）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const a = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+
+    manager.setPostEffect(a, undefined, undefined, { owned: false });
+    manager.clearEffects();
+    manager.dispose();
+
+    expect(a.dispose).not.toHaveBeenCalled();
+  });
+
+  it('setPostEffect: サイズを渡すと設定直後に現在サイズで resize される（CR-12）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const pe = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+
+    manager.setPostEffect(pe, 800, 600);
+
+    expect(pe.resize).toHaveBeenCalledWith(800, 600);
+  });
+
+  it('setPostEffect: サイズ未指定でも直近の viewport サイズで resize される（CR-12）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    manager.resize(400, 300);
+    const pe = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+
+    manager.setPostEffect(pe);
+
+    expect(pe.resize).toHaveBeenCalledWith(400, 300);
+  });
+
+  it('removeEffect: 最後の 1 個を外すと internalComposer が dispose され再 addEffect で再生成される（CR-12）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const e1 = new TestEffect();
+    manager.addEffect(e1, 100, 100);
+    const composer = (
+      manager as unknown as { internalComposer: { dispose: () => void } | null }
+    ).internalComposer;
+    const disposeSpy = vi.spyOn(composer!, 'dispose');
+
+    manager.removeEffect(e1);
+
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (manager as unknown as { internalComposer: unknown }).internalComposer,
+    ).toBeNull();
+    expect(manager.hasEffects()).toBe(false);
+
+    // 次の addEffect で新しい internalComposer が生成される
+    const e2 = new TestEffect();
+    manager.addEffect(e2, 100, 100);
+    const recreated = (
+      manager as unknown as { internalComposer: unknown }
+    ).internalComposer;
+    expect(recreated).not.toBeNull();
+    expect(recreated).not.toBe(composer);
+  });
+
+  it('effectSamples は internalComposer の sceneTarget へ配線される（CR-17）', () => {
+    const manager = new EffectManager({
+      renderer: makeRenderer(4),
+      gui: null,
+      effectSamples: 4,
+    });
+    manager.addEffect(new TestEffect(), 100, 100);
+
+    const composer = (
+      manager as unknown as {
+        internalComposer: { sceneTarget: { samples: number } | null };
+      }
+    ).internalComposer;
+    expect(composer.sceneTarget).not.toBeNull();
+    expect(composer.sceneTarget!.samples).toBe(4);
   });
 });

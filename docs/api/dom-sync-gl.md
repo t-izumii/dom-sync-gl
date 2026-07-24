@@ -28,6 +28,7 @@ new DomSyncGL(selector: string | HTMLElement, options?: DomSyncGLOptions)
 | `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限（モバイルは `1.5` 推奨） |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
+| `effectSamples` | `number` | `4` | EffectComposer の scene 描画 RenderTarget の MSAA サンプル数。`0` で無効化。GPU 上限（`renderer.capabilities.maxSamples`）で clamp される。effect 有効時のエッジのジャギーを防ぐ |
 | `stats` | `Stats \| null` | `null` | 呼び出し元が生成した stats.js インスタンス。渡すと毎フレーム `begin()`/`end()` を呼ぶ |
 | `gui` | `GUI \| null` | `null` | 呼び出し元が生成した lil-gui インスタンス。渡すと `setupGUI()` 系のフックが有効になる |
 
@@ -147,10 +148,21 @@ app.remove3DObject(obj);
 
 フルスクリーンチェーンの管理。詳細は [BaseEffect](/api/base-effect)。
 
-### `setPostEffect(effectLike)`
+### `setPostEffect(effectLike, options?)`
 
 `EffectLike` (= `render` / `resize` / `dispose` を実装) を渡して、ポストエフェクト
 パイプライン全体を独自実装に差し替える低レベル API。通常は `addEffect()` を使う。
+設定直後に現在の viewport サイズで `resize()` が呼ばれる（次のリサイズを待たない）。
+
+**所有権**: 既定では domSyncGL が渡された postEffect を所有し、置き換え
+（`setPostEffect()` 再呼び出し）・`clearEffects()`・`destroy()` の際に前の postEffect を
+`dispose()` する。dispose を呼び出し側で管理したい場合は `{ owned: false }` を渡す
+（domSyncGL からは一切 dispose されなくなる）。
+
+```ts
+app.setPostEffect(myEffect);                  // domSyncGL が所有・自動 dispose
+app.setPostEffect(myEffect, { owned: false }); // dispose は呼び出し側の責務
+```
 
 ::: warning addEffect と併用しない
 `addEffect()` で追加済みのエフェクトがある状態で呼ぶと内部 EffectComposer を破棄して
