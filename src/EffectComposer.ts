@@ -97,13 +97,9 @@ export class EffectComposer implements EffectTarget, EffectLike {
   /**
    * fullscreen pass を追加する。
    *
-   * alpha 契約: 中間 RenderTarget の内容は premultiplied alpha として扱う。
-   * fragmentShader が受け取る tDiffuse も premultiplied alpha であり、
-   * 各 pass は前段の結果を丸ごと置き換える（blend しない）。この前提のもと
-   * pass material は NoBlending で描き、premultiplied なデータを素通しする。
-   * 最終 pass は screen(null) へ NoBlending で書き出すが、canvas の WebGL
-   * context は premultipliedAlpha: true（three の既定）なのでブラウザ合成と
-   * 整合する。
+   * alpha 契約: 中間 RenderTarget と tDiffuse は premultiplied alpha。各 pass は
+   * 前段の結果を丸ごと置き換えるため NoBlending で素通しする（NormalBlending だと
+   * alpha が pass ごとに再乗算され透明部が暗くなる）。
    */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
@@ -116,8 +112,6 @@ export class EffectComposer implements EffectTarget, EffectLike {
       },
       vertexShader: defaultVertexShader,
       fragmentShader: options.fragmentShader,
-      // 前段の premultiplied な結果を丸ごと置き換えるだけで blend 不要。
-      // NormalBlending だと alpha が再乗算され pass ごとに透明部が暗くなる。
       transparent: false,
       depthTest: false,
       depthWrite: false,

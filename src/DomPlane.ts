@@ -13,9 +13,8 @@ export interface AddFeedbackOptions extends FeedbackBufferOptions {
 const sharedTextureLoader = new THREE.TextureLoader();
 sharedTextureLoader.setCrossOrigin("anonymous");
 
-// これらの uniform は DomPlane が内部で生成・毎フレーム更新するため、
-// options.uniforms から同名を渡すと内部処理（uResolution.value.set 等）が
-// 壊れて実行時例外になる。予約名として上書きを禁止する。
+// DomPlane が内部で生成・毎フレーム更新する uniform。
+// options.uniforms からの上書きは内部処理を壊すため予約名として禁止する。
 const RESERVED_UNIFORM_NAMES: readonly string[] = [
   "uTexture",
   "uAlpha",
@@ -70,8 +69,8 @@ export class DomPlane {
   private ownsTexture: boolean = false;
   private crossOrigin: string | undefined;
   private textureColorSpace: THREE.ColorSpace;
-  // 進行中の非同期テクスチャロードを世代番号で識別する。reload/setTexture/destroy で
-  // インクリメントし、後着した古いロードの完了 callback を無効化する（下記 loadTexture 参照）。
+  // 進行中の非同期テクスチャロードの世代番号。reload/setTexture/destroy で
+  // インクリメントし、後着した古いロードの完了 callback を無効化する。
   private textureLoadGeneration = 0;
   private readonly scroll: { x: number; y: number };
 
@@ -84,8 +83,6 @@ export class DomPlane {
     options: CreatePlaneOptions = {},
     sharedClock?: THREE.Clock,
   ) {
-    // 予約 uniform を options.uniforms で上書きされると内部処理が壊れるため、
-    // 副作用を起こす前（observer/geometry 生成前）に fail-fast で弾く。
     if (options.uniforms) {
       for (const name of RESERVED_UNIFORM_NAMES) {
         if (name in options.uniforms) {
@@ -105,8 +102,6 @@ export class DomPlane {
     this.destroyed = false;
     this.updateRectEveryFrame = options.updateRectEveryFrame || false;
     this.crossOrigin = options.crossOrigin;
-    // 既定は NoColorSpace = shader は生の sRGB 値をそのまま受け取る passthrough 契約
-    // （詳細は CreatePlaneOptions.textureColorSpace の JSDoc 参照）。
     this.textureColorSpace = options.textureColorSpace ?? THREE.NoColorSpace;
     this.clock = sharedClock ?? new THREE.Clock();
     this.canvasRect = canvasRect;
@@ -212,9 +207,7 @@ export class DomPlane {
       loader.load(
         texturePath,
         (texture: THREE.Texture) => {
-          // destroy 済み、または reload/setTexture で新しいロードが始まって世代が
-          // 進んでいる場合は、後着した古い結果。表示の巻き戻りと dispose 漏れを
-          // 防ぐため、受け取った texture を破棄して無視する。
+          // 後着した古いロード結果は表示の巻き戻りを防ぐため破棄する
           if (this.destroyed || generation !== this.textureLoadGeneration) {
             texture.dispose();
             return;
@@ -302,7 +295,6 @@ export class DomPlane {
   }
 
   public reloadTexture(): void {
-    // 進行中の古いロードを無効化してから開始する（後着で巻き戻らないように）。
     this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture) {
       this.texture.dispose();
@@ -314,8 +306,6 @@ export class DomPlane {
   }
 
   public setTexture(texture: THREE.Texture, takeOwnership: boolean = false): void {
-    // ロード中に差し替えた場合、後着した stale なロード結果で上書きされないよう
-    // 世代を進めて進行中ロードを無効化する。
     this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture && this.texture !== texture) {
       this.texture.dispose();
@@ -413,7 +403,6 @@ export class DomPlane {
   }
 
   public addFeedback(options: AddFeedbackOptions): FeedbackBuffer {
-    // outputUniform が DomPlane の予約 uniform と衝突すると内部処理を壊すため弾く。
     if (RESERVED_UNIFORM_NAMES.includes(options.outputUniform)) {
       throw new Error(
         `[DomPlane] addFeedback の outputUniform "${options.outputUniform}" は` +
@@ -485,7 +474,6 @@ export class DomPlane {
   public destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
-    // 進行中ロードを無効化する（destroyed フラグと合わせて後着 callback を弾く）。
     this.textureLoadGeneration++;
     this.observer?.disconnect();
 

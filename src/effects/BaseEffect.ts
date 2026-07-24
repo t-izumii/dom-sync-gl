@@ -11,12 +11,8 @@ export interface BaseEffectConfig {
  * ポストエフェクトの基底クラス。
  *
  * effect インスタンスは単一 owner・使い捨てで、`new → registered → disposed` の
- * 一方向ライフサイクルを取る:
- * - `new`: 生成直後。まだどの owner にも属さない。
- * - `registered`: `EffectManager.addEffect()` または `DomPlane.addEffect()` で
- *   1 つの owner に登録済み。別の owner への再登録は throw する。
- * - `disposed`: owner の `removeEffect()` / `dispose()` で破棄済み。以後の再登録は
- *   throw する。使い回す場合は新しいインスタンスを生成すること。
+ * 一方向ライフサイクルを取る。別 owner への再登録・dispose 後の再登録は throw
+ * するため、使い回す場合は新しいインスタンスを生成する。
  */
 export abstract class BaseEffect {
   protected pass: EffectPass | null = null;
@@ -35,9 +31,8 @@ export abstract class BaseEffect {
   protected abstract getConfig(): BaseEffectConfig;
 
   _register(target: EffectTarget): void {
-    // effect は単一 owner・使い捨て。二重 register を許すと owner をまたいで
-    // update が二重実行される・一方の owner が他方で使用中の effect を dispose
-    // できる、といった registry の破壊が起きるため throw する。
+    // 二重 register を許すと update の二重実行や owner をまたいだ dispose が
+    // 起きるため throw する。
     if (this._disposed) {
       throw new Error(
         "[BaseEffect] dispose 済みの effect は再登録できません。" +

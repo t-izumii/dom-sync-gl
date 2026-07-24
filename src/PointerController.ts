@@ -17,8 +17,7 @@ export class PointerController {
   private readonly ndcBuf = new THREE.Vector2();
   private readonly raycaster = new THREE.Raycaster();
   // Raycaster.intersectObjects は Object3D.visible を除外しないため、
-  // 可視 mesh だけを詰め直して渡す。毎フレームのアロケーションを避けて
-  // 使い回す（mouseDeltaBuf / ndcBuf と同じバッファ方針）。
+  // 可視 mesh だけを詰め直して渡すための使い回しバッファ。
   private readonly visibleMeshBuf: THREE.Mesh[] = [];
   private hoveredPlane: DomPlane | null = null;
 
@@ -198,9 +197,6 @@ export class PointerController {
       return;
     }
 
-    // 非表示 mesh は画面外に取り残された過去位置のまま raycast に残り、
-    // 可視 plane より手前で hit して hover を奪うため、可視 mesh だけを
-    // 使い回しバッファに詰め直して渡す。
     const targets = this.visibleMeshBuf;
     targets.length = 0;
     const meshes = this.planeMeshes;
@@ -218,7 +214,6 @@ export class PointerController {
       if (intersect.uv) {
         const hitMesh = intersect.object as THREE.Mesh;
         const plane = this.planeByMesh.get(hitMesh);
-        // 防御的な二重チェック: 非表示 plane には hover を渡さない。
         if (plane && plane.isVisible) {
 
           if (this.hoveredPlane && this.hoveredPlane !== plane) {
