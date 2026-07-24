@@ -252,10 +252,10 @@ export class DomPlane {
       scrollY,
     );
     this.mesh.position.set(x, y, 0);
-    // post effect 有効時、PlaneComposer が mesh を mainScene から外す（parent === null）ため、
-    // レンダーループでの matrixWorld 自動更新が走らなくなる。PointerController のレイキャストは
-    // mesh.matrixWorld を参照するので、ここで明示的に更新して常に最新の位置を反映させる。
-    // scene 所属時（post effect 無し）でも無害（レンダー時に再計算されるだけ）。
+    // PointerController のレイキャストは mesh.matrixWorld を参照し、フレーム内では
+    // この apply より前（レンダーより前）に走る。レンダーループの自動更新に頼ると
+    // scene.matrixWorldAutoUpdate 無効時に古い座標で判定してしまうため、位置確定と
+    // 同時にここで更新して hover 判定を常に最新に保つ。
     this.mesh.updateMatrixWorld();
   }
 
@@ -279,8 +279,8 @@ export class DomPlane {
     } else {
       this.updateSize();
       this.mesh.position.set(0, 0, 0);
-      // setPosition() を通らない経路なので、ここでも matrixWorld を更新しておく
-      // （post effect 有効時に mesh が scene から外れていても位置/スケールが反映されるように）。
+      // setPosition() を通らない経路なので、同じ理由（hover 判定を最新に保つ）で
+      // ここでも matrixWorld を更新しておく。
       this.mesh.updateMatrixWorld();
     }
 
@@ -384,7 +384,6 @@ export class DomPlane {
     this.planeComposer = new PlaneComposer(
       this.renderer,
       this.mesh,
-      this.scene,
       rect.width,
       rect.height,
     );
@@ -468,7 +467,7 @@ export class DomPlane {
     }
     effect._dispose();
     // 最後の effect が外れたら RenderTarget を抱えたままにせず解放する。
-    // dispose() は sourceMesh を scene へ戻すので、次の addEffect で再生成される。
+    // dispose() は material を元へ戻すので、次の addEffect で composer を再生成できる。
     if (this.effects.length === 0 && this.planeComposer) {
       this.planeComposer.dispose();
       this.planeComposer = null;

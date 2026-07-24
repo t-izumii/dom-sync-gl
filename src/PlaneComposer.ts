@@ -31,24 +31,28 @@ export class PlaneComposer implements EffectTarget {
   // 属さず誰も dispose しない。dispose() で確実に解放できるよう個別に保持する。
   private readonly postMeshDefaultMaterial: THREE.Material;
 
-  private proxyMesh: THREE.Mesh;
-  private proxyMaterial: THREE.MeshBasicMaterial;
-  private proxyGeo: THREE.PlaneGeometry;
-  private mainScene: THREE.Scene;
+  // sourceMesh を Object3D として mainScene に残したまま、effect 有効時だけ
+  // material をこれに差し替えて合成結果を表示する（renderOrder / layers /
+  // frustumCulled / 親子関係を proxy へ移し替えず自動的に維持するため）。
+  // RT は premultiplied alpha なので premultipliedAlpha:true で合成し alpha の
+  // 再乗算を防ぐ。depthTest / depthWrite / side は originalMaterial の値を毎
+  // render で同期してユーザー設定を維持する。カスタム blending は premultiplied
+  // 合成と両立しないため同期しない。
+  private readonly displayMaterial: THREE.MeshBasicMaterial;
+  // effect 有効時に差し替える前の material。bypass / dispose で戻す。
+  private readonly originalMaterial: THREE.Material;
 
-  private _bypassed: boolean = false;
   private _disposed: boolean = false;
 
   constructor(
     renderer: THREE.WebGLRenderer,
     sourceMesh: THREE.Mesh,
-    mainScene: THREE.Scene,
     width: number,
     height: number,
   ) {
     this.renderer = renderer;
     this.sourceMesh = sourceMesh;
-    this.mainScene = mainScene;
+    this.originalMaterial = sourceMesh.material as THREE.Material;
 
     const dpr = renderer.getPixelRatio();
     const w = Math.max(1, Math.floor(width * dpr));
@@ -83,21 +87,11 @@ export class PlaneComposer implements EffectTarget {
     this.postMeshDefaultMaterial = this.postMesh.material as THREE.Material;
     this.postScene.add(this.postMesh);
 
-    mainScene.remove(sourceMesh);
-
-    this.proxyMaterial = new THREE.MeshBasicMaterial({
+    this.displayMaterial = new THREE.MeshBasicMaterial({
       map: this.targetA.texture,
       transparent: true,
-      // RenderTarget の内容は premultiplied alpha なので (ONE, ONE_MINUS_SRC_ALPHA)
-      // で合成し、alpha の再乗算を防ぐ。
       premultipliedAlpha: true,
     });
-    this.proxyGeo = new THREE.PlaneGeometry(1, 1);
-    this.proxyMesh = new THREE.Mesh(this.proxyGeo, this.proxyMaterial);
-    this.proxyMesh.position.copy(sourceMesh.position);
-    this.proxyMesh.scale.copy(sourceMesh.scale);
-    this.proxyMesh.quaternion.copy(sourceMesh.quaternion);
-    mainScene.add(this.proxyMesh);
   }
 
   /**
@@ -137,44 +131,23 @@ export class PlaneComposer implements EffectTarget {
     return true;
   }
 
-  private enterBypass(): void {
-    if (this._bypassed) return;
-    this.mainScene.add(this.sourceMesh);
-    this.proxyMesh.visible = false;
-    this._bypassed = true;
-  }
-
-  private exitBypass(): void {
-    if (!this._bypassed) return;
-    this.mainScene.remove(this.sourceMesh);
-    this.proxyMesh.visible = true;
-    this._bypassed = false;
-  }
-
   render(): void {
     if (this._disposed) return;
-    if (!this.sourceMesh.visible) {
-      this.proxyMesh.visible = false;
-      return;
-    }
+    // sourceMesh 自体が非表示なら描画しない（新方式では隠す proxy が無い）。
+    if (!this.sourceMesh.visible) return;
 
     let activeCount = 0;
     for (const p of this.passes) if (p.enabled) activeCount++;
     if (activeCount === 0) {
-      this.enterBypass();
+      this.sourceMesh.material = this.originalMaterial;
       return;
     }
-
-    this.exitBypass();
 
     // 外部がバインドした RenderTarget を壊さないよう保存し、末尾で復元する。
     const prevTarget = this.renderer.getRenderTarget();
 
-    this.proxyMesh.visible = true;
-    this.proxyMesh.position.copy(this.sourceMesh.position);
-    this.proxyMesh.scale.copy(this.sourceMesh.scale);
-    this.proxyMesh.quaternion.copy(this.sourceMesh.quaternion);
     this.localMesh.scale.copy(this.sourceMesh.scale);
+    this.syncDisplayMaterialState();
 
     this.renderer.setRenderTarget(this.targetA);
     this.renderer.render(this.localScene, this.localCamera);
@@ -194,8 +167,17 @@ export class PlaneComposer implements EffectTarget {
       write = tmp;
     }
 
-    this.proxyMaterial.map = read.texture;
+    this.displayMaterial.map = read.texture;
+    this.sourceMesh.material = this.displayMaterial;
     this.renderer.setRenderTarget(prevTarget);
+  }
+
+  // material レベルの描画状態を originalMaterial から displayMaterial へ写す。
+  // Why は displayMaterial の宣言部を参照。
+  private syncDisplayMaterialState(): void {
+    this.displayMaterial.depthTest = this.originalMaterial.depthTest;
+    this.displayMaterial.depthWrite = this.originalMaterial.depthWrite;
+    this.displayMaterial.side = this.originalMaterial.side;
   }
 
   resize(width: number, height: number): void {
@@ -218,18 +200,14 @@ export class PlaneComposer implements EffectTarget {
     if (this._disposed) return;
     this._disposed = true;
 
-    this.mainScene.remove(this.proxyMesh);
-    if (!this._bypassed) {
-      this.mainScene.add(this.sourceMesh);
-    }
-    this._bypassed = false;
+    // 呼び出し元が引き続き扱えるよう sourceMesh の material を元へ戻す。
+    this.sourceMesh.material = this.originalMaterial;
 
     this.targetA.dispose();
     this.targetB.dispose();
     this.postGeo.dispose();
     this.postMeshDefaultMaterial.dispose();
-    this.proxyGeo.dispose();
-    this.proxyMaterial.dispose();
+    this.displayMaterial.dispose();
     for (const pass of this.passes) {
       pass.material.dispose();
     }

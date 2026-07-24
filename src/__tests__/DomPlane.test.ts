@@ -248,10 +248,10 @@ describe('DomPlane', () => {
   });
 
   describe('matrixWorld 更新（post effect 後の hover 判定の回帰）', () => {
-    // post effect を追加すると PlaneComposer が mesh を mainScene から外す（parent === null）。
-    // 以後レンダーループでの matrixWorld 自動更新が走らなくなり、PointerController のレイキャストが
-    // 単位行列前提のズレた座標で判定して恒久的に hover しなくなるバグの回帰テスト。
-    it('addEffect 後も setPosition で mesh.matrixWorld が実際の position を反映する', async () => {
+    // 新方式では post effect を足しても mesh は scene に残る（material 差し替えのみ）。
+    // PointerController のレイキャストはフレーム内でレンダーより前に走るため、
+    // setPosition で明示的に matrixWorld を更新して常に最新座標で hover 判定できることの回帰テスト。
+    it('addEffect 後も mesh は scene 所属のまま、setPosition で matrixWorld が実際の position を反映する', async () => {
       const app = new DomSyncGL(container);
       const el = document.createElement('div');
       document.body.appendChild(el);
@@ -262,9 +262,9 @@ describe('DomPlane', () => {
       const plane = app.createPlane(el) as DomPlane;
       await flush(); // isVisible=true にする（IntersectionObserver）
 
-      // post effect を追加 → PlaneComposer が mesh を scene から外す
+      // post effect を追加しても mesh は scene に残る（material だけ差し替わる）
       plane.addEffect(new TestEffect());
-      expect(plane.getMesh().parent).toBeNull();
+      expect(plane.getMesh().parent).toBe(app.getScene());
 
       // フレーム更新（実アプリの _tickApply 相当）で位置を反映させる
       plane._tickApply(0, 0, 0);
@@ -442,16 +442,17 @@ describe('DomPlane', () => {
   describe('最後の effect 除去で PlaneComposer を解放する（CR-18）', () => {
     type WithComposer = { planeComposer: PlaneComposer | null };
 
-    it('最後の effect を removeEffect すると composer が dispose され mesh が scene に戻る', () => {
+    it('最後の effect を removeEffect すると composer が dispose され material が元に戻る', () => {
       const app = new DomSyncGL(container);
       const plane = app.createPlane(null) as DomPlane;
       const scene = app.getScene();
       const mesh = plane.getMesh();
+      const original = mesh.material;
 
       const effect = new TestEffect();
       plane.addEffect(effect);
-      // composer 生成で sourceMesh は scene から外れ proxy 経由になる
-      expect(scene.children).not.toContain(mesh);
+      // 新方式では sourceMesh は scene に残ったまま
+      expect(scene.children).toContain(mesh);
 
       const composer = (plane as unknown as WithComposer).planeComposer!;
       const disposeSpy = vi.spyOn(composer, 'dispose');
@@ -460,8 +461,9 @@ describe('DomPlane', () => {
 
       expect(disposeSpy).toHaveBeenCalledTimes(1);
       expect((plane as unknown as WithComposer).planeComposer).toBeNull();
-      // dispose が sourceMesh を scene へ戻す（二重 add にならない）
+      // dispose が material を元へ戻し、mesh は scene に残り続ける
       expect(scene.children).toContain(mesh);
+      expect(mesh.material).toBe(original);
       app.destroy();
     });
 
@@ -483,8 +485,8 @@ describe('DomPlane', () => {
 
       expect(composer2).not.toBeNull();
       expect(composer2).not.toBe(composer1);
-      // 新しい composer が再び sourceMesh を scene から外す
-      expect(scene.children).not.toContain(mesh);
+      // sourceMesh は一貫して scene に残り続ける
+      expect(scene.children).toContain(mesh);
       app.destroy();
     });
   });
