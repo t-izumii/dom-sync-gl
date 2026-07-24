@@ -73,6 +73,14 @@ export interface CreateTextPlaneOptions extends CreatePlaneOptions {
   hideElementText?: boolean;
   /** element.textContent の代わりに描画するテキスト */
   text?: string;
+  /**
+   * サイズ変化を伴う resize() のたびに computed style を再解決するか。既定: false。
+   * 既定で false なのは、getComputedStyle が強制スタイル再計算(reflow)を招き
+   * リサイズ連打時のコストが大きいため。responsive な font-size(clamp 等)や
+   * Media Query によるスタイル変更を追従させたい場合のみ true にする。
+   * true にせずとも `refreshStyle()` を任意タイミングで呼べば再解決できる。
+   */
+  refreshStyleOnResize?: boolean;
 }
 
 export type Dom3DObjectFitMode = "maxSide" | "contain";

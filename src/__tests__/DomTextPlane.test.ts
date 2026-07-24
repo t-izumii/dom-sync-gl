@@ -399,7 +399,8 @@ describe("DomTextPlane", () => {
         new DOMRect(0, 0, 400, 200),
       );
       expect(roCallbacks.length).toBeGreaterThan(0);
-      roCallbacks[0]([], {} as ResizeObserver);
+      // 先頭は Core の container observer。text plane の observer は末尾に登録される。
+      roCallbacks[roCallbacks.length - 1]([], {} as ResizeObserver);
 
       expect(ctx.clearRect).toHaveBeenCalled();
       app.destroy();
@@ -418,6 +419,120 @@ describe("DomTextPlane", () => {
       );
       expect(() => plane.resize()).not.toThrow();
       expect(ctx.fillText).toHaveBeenCalled();
+      app.destroy();
+    });
+  });
+
+  describe("refreshStyle / refreshStyleOnResize", () => {
+    // getComputedStyle をモックする。color は要素の実インライン color を反映させて、
+    // transparent 化中に透明色を拾わないことを検証できるようにする。
+    function mockComputedStyle(style: { fontSize: string }): void {
+      vi.spyOn(window, "getComputedStyle").mockImplementation(
+        (elm: Element) =>
+          ({
+            fontSize: style.fontSize,
+            fontFamily: "Arial",
+            fontWeight: "400",
+            fontStyle: "normal",
+            color: (elm as HTMLElement).style.color || "rgb(0, 0, 0)",
+            lineHeight: "normal",
+            letterSpacing: "normal",
+            textAlign: "left",
+            paddingTop: "0px",
+            paddingRight: "0px",
+            paddingBottom: "0px",
+            paddingLeft: "0px",
+          }) as CSSStyleDeclaration,
+      );
+    }
+
+    it("refreshStyle() で font-size 変更が resolvedStyle に反映され再ラスタライズされる", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl();
+      const style = { fontSize: "16px" };
+      mockComputedStyle(style);
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+      expect(ctx.font).toContain("16px");
+      ctx.clearRect.mockClear();
+
+      style.fontSize = "40px";
+      plane.refreshStyle();
+
+      expect(ctx.font).toContain("40px");
+      expect(ctx.clearRect).toHaveBeenCalled();
+      app.destroy();
+    });
+
+    it("transparent 化中に refreshStyle() しても透明色を拾わず元の色が使われ、呼び出し後も transparent のまま", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl();
+      el.style.color = "blue";
+      const style = { fontSize: "16px" };
+      mockComputedStyle(style);
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+      expect(el.style.color).toBe("transparent");
+
+      plane.refreshStyle();
+
+      expect(ctx.fillStyle).toBe("blue");
+      expect(el.style.color).toBe("transparent");
+      app.destroy();
+    });
+
+    it("refreshStyleOnResize: true のときサイズ変化を伴う resize() で style が再解決される", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl("text", new DOMRect(0, 0, 200, 100));
+      const style = { fontSize: "16px" };
+      mockComputedStyle(style);
+      const plane = app.createTextPlane(el, {
+        refreshStyleOnResize: true,
+      }) as DomTextPlane;
+      await flush();
+
+      style.fontSize = "40px";
+      vi.spyOn(el, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, 0, 300, 150),
+      );
+      plane.resize();
+
+      expect(ctx.font).toContain("40px");
+      app.destroy();
+    });
+
+    it("refreshStyleOnResize 既定(false)ではサイズ変化 resize() で style が再解決されない", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl("text", new DOMRect(0, 0, 200, 100));
+      const style = { fontSize: "16px" };
+      mockComputedStyle(style);
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+
+      style.fontSize = "40px";
+      vi.spyOn(el, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, 0, 300, 150),
+      );
+      plane.resize();
+
+      expect(ctx.font).toContain("16px");
+      expect(ctx.font).not.toContain("40px");
+      app.destroy();
+    });
+
+    it("destroy 後の refreshStyle() は no-op（例外を投げず再ラスタライズしない）", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl();
+      const style = { fontSize: "16px" };
+      mockComputedStyle(style);
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+      app.removePlane(plane);
+      ctx.clearRect.mockClear();
+
+      style.fontSize = "40px";
+      expect(() => plane.refreshStyle()).not.toThrow();
+      expect(ctx.clearRect).not.toHaveBeenCalled();
       app.destroy();
     });
   });
@@ -464,7 +579,8 @@ describe("DomTextPlane", () => {
       app.destroy();
 
       expect(disposeSpy).toHaveBeenCalledTimes(1);
-      expect(roDisconnectSpy).toHaveBeenCalledTimes(1);
+      // text plane の observer + Core の container observer の 2 回
+      expect(roDisconnectSpy).toHaveBeenCalledTimes(2);
     });
   });
 

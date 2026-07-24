@@ -5,15 +5,18 @@ import {
   rasterizeText,
   type ResolvedTextStyle,
 } from "./TextRasterizer";
-import type { CreateTextPlaneOptions } from "./types";
+import type { CreateTextPlaneOptions, TextStyleOverrides } from "./types";
 
 export class DomTextPlane extends DomPlane {
   private textCanvas!: HTMLCanvasElement;
   private textTexture!: THREE.CanvasTexture;
   private resolvedStyle!: ResolvedTextStyle;
+  // refreshStyle() で再解決するため、コンストラクタ時点の上書き指定を保持する。
+  private styleOverrides?: TextStyleOverrides;
   private text!: string;
   private pixelRatio!: number;
   private hideElementText: boolean;
+  private refreshStyleOnResize: boolean;
   private previousInlineColor: string | null = null;
   private hidden = false;
   private resizeObserver: ResizeObserver | null = null;
@@ -36,9 +39,11 @@ export class DomTextPlane extends DomPlane {
     super(el, scene, canvasRect, scroll, renderer, options, sharedClock);
 
     this.hideElementText = options.hideElementText ?? true;
+    this.refreshStyleOnResize = options.refreshStyleOnResize ?? false;
+    this.styleOverrides = options.style;
     this.text = options.text ?? el.textContent ?? "";
     // color: transparent を当てる前にスタイル（特に色）を抽出しておく。
-    this.resolvedStyle = resolveTextStyle(el, options.style);
+    this.resolvedStyle = resolveTextStyle(el, this.styleOverrides);
     this.pixelRatio = options.pixelRatio ?? Math.min(window.devicePixelRatio || 1, 2);
 
     this.textCanvas = document.createElement("canvas");
@@ -109,6 +114,33 @@ export class DomTextPlane extends DomPlane {
     this.textTexture.needsUpdate = true;
   }
 
+  /**
+   * computed style を再解決して描き直す。responsive な font-size(clamp)・
+   * Media Query・class 変更による color/weight/line-height/padding の変化を
+   * テクスチャに反映させたいときに呼ぶ。destroy 済みは no-op。
+   */
+  public refreshStyle(): void {
+    if (this.textDestroyed || !this.element) return;
+    this.reresolveStyle();
+    this.rasterize();
+  }
+
+  private reresolveStyle(): void {
+    if (!this.element) return;
+    // hideElementText で transparent 化中にそのまま getComputedStyle すると
+    // 退避前の色ではなく transparent を拾ってしまうため、元のインライン color を
+    // 一時復元してから再解決する。前後の色差し替えは同期処理でフレームを跨がず、
+    // 描画上は transparent のままなので画面のちらつきは起きない。
+    const restore = this.hidden;
+    if (restore) {
+      this.element.style.color = this.previousInlineColor ?? "";
+    }
+    this.resolvedStyle = resolveTextStyle(this.element, this.styleOverrides);
+    if (restore) {
+      this.element.style.color = "transparent";
+    }
+  }
+
   public setText(text: string): void {
     if (this.textDestroyed || !this.element) return;
     this.text = text;
@@ -125,6 +157,9 @@ export class DomTextPlane extends DomPlane {
     const rect = this.positionCalculator?.rect;
     if (!rect) return;
     if (rect.width !== this.lastRasterWidth || rect.height !== this.lastRasterHeight) {
+      if (this.refreshStyleOnResize) {
+        this.reresolveStyle();
+      }
       this.rasterize();
     }
   }
