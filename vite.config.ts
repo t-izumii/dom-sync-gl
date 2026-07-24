@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import dts from "vite-plugin-dts";
 
 export default defineConfig({
@@ -17,7 +17,8 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      // ESM ネイティブに解決する。__dirname は type:module では存在しないため使わない。
+      entry: fileURLToPath(new URL("src/index.ts", import.meta.url)),
       // ESM と CJS の両出力。UMD は不要（モダン bundler 前提）。
       formats: ["es", "cjs"],
       fileName: (format) => (format === "es" ? "index.js" : "index.cjs"),
