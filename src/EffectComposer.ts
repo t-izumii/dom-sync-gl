@@ -1,7 +1,19 @@
 import * as THREE from 'three';
 
 export interface EffectLike {
-  render(scene: THREE.Scene, camera: THREE.Camera): void;
+  /**
+   * scene/camera を最終出力先へ描画する。
+   *
+   * 契約: 呼び出し前にバインドされていた RenderTarget を呼び出し後も維持する
+   * （内部で中間 FBO を使う実装は getRenderTarget/setRenderTarget で保存・復元する）。
+   * 最終出力は outputTarget（null は画面）にのみ書き、他の RenderTarget を残さない。
+   * この契約により、外部が FBO をバインドした状態で呼んでも破壊されない。
+   */
+  render(
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    outputTarget: THREE.WebGLRenderTarget | null,
+  ): void;
   resize(width: number, height: number): void;
   dispose(): void;
 }
@@ -132,8 +144,15 @@ export class EffectComposer implements EffectTarget, EffectLike {
     return true;
   }
 
-  render(scene: THREE.Scene, camera: THREE.Camera): void {
+  render(
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    outputTarget: THREE.WebGLRenderTarget | null = null,
+  ): void {
     if (this._disposed) return;
+
+    // 外部がバインドした RenderTarget を壊さないよう、全経路で保存・復元する。
+    const prevTarget = this.renderer.getRenderTarget();
 
     let activeCount = 0;
     let lastActiveIndex = -1;
@@ -146,8 +165,9 @@ export class EffectComposer implements EffectTarget, EffectLike {
     }
 
     if (activeCount === 0) {
-      this.renderer.setRenderTarget(null);
+      this.renderer.setRenderTarget(outputTarget);
       this.renderer.render(scene, camera);
+      this.renderer.setRenderTarget(prevTarget);
       return;
     }
 
@@ -165,7 +185,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
       pass.material.uniforms['tDiffuse'].value = readTarget.texture;
       this.postMesh.material = pass.material;
 
-      this.renderer.setRenderTarget(isLast ? null : writeTarget);
+      this.renderer.setRenderTarget(isLast ? outputTarget : writeTarget);
       this.renderer.render(this.postScene, this.postCamera);
 
       if (!isLast) {
@@ -174,6 +194,8 @@ export class EffectComposer implements EffectTarget, EffectLike {
         writeTarget = tmp;
       }
     }
+
+    this.renderer.setRenderTarget(prevTarget);
   }
 
   resize(width: number, height: number): void {

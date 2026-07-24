@@ -167,6 +167,9 @@ export class PlaneComposer implements EffectTarget {
 
     this.exitBypass();
 
+    // 外部がバインドした RenderTarget を壊さないよう保存し、末尾で復元する。
+    const prevTarget = this.renderer.getRenderTarget();
+
     this.proxyMesh.visible = true;
     this.proxyMesh.position.copy(this.sourceMesh.position);
     this.proxyMesh.scale.copy(this.sourceMesh.scale);
@@ -192,7 +195,7 @@ export class PlaneComposer implements EffectTarget {
     }
 
     this.proxyMaterial.map = read.texture;
-    this.renderer.setRenderTarget(null);
+    this.renderer.setRenderTarget(prevTarget);
   }
 
   resize(width: number, height: number): void {

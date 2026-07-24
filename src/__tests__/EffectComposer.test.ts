@@ -3,9 +3,13 @@ import * as THREE from 'three';
 import { EffectComposer, EffectPass } from '../EffectComposer';
 
 function makeRenderer(): THREE.WebGLRenderer {
+  let current: THREE.WebGLRenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
-    setRenderTarget: vi.fn(),
+    getRenderTarget: vi.fn(() => current),
+    setRenderTarget: vi.fn((t: THREE.WebGLRenderTarget | null = null) => {
+      current = t;
+    }),
     render: vi.fn(),
   } as unknown as THREE.WebGLRenderer;
 }
@@ -82,12 +86,12 @@ describe('EffectComposer', () => {
     const camera = new THREE.PerspectiveCamera();
     composer.render(scene, camera);
 
-    // scene を targetA に → 最終パスを null に
-    expect(renderer.setRenderTarget).toHaveBeenCalledTimes(2);
+    // scene を targetA に → 最終パスを outputTarget(null) に → 直前の RT(null) を復元
+    expect(renderer.setRenderTarget).toHaveBeenCalledTimes(3);
     expect(renderer.render).toHaveBeenCalledTimes(2);
-    // 最後の setRenderTarget は null（キャンバスに出力）
+    // 復元前の最終出力先は null（キャンバスへ出力）
     const calls = (renderer.setRenderTarget as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls[calls.length - 1][0]).toBeNull();
+    expect(calls[calls.length - 2][0]).toBeNull();
     composer.dispose();
   });
 
@@ -198,6 +202,60 @@ describe('EffectComposer', () => {
     composer.render(new THREE.Scene(), new THREE.PerspectiveCamera());
     // 残り 1 pass: scene→targetA + 最終パス
     expect(renderer.render).toHaveBeenCalledTimes(2);
+    composer.dispose();
+  });
+
+  it('render: active pass 0 のとき outputTarget へ描画する（CR-05）', () => {
+    const renderer = makeRenderer();
+    const composer = new EffectComposer(renderer, 100, 100);
+    const rt = {} as THREE.WebGLRenderTarget;
+
+    composer.render(new THREE.Scene(), new THREE.PerspectiveCamera(), rt);
+
+    // null 固定ではなく指定された outputTarget へ出力する
+    expect(renderer.setRenderTarget).toHaveBeenCalledWith(rt);
+    expect(renderer.render).toHaveBeenCalledTimes(1);
+    composer.dispose();
+  });
+
+  it('render: 最終 pass の出力先を outputTarget へ向ける（CR-05）', () => {
+    const renderer = makeRenderer();
+    const composer = new EffectComposer(renderer, 100, 100);
+    composer.addEffect({
+      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
+    });
+    const rt = {} as THREE.WebGLRenderTarget;
+
+    composer.render(new THREE.Scene(), new THREE.PerspectiveCamera(), rt);
+
+    expect(renderer.setRenderTarget).toHaveBeenCalledWith(rt);
+    composer.dispose();
+  });
+
+  it('render: 外部 RT をバインド中でも呼び出し後に復元する（active pass 0・CR-05）', () => {
+    const renderer = makeRenderer();
+    const composer = new EffectComposer(renderer, 100, 100);
+    const ext = {} as THREE.WebGLRenderTarget;
+    renderer.setRenderTarget(ext);
+
+    composer.render(new THREE.Scene(), new THREE.PerspectiveCamera(), null);
+
+    expect(renderer.getRenderTarget()).toBe(ext);
+    composer.dispose();
+  });
+
+  it('render: 外部 RT をバインド中でも呼び出し後に復元する（pass 有り・CR-05）', () => {
+    const renderer = makeRenderer();
+    const composer = new EffectComposer(renderer, 100, 100);
+    composer.addEffect({
+      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
+    });
+    const ext = {} as THREE.WebGLRenderTarget;
+    renderer.setRenderTarget(ext);
+
+    composer.render(new THREE.Scene(), new THREE.PerspectiveCamera(), null);
+
+    expect(renderer.getRenderTarget()).toBe(ext);
     composer.dispose();
   });
 });

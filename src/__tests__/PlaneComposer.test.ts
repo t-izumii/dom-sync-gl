@@ -3,9 +3,13 @@ import * as THREE from 'three';
 import { PlaneComposer } from '../PlaneComposer';
 
 function makeRenderer(): THREE.WebGLRenderer {
+  let current: THREE.WebGLRenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
-    setRenderTarget: vi.fn(),
+    getRenderTarget: vi.fn(() => current),
+    setRenderTarget: vi.fn((t: THREE.WebGLRenderTarget | null = null) => {
+      current = t;
+    }),
     render: vi.fn(),
   } as unknown as THREE.WebGLRenderer;
 }
@@ -100,6 +104,22 @@ describe('PlaneComposer', () => {
     expect(scene.children).not.toContain(sourceMesh); // bypass ではない
     // localScene→targetA (1回) + pass 1個分のポストパス (1回) = 2回 render
     expect(renderer.render).toHaveBeenCalledTimes(2);
+    composer.dispose();
+  });
+
+  it('render: 外部 RT をバインド中でも呼び出し後に復元する（CR-05）', () => {
+    const scene = new THREE.Scene();
+    const sourceMesh = makeSourceMesh();
+    const renderer = makeRenderer();
+    const composer = new PlaneComposer(renderer, sourceMesh, scene, 100, 50);
+    composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    const ext = {} as THREE.WebGLRenderTarget;
+    renderer.setRenderTarget(ext);
+
+    composer.render();
+
+    // 末尾の setRenderTarget(null) 固定をやめ、呼び出し前の RT を復元する
+    expect(renderer.getRenderTarget()).toBe(ext);
     composer.dispose();
   });
 

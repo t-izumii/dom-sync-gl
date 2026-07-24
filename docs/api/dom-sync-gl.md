@@ -102,6 +102,27 @@ requestAnimationFrame(raf);
 `time` は Lenis との API 対称性のために受け取るだけで、内部では使っていない（経過時間は
 内部の `THREE.Clock` から取る）。省略しても動く。
 
+`tick()` は内部で `update()`（状態更新）→ `render()`（描画）を順に呼ぶ薄い facade で、
+更新と描画のタイミングを分けたいときは個別に呼べる。
+
+### `update(time?)` / `render(options?)`
+
+`tick()` を状態更新フェーズと描画フェーズに分けたもの。
+
+- `update(time?)` — DOM 読み取り・スクロール／ポインタ更新・plane / object の座標反映。
+  GPU 描画パスは一切実行しない。
+- `render(options?)` — plane composer の合成と最終出力の描画。
+  `options.outputTarget`（`THREE.WebGLRenderTarget | null`、既定は画面 = `null`）で
+  最終出力先を指定できる。**`render()` は呼び出し前にバインドされていた RenderTarget を
+  呼び出し後も維持し（保存・復元）、最終出力は `outputTarget` にのみ書く**。複数 Scene を
+  外部 FBO へ描いて遷移させる用途で、外部の RenderTarget を壊さずに描画できる。
+
+```ts
+// 外部 FBO へ描画（バインド中の RT は破壊されない）
+app.update(time);
+app.render({ outputTarget: fbo });
+```
+
 ### `create3DObject(selector, options)` / `remove3DObject(obj)`
 
 GLTF モデルを DOM 要素の bbox にフィットさせる。返り値は `Dom3DObject`（`getModel()` / `resize()` / `destroy()` を持つ）。

@@ -8,6 +8,8 @@ vi.mock('three', async () => {
     domElement: HTMLCanvasElement;
     outputColorSpace = '';
     private dpr = 1;
+    // render() の保存・復元契約を検証できるよう、バインド中の RT を保持する。
+    private currentTarget: unknown = null;
     constructor(opts: { canvas?: HTMLCanvasElement }) {
       this.domElement = opts.canvas ?? document.createElement('canvas');
     }
@@ -18,7 +20,12 @@ vi.mock('three', async () => {
     getPixelRatio() {
       return this.dpr;
     }
-    setRenderTarget() {}
+    setRenderTarget(target: unknown = null) {
+      this.currentTarget = target;
+    }
+    getRenderTarget() {
+      return this.currentTarget;
+    }
     render() {}
     dispose() {}
   }
@@ -584,6 +591,105 @@ describe('DomSyncGL', () => {
       const app = new DomSyncGL(container);
       app.destroy();
       expect(roDisconnect).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('update() / render() 分割（CR-05）', () => {
+    it('update() は GPU 描画パス（render / setRenderTarget）を一切呼ばない', () => {
+      const app = new DomSyncGL(container);
+      const renderer = app.getRenderer();
+      const renderSpy = vi.spyOn(renderer, 'render');
+      const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
+
+      app.update();
+
+      expect(renderSpy).not.toHaveBeenCalled();
+      expect(setRTSpy).not.toHaveBeenCalled();
+      app.destroy();
+    });
+
+    it('render() を単独で呼んでも（update 未実行でも）例外にならない', () => {
+      const app = new DomSyncGL(container);
+      expect(() => app.render()).not.toThrow();
+      app.destroy();
+    });
+
+    it('tick() は update() → render() を順に呼ぶ', () => {
+      const app = new DomSyncGL(container);
+      const updateSpy = vi.spyOn(app, 'update');
+      const renderSpy = vi.spyOn(app, 'render');
+
+      app.tick();
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(renderSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy.mock.invocationCallOrder[0]).toBeLessThan(
+        renderSpy.mock.invocationCallOrder[0],
+      );
+      app.destroy();
+    });
+
+    it('destroy 済みで update() / render() は no-op', () => {
+      const app = new DomSyncGL(container);
+      app.destroy();
+      const renderer = app.getRenderer();
+      const renderSpy = vi.spyOn(renderer, 'render');
+      const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
+
+      expect(() => app.update()).not.toThrow();
+      expect(() => app.render()).not.toThrow();
+      expect(renderSpy).not.toHaveBeenCalled();
+      expect(setRTSpy).not.toHaveBeenCalled();
+    });
+
+    it('render({ outputTarget }) は postEffect 無し経路で最終出力を outputTarget へ向ける', () => {
+      const app = new DomSyncGL(container);
+      const renderer = app.getRenderer();
+      const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
+      const rt = {} as THREE.WebGLRenderTarget;
+
+      app.render({ outputTarget: rt });
+
+      expect(setRTSpy).toHaveBeenCalledWith(rt);
+      app.destroy();
+    });
+
+    it('render({ outputTarget }) は EffectComposer 経路でも最終出力を outputTarget へ向ける', () => {
+      const app = new DomSyncGL(container);
+      app.addEffect(new TestEffect());
+      const renderer = app.getRenderer();
+      const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
+      const rt = {} as THREE.WebGLRenderTarget;
+
+      app.render({ outputTarget: rt });
+
+      expect(setRTSpy).toHaveBeenCalledWith(rt);
+      app.destroy();
+    });
+
+    it('外部 RT をバインドした状態で render() しても、呼び出し後に元の RT が復元される（postEffect 無し経路）', () => {
+      const app = new DomSyncGL(container);
+      const renderer = app.getRenderer();
+      const ext = {} as THREE.WebGLRenderTarget;
+      renderer.setRenderTarget(ext);
+
+      app.render();
+
+      expect(renderer.getRenderTarget()).toBe(ext);
+      app.destroy();
+    });
+
+    it('外部 RT をバインドした状態で render() しても、呼び出し後に元の RT が復元される（EffectComposer 経路）', () => {
+      const app = new DomSyncGL(container);
+      app.addEffect(new TestEffect());
+      const renderer = app.getRenderer();
+      const ext = {} as THREE.WebGLRenderTarget;
+      renderer.setRenderTarget(ext);
+
+      app.render();
+
+      expect(renderer.getRenderTarget()).toBe(ext);
+      app.destroy();
     });
   });
 });

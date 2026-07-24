@@ -47,6 +47,9 @@ export class DomSyncGL {
   private domPlaneMeshes: THREE.Mesh[] = [];
   private domPlaneByMesh: Map<THREE.Mesh, DomPlane> = new Map();
   private destroyed: boolean = false;
+  // update() が取得したフレーム状態を render() へ渡すための保持。update() 未実行で
+  // render() を呼んでも直近フレーム（初期値 0）で描画でき例外にならない。
+  private _frameElapsed: number = 0;
 
   constructor(selector: string | HTMLElement, options: DomSyncGLOptions = {}) {
     const element =
@@ -536,16 +539,15 @@ export class DomSyncGL {
   };
 
   /**
-   * 1 フレーム分の更新・描画を実行する。
-   * `autoRaf: false` で初期化した場合に、アプリ側の rAF ループから呼び出す。
-   * Lenis と併用する場合は `lenis.raf(time)` の後に呼ぶことで、
-   * スクロール確定後の値で WebGL を配置でき、同一フレーム内で同期する。
+   * 状態更新フェーズ。DOM 読み取り・スクロール/ポインタ更新・plane/object の
+   * 座標反映を行う。GPU 描画パスは一切実行しない。
+   * 更新と描画を別タイミングで回したい場合に render() と個別に呼べる。
+   * destroy 済みなら no-op。
    *
    * @param _time rAF のタイムスタンプ（Lenis との API 対称性のために受け取るが内部では未使用）
    */
-  tick = (_time?: number) => {
+  update = (_time?: number) => {
     if (this.destroyed) return;
-    this.devTools.beginStats();
 
     if (this.controls) {
       this.controls.update();
@@ -568,6 +570,7 @@ export class DomSyncGL {
     }
 
     const elapsed = this.clock.getElapsedTime();
+    this._frameElapsed = elapsed;
     this.effectManager.update(elapsed, mouse);
 
     this.scrollSync?.update(scrollX, scrollY);
@@ -586,6 +589,25 @@ export class DomSyncGL {
     for (let i = 0, n = objects.length; i < n; i++) {
       objects[i]._tickApply(scrollX, scrollY);
     }
+  };
+
+  /**
+   * 描画フェーズ。plane composer のフィードバック/合成と最終出力の描画を行う。
+   * update() 未実行でも例外にならない（直近フレームの状態で描画する）。
+   * destroy 済みなら no-op。
+   *
+   * 契約: 呼び出し前にバインドされていた RenderTarget を呼び出し後も維持する。
+   * 最終出力は outputTarget（既定は画面 = null）にのみ書く。複数 Scene を外部 FBO へ
+   * 描いて遷移させる用途では outputTarget を指定して外部の RenderTarget を保つ。
+   *
+   * @param options.outputTarget 最終描画先。省略時は画面（null）。
+   */
+  render = (options?: { outputTarget?: THREE.WebGLRenderTarget | null }) => {
+    if (this.destroyed) return;
+
+    const outputTarget = options?.outputTarget ?? null;
+    const elapsed = this._frameElapsed;
+    const planes = this.domPlanes;
 
     for (let i = 0, n = planes.length; i < n; i++) {
       planes[i]._tickFeedback(elapsed);
@@ -594,15 +616,27 @@ export class DomSyncGL {
       planes[i]._tickRenderComposer();
     }
 
-    if (this.destroyed) {
-      this.devTools.endStats();
-      return;
-    }
-
-    this.effectManager.render(this.scene, this.camera.instance);
+    this.effectManager.render(this.scene, this.camera.instance, outputTarget);
 
     this.pointer.endFrame();
+  };
 
+  /**
+   * 1 フレーム分の更新・描画を実行する（内部は update() → render() の分割で、
+   * 更新と描画を別タイミングで回したい場合は個別に呼べる）。
+   * `autoRaf: false` で初期化した場合に、アプリ側の rAF ループから呼び出す。
+   * Lenis と併用する場合は `lenis.raf(time)` の後に呼ぶことで、
+   * スクロール確定後の値で WebGL を配置でき、同一フレーム内で同期する。
+   *
+   * @param _time rAF のタイムスタンプ（Lenis との API 対称性のために受け取るが内部では未使用）
+   */
+  tick = (_time?: number) => {
+    if (this.destroyed) return;
+    // 計測は tick 全体のみで開閉し、update()/render() 単独呼び出しでは
+    // begin/end の不整合が起きないようにする。
+    this.devTools.beginStats();
+    this.update(_time);
+    this.render();
     this.devTools.endStats();
   };
 }

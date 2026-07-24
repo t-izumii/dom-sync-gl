@@ -99,11 +99,20 @@ export class EffectManager {
     }
   }
 
-  render(scene: THREE.Scene, camera: THREE.Camera): void {
+  render(
+    scene: THREE.Scene,
+    camera: THREE.Camera,
+    outputTarget: THREE.WebGLRenderTarget | null,
+  ): void {
     if (this.postEffect) {
-      this.postEffect.render(scene, camera);
+      this.postEffect.render(scene, camera, outputTarget);
     } else {
+      // postEffect 無しの素通しでも、外部がバインドした RenderTarget を壊さない
+      // よう保存・復元し、最終出力は outputTarget にのみ書く。
+      const prevTarget = this.renderer.getRenderTarget();
+      this.renderer.setRenderTarget(outputTarget);
       this.renderer.render(scene, camera);
+      this.renderer.setRenderTarget(prevTarget);
     }
   }
 

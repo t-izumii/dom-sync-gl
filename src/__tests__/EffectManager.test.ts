@@ -5,9 +5,13 @@ import { EffectManager } from '../EffectManager';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 
 function makeRenderer(): THREE.WebGLRenderer {
+  let current: THREE.WebGLRenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
-    setRenderTarget: vi.fn(),
+    getRenderTarget: vi.fn(() => current),
+    setRenderTarget: vi.fn((t: THREE.WebGLRenderTarget | null = null) => {
+      current = t;
+    }),
     render: vi.fn(),
   } as unknown as THREE.WebGLRenderer;
 }
@@ -166,9 +170,44 @@ describe('EffectManager', () => {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
 
-    manager.render(scene, camera);
+    manager.render(scene, camera, null);
 
     expect(renderer.render).toHaveBeenCalledWith(scene, camera);
+  });
+
+  it('render: postEffect が無ければ最終出力を outputTarget へ向ける（CR-05）', () => {
+    const renderer = makeRenderer();
+    const manager = new EffectManager({ renderer, gui: null });
+    const rt = {} as THREE.WebGLRenderTarget;
+
+    manager.render(new THREE.Scene(), new THREE.PerspectiveCamera(), rt);
+
+    expect(renderer.setRenderTarget).toHaveBeenCalledWith(rt);
+  });
+
+  it('render: postEffect 無しで外部 RT をバインド中でも呼び出し後に復元する（CR-05）', () => {
+    const renderer = makeRenderer();
+    const manager = new EffectManager({ renderer, gui: null });
+    const ext = {} as THREE.WebGLRenderTarget;
+    renderer.setRenderTarget(ext);
+
+    manager.render(new THREE.Scene(), new THREE.PerspectiveCamera(), null);
+
+    expect(renderer.getRenderTarget()).toBe(ext);
+  });
+
+  it('render: postEffect 有りなら outputTarget を委譲する（CR-05）', () => {
+    const renderer = makeRenderer();
+    const manager = new EffectManager({ renderer, gui: null });
+    const postEffect = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    manager.setPostEffect(postEffect);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera();
+    const rt = {} as THREE.WebGLRenderTarget;
+
+    manager.render(scene, camera, rt);
+
+    expect(postEffect.render).toHaveBeenCalledWith(scene, camera, rt);
   });
 
   it('addEffect: 2 回目以降は同じ内部 EffectComposer を postEffect として再利用する', () => {
