@@ -5,6 +5,12 @@ export interface FeedbackBufferOptions {
   fragmentShader: string;
   vertexShader?: string;
   size?: number;
+  /**
+   * 追加のカスタム uniform。以下の予約名は FeedbackBuffer が内部で生成・毎フレーム
+   * 更新するため渡せない（渡すと throw する）:
+   * `uPrev` / `uMouse` / `uPrevMouse` / `uHover` / `uTime` / `uResolution` /
+   * `uAspect` / `uMove`。
+   */
   uniforms?: Record<string, THREE.IUniform>;
 
   setupGUI?: (gui: GUI, buffer: FeedbackBuffer) => GUI | void;
@@ -39,6 +45,19 @@ const defaultVertexShader = `
   }
 `;
 
+// これらの uniform は FeedbackBuffer が内部で生成・毎フレーム更新するため、
+// options.uniforms から同名を渡すと内部処理が壊れる。予約名として上書きを禁止する。
+const RESERVED_UNIFORM_NAMES: readonly string[] = [
+  "uPrev",
+  "uMouse",
+  "uPrevMouse",
+  "uHover",
+  "uTime",
+  "uResolution",
+  "uAspect",
+  "uMove",
+];
+
 export class FeedbackBuffer {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly _size: number;
@@ -58,6 +77,18 @@ export class FeedbackBuffer {
   private _gui: GUI | null = null;
 
   constructor(renderer: THREE.WebGLRenderer, options: FeedbackBufferOptions) {
+    // 予約 uniform を options.uniforms で上書きされると内部処理が壊れるため fail-fast で弾く。
+    if (options.uniforms) {
+      for (const name of RESERVED_UNIFORM_NAMES) {
+        if (name in options.uniforms) {
+          throw new Error(
+            `[FeedbackBuffer] uniform "${name}" は予約済みで内部管理されます。` +
+              `options.uniforms から渡さないでください（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
+          );
+        }
+      }
+    }
+
     this.renderer = renderer;
     this._size = options.size ?? 256;
     this._moveThreshold = options.moveThreshold ?? 0.0008;

@@ -76,6 +76,27 @@ describe('FeedbackBuffer', () => {
     expect(r.renderCount).toBe(0); // 構築時の clear は render を呼ばない
   });
 
+  it('予約名 uniform を渡すと throw する（CR-11）', () => {
+    const r = new StubRenderer();
+    expect(
+      () =>
+        new FeedbackBuffer(asRenderer(r), {
+          fragmentShader: FRAG,
+          uniforms: { uMouse: { value: new THREE.Vector2() } },
+        }),
+    ).toThrow(/uMouse/);
+  });
+
+  it('予約名以外のカスタム uniform は従来どおり通る（CR-11）', () => {
+    const r = new StubRenderer();
+    const fb = new FeedbackBuffer(asRenderer(r), {
+      fragmentShader: FRAG,
+      uniforms: { uDecay: { value: 0.9 } },
+    });
+    expect(fb.uniforms.uDecay.value).toBe(0.9);
+    fb.dispose();
+  });
+
   it('render の前後で renderTarget を元に戻す（呼び出し側の状態を壊さない）', () => {
     const r = new StubRenderer();
     const sentinel = new THREE.WebGLRenderTarget(8, 8);
