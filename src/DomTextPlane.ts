@@ -43,7 +43,9 @@ export class DomTextPlane extends DomPlane {
 
     this.textCanvas = document.createElement("canvas");
     this.textTexture = new THREE.CanvasTexture(this.textCanvas);
-    this.textTexture.colorSpace = THREE.SRGBColorSpace;
+    // SRGBColorSpace だとデコードされた linear 値が ShaderMaterial から素通しで
+    // 出力されて暗くなるため、生の sRGB 値のまま渡して DOM の文字色と一致させる。
+    this.textTexture.colorSpace = THREE.NoColorSpace;
     this.textTexture.generateMipmaps = false;
     this.textTexture.minFilter = THREE.LinearFilter;
     this.setTexture(this.textTexture, true);

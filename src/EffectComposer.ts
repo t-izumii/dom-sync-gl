@@ -94,6 +94,13 @@ export class EffectComposer implements EffectTarget, EffectLike {
     this.postScene.add(this.postMesh);
   }
 
+  /**
+   * fullscreen pass を追加する。
+   *
+   * alpha 契約: 中間 RenderTarget と tDiffuse は premultiplied alpha。各 pass は
+   * 前段の結果を丸ごと置き換えるため NoBlending で素通しする（NormalBlending だと
+   * alpha が pass ごとに再乗算され透明部が暗くなる）。
+   */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
       throw new Error('[EffectComposer] dispose 済みのインスタンスでは addEffect() できません。');
@@ -105,7 +112,10 @@ export class EffectComposer implements EffectTarget, EffectLike {
       },
       vertexShader: defaultVertexShader,
       fragmentShader: options.fragmentShader,
-      transparent: true,
+      transparent: false,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.NoBlending,
     });
 
     const pass = new EffectPass(material);

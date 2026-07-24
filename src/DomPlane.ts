@@ -13,6 +13,17 @@ export interface AddFeedbackOptions extends FeedbackBufferOptions {
 const sharedTextureLoader = new THREE.TextureLoader();
 sharedTextureLoader.setCrossOrigin("anonymous");
 
+// DomPlane が内部で生成・毎フレーム更新する uniform。
+// options.uniforms からの上書きは内部処理を壊すため予約名として禁止する。
+const RESERVED_UNIFORM_NAMES: readonly string[] = [
+  "uTexture",
+  "uAlpha",
+  "uResolution",
+  "uTime",
+  "uIsHovered",
+  "uMouseUV",
+];
+
 const defaultVertexShader = `
   varying vec2 vUv;
 
@@ -57,6 +68,10 @@ export class DomPlane {
   private gui: GUI | null = null;
   private ownsTexture: boolean = false;
   private crossOrigin: string | undefined;
+  private textureColorSpace: THREE.ColorSpace;
+  // 進行中の非同期テクスチャロードの世代番号。reload/setTexture/destroy で
+  // インクリメントし、後着した古いロードの完了 callback を無効化する。
+  private textureLoadGeneration = 0;
   private readonly scroll: { x: number; y: number };
 
   constructor(
@@ -68,6 +83,17 @@ export class DomPlane {
     options: CreatePlaneOptions = {},
     sharedClock?: THREE.Clock,
   ) {
+    if (options.uniforms) {
+      for (const name of RESERVED_UNIFORM_NAMES) {
+        if (name in options.uniforms) {
+          throw new Error(
+            `[DomPlane] uniform "${name}" は予約済みで内部管理されます。` +
+              `options.uniforms から渡さないでください（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
+          );
+        }
+      }
+    }
+
     this.element = el;
     this.scene = scene;
     this.renderer = renderer;
@@ -76,6 +102,7 @@ export class DomPlane {
     this.destroyed = false;
     this.updateRectEveryFrame = options.updateRectEveryFrame || false;
     this.crossOrigin = options.crossOrigin;
+    this.textureColorSpace = options.textureColorSpace ?? THREE.NoColorSpace;
     this.clock = sharedClock ?? new THREE.Clock();
     this.canvasRect = canvasRect;
     this.positionCalculator = el
@@ -176,13 +203,16 @@ export class DomPlane {
       } else {
         loader = sharedTextureLoader;
       }
+      const generation = this.textureLoadGeneration;
       loader.load(
         texturePath,
         (texture: THREE.Texture) => {
-          if (this.destroyed) {
+          // 後着した古いロード結果は表示の巻き戻りを防ぐため破棄する
+          if (this.destroyed || generation !== this.textureLoadGeneration) {
             texture.dispose();
             return;
           }
+          texture.colorSpace = this.textureColorSpace;
           this.texture = texture;
           this.ownsTexture = true;
           this.material.uniforms.uTexture.value = texture;
@@ -265,6 +295,7 @@ export class DomPlane {
   }
 
   public reloadTexture(): void {
+    this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture) {
       this.texture.dispose();
       this.texture = null;
@@ -275,6 +306,7 @@ export class DomPlane {
   }
 
   public setTexture(texture: THREE.Texture, takeOwnership: boolean = false): void {
+    this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture && this.texture !== texture) {
       this.texture.dispose();
     }
@@ -371,6 +403,13 @@ export class DomPlane {
   }
 
   public addFeedback(options: AddFeedbackOptions): FeedbackBuffer {
+    if (RESERVED_UNIFORM_NAMES.includes(options.outputUniform)) {
+      throw new Error(
+        `[DomPlane] addFeedback の outputUniform "${options.outputUniform}" は` +
+          `予約済み uniform 名で内部管理されます。別の名前を指定してください` +
+          `（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
+      );
+    }
     const buffer = new FeedbackBuffer(this.renderer, options);
     if (!this.material.uniforms[options.outputUniform]) {
       this.material.uniforms[options.outputUniform] = { value: null };
@@ -435,6 +474,7 @@ export class DomPlane {
   public destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.textureLoadGeneration++;
     this.observer?.disconnect();
 
     for (const effect of this.effects) {

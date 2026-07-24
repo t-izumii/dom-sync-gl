@@ -149,6 +149,89 @@ describe('DomSyncGL', () => {
     app.destroy();
   });
 
+  it('update callback が dispatch 中に自身を解除しても後続が呼ばれ例外にならない', () => {
+    const app = new DomSyncGL(container);
+    const order: string[] = [];
+    let unsubscribeSelf!: () => void;
+    unsubscribeSelf = app.addUpdateCallback(() => {
+      order.push('a');
+      unsubscribeSelf();
+    });
+    const cbB = vi.fn(() => order.push('b'));
+    app.addUpdateCallback(cbB);
+
+    expect(() => app.tick()).not.toThrow();
+    expect(order).toEqual(['a', 'b']);
+    expect(cbB).toHaveBeenCalledTimes(1);
+    // 自身は解除済みなので次フレームでは呼ばれない
+    app.tick();
+    expect(order).toEqual(['a', 'b', 'b']);
+
+    app.destroy();
+  });
+
+  it('update callback が dispatch 中に後続 callback を解除しても例外にならない', () => {
+    const app = new DomSyncGL(container);
+    let unsubscribeB!: () => void;
+    // A を先に登録し、dispatch 中に後続の B を解除する（固定長ループが破綻する条件）
+    const cbA = vi.fn(() => unsubscribeB());
+    app.addUpdateCallback(cbA);
+    const cbB = vi.fn();
+    unsubscribeB = app.addUpdateCallback(cbB);
+
+    expect(() => app.tick()).not.toThrow();
+    expect(cbA).toHaveBeenCalledTimes(1);
+    // snapshot に対して回すため、解除された B もその回はまだ呼ばれうる
+    expect(cbB).toHaveBeenCalledTimes(1);
+    // 次フレームでは B は解除済みなので呼ばれない
+    app.tick();
+    expect(cbB).toHaveBeenCalledTimes(1);
+
+    app.destroy();
+  });
+
+  it('update callback が dispatch 中に追加した callback はその回では呼ばれず次回から呼ばれる', () => {
+    const app = new DomSyncGL(container);
+    const added = vi.fn();
+    app.addUpdateCallback(() => {
+      app.addUpdateCallback(added);
+    });
+
+    app.tick();
+    // 追加された callback は snapshot 外なので初回は呼ばれない
+    expect(added).not.toHaveBeenCalled();
+
+    app.tick();
+    // 次フレームからは呼ばれる
+    expect(added).toHaveBeenCalledTimes(1);
+
+    app.destroy();
+  });
+
+  it('resize callback が dispatch 中に自身を解除しても後続が呼ばれ例外にならない', () => {
+    const app = new DomSyncGL(container);
+    const order: string[] = [];
+    let unsubscribeSelf!: () => void;
+    unsubscribeSelf = app.addResizeCallback(() => {
+      order.push('a');
+      unsubscribeSelf();
+    });
+    const cbB = vi.fn(() => order.push('b'));
+    app.addResizeCallback(cbB);
+
+    const runResize = (app as unknown as { onResize: () => void }).onResize.bind(
+      app
+    );
+    expect(() => runResize()).not.toThrow();
+    expect(order).toEqual(['a', 'b']);
+    expect(cbB).toHaveBeenCalledTimes(1);
+    // 自身は解除済みなので次回の resize では呼ばれない
+    runResize();
+    expect(order).toEqual(['a', 'b', 'b']);
+
+    app.destroy();
+  });
+
   it('getScene / getCamera / getRenderer が初期化済みインスタンスを返す', () => {
     const app = new DomSyncGL(container);
     expect(app.getScene()).toBeDefined();

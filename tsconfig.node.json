@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
+    "target": "ES2022",
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022"],
     "skipLibCheck": true,
 
-    /* Bundler mode（vite + vitest 用） */
+    /* Bundler mode（vite / vitest の設定ファイル用） */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -20,8 +19,8 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
 
-    /* import.meta.env?.DEV を使うため Vite の型を入れる */
-    "types": ["vite/client"]
+    /* Node 実行環境の設定ファイルなので Node の型を入れる */
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["vite.config.ts", "vitest.config.ts"]
 }

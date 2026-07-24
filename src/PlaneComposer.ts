@@ -86,6 +86,9 @@ export class PlaneComposer implements EffectTarget {
     this.proxyMaterial = new THREE.MeshBasicMaterial({
       map: this.targetA.texture,
       transparent: true,
+      // RenderTarget の内容は premultiplied alpha なので (ONE, ONE_MINUS_SRC_ALPHA)
+      // で合成し、alpha の再乗算を防ぐ。
+      premultipliedAlpha: true,
     });
     this.proxyGeo = new THREE.PlaneGeometry(1, 1);
     this.proxyMesh = new THREE.Mesh(this.proxyGeo, this.proxyMaterial);
@@ -95,6 +98,13 @@ export class PlaneComposer implements EffectTarget {
     mainScene.add(this.proxyMesh);
   }
 
+  /**
+   * fullscreen pass を追加する。
+   *
+   * alpha 契約: 中間 RenderTarget と tDiffuse は premultiplied alpha。各 pass は
+   * 前段の結果を丸ごと置き換えるため NoBlending で素通しする（NormalBlending だと
+   * alpha が pass ごとに再乗算され透明部が暗くなる）。
+   */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
       throw new Error('[PlaneComposer] dispose 済みのインスタンスでは addEffect() できません。');
@@ -106,7 +116,10 @@ export class PlaneComposer implements EffectTarget {
       },
       vertexShader: defaultVertexShader,
       fragmentShader: options.fragmentShader,
-      transparent: true,
+      transparent: false,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.NoBlending,
     });
     const pass = new EffectPass(material);
     this.passes.push(pass);

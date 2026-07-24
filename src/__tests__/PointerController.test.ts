@@ -191,3 +191,137 @@ describe('PointerController（ポインタ統合: マウス/タッチ/ペン）'
     expect(pc.isPointerActive()).toBe(false);
   });
 });
+
+// CR-02: 非表示 Plane が Pointer hover を奪う問題の回帰。
+// Raycaster.intersectObjects は Object3D.visible を除外しないため、
+// PointerController 側で可視 mesh だけを raycast に渡し、hover 中の plane が
+// 非表示になったら解除する必要がある。ここでは raycaster を差し替えて、
+// 「raycast に渡された配列」と hover 解除の挙動を検証する。
+
+/**
+ * setHoverInfo / isVisible / mesh を持つ最小の DomPlane モックを作る。
+ * element は非 null（= DOM 追従 plane）にして、フルスクリーン hover 経路
+ * ではなく raycast 経路で hover が決まるようにする。
+ */
+function makePlaneMock(visible: boolean): {
+  plane: { isVisible: boolean; element: HTMLElement; setHoverInfo: ReturnType<typeof vi.fn> };
+  mesh: THREE.Mesh;
+} {
+  const mesh = new THREE.Mesh();
+  mesh.visible = visible;
+  const plane = {
+    isVisible: visible,
+    element: document.createElement('div'),
+    setHoverInfo: vi.fn(),
+  };
+  return { plane, mesh };
+}
+
+interface RaycastHarness {
+  pc: PointerController;
+  a: ReturnType<typeof makePlaneMock>;
+  b: ReturnType<typeof makePlaneMock>;
+  /** raycaster.intersectObjects に実際に渡された mesh 配列。 */
+  passedTargets: THREE.Mesh[] | null;
+  /** 次に intersectObjects が返す hit の対象 mesh（uv 付き）。 */
+  setHit: (mesh: THREE.Mesh | null) => void;
+}
+
+/**
+ * planeMeshes に可視 a と非表示 b を積んだ状態を作り、raycaster を差し替えて
+ * intersectObjects の入出力を観測できるようにする。
+ */
+function makeRaycastHarness(): RaycastHarness {
+  const a = makePlaneMock(true);
+  const b = makePlaneMock(false);
+  const planeByMesh = new Map<THREE.Mesh, DomPlane>();
+  planeByMesh.set(a.mesh, a.plane as unknown as DomPlane);
+  planeByMesh.set(b.mesh, b.plane as unknown as DomPlane);
+
+  const pc = new PointerController({
+    canvas: makeCanvas(),
+    camera: { instance: {} } as unknown as Camera,
+    planeMeshes: [a.mesh, b.mesh],
+    planeByMesh,
+    planes: [a.plane, b.plane] as unknown as DomPlane[],
+  });
+
+  const state: { passedTargets: THREE.Mesh[] | null; hit: THREE.Mesh | null } = {
+    passedTargets: null,
+    hit: null,
+  };
+  // 実 Raycaster の内部（three の実装）に依存せず、渡された配列と返り値だけを
+  // 制御するためにモックへ差し替える。
+  const raycaster = {
+    setFromCamera: vi.fn(),
+    intersectObjects: (objects: THREE.Mesh[]) => {
+      state.passedTargets = objects.slice();
+      if (state.hit && objects.includes(state.hit)) {
+        return [{ object: state.hit, uv: new THREE.Vector2(0.5, 0.5) }];
+      }
+      return [];
+    },
+  };
+  (pc as unknown as { raycaster: unknown }).raycaster = raycaster;
+
+  pc.setEnabled(true);
+
+  return {
+    pc,
+    a,
+    b,
+    get passedTargets() {
+      return state.passedTargets;
+    },
+    setHit: (mesh) => {
+      state.hit = mesh;
+    },
+  };
+}
+
+describe('PointerController（CR-02: 非表示 Plane が hover を奪わない）', () => {
+  it('非表示 mesh は raycast 対象から除外される', () => {
+    const h = makeRaycastHarness();
+    dispatchPointer('pointermove', { pointerType: 'mouse', clientX: 50, clientY: 50 });
+
+    h.pc.update();
+
+    expect(h.passedTargets).not.toBeNull();
+    expect(h.passedTargets).toContain(h.a.mesh); // 可視
+    expect(h.passedTargets).not.toContain(h.b.mesh); // 非表示は除外
+    h.pc.destroy();
+  });
+
+  it('手前の非表示 plane があっても奥の可視 plane が hover を得る', () => {
+    const h = makeRaycastHarness();
+    dispatchPointer('pointermove', { pointerType: 'mouse', clientX: 50, clientY: 50 });
+    // 非表示 b が hit しても返らない（配列に含まれない）。可視 a を hit にする。
+    h.setHit(h.a.mesh);
+
+    h.pc.update();
+
+    expect(h.a.plane.setHoverInfo).toHaveBeenLastCalledWith(true, expect.anything());
+    expect(h.b.plane.setHoverInfo).not.toHaveBeenCalledWith(true, expect.anything());
+    h.pc.destroy();
+  });
+
+  it('hover 中の plane が非表示になったら次の update() で hover が解除される', () => {
+    const h = makeRaycastHarness();
+    dispatchPointer('pointermove', { pointerType: 'mouse', clientX: 50, clientY: 50 });
+    h.setHit(h.a.mesh);
+
+    // 1 回目: a を hover。
+    h.pc.update();
+    expect(h.a.plane.setHoverInfo).toHaveBeenLastCalledWith(true, expect.anything());
+
+    // a が画面外に出て非表示化。
+    h.a.plane.isVisible = false;
+    h.a.mesh.visible = false;
+    h.a.plane.setHoverInfo.mockClear();
+
+    // 2 回目: hover が解除される。
+    h.pc.update();
+    expect(h.a.plane.setHoverInfo).toHaveBeenCalledWith(false, null);
+    h.pc.destroy();
+  });
+});

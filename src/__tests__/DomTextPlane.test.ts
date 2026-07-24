@@ -45,6 +45,7 @@ vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
   },
 }));
 
+import * as THREE from "three";
 import { DomSyncGL } from "../Core";
 import { DomTextPlane } from "../DomTextPlane";
 
@@ -190,6 +191,16 @@ describe("DomTextPlane", () => {
       expect(() => app.createTextPlane(".not-exist")).toThrow(/Element not found/);
       app.destroy();
       expect(() => app.createTextPlane(".not-exist")).toThrow(/destroy 済み/);
+    });
+
+    it("textTexture.colorSpace は NoColorSpace（DOM 文字色と一致させる passthrough 契約, CR-04）", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl();
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+
+      expect((plane.texture as THREE.Texture).colorSpace).toBe(THREE.NoColorSpace);
+      app.destroy();
     });
 
     it("data-texture 属性付き要素でも uTexture に CanvasTexture が入ったまま", async () => {

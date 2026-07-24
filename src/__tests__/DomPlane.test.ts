@@ -51,6 +51,7 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', () => ({
 
 import { DomSyncGL } from '../Core';
 import type { DomPlane } from '../DomPlane';
+import { EffectManager } from '../EffectManager';
 
 class TestEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
@@ -352,6 +353,207 @@ describe('DomPlane', () => {
       plane._tickRead(0, 10);
 
       expect(updateSpy).not.toHaveBeenCalled();
+      app.destroy();
+    });
+  });
+
+  describe('予約 uniform の上書き防止（CR-11）', () => {
+    it('予約名 uniform を渡すと throw する', () => {
+      const app = new DomSyncGL(container);
+      expect(() =>
+        app.createPlane(null, { uniforms: { uResolution: { value: 0 } } }),
+      ).toThrow(/uResolution/);
+      app.destroy();
+    });
+
+    it('予約名以外のカスタム uniform は従来どおり通る', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null, {
+        uniforms: { uCustom: { value: 1.23 } },
+      }) as DomPlane;
+      expect(plane.material.uniforms.uCustom.value).toBe(1.23);
+      app.destroy();
+    });
+
+    it('addFeedback の outputUniform が予約名だと throw する', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      expect(() =>
+        plane.addFeedback({
+          fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }',
+          outputUniform: 'uTexture',
+        }),
+      ).toThrow(/uTexture/);
+      app.destroy();
+    });
+
+    it('addFeedback の outputUniform が予約名以外なら従来どおり通る', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      const buffer = plane.addFeedback({
+        fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }',
+        outputUniform: 'uFeedback',
+      });
+      expect(plane.material.uniforms.uFeedback.value).toBe(buffer.texture);
+      app.destroy();
+    });
+  });
+
+  describe('effect の単一 owner・使い捨て契約（CR-07）', () => {
+    it('同じ effect を同じ plane に 2 回 addEffect すると throw する', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      const effect = new TestEffect();
+
+      plane.addEffect(effect);
+
+      expect(() => plane.addEffect(effect)).toThrow(/既に別の owner に登録済み/);
+      app.destroy();
+    });
+
+    it('plane に add した effect を EffectManager に add するとまたがった二重登録で throw する', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      const manager = new EffectManager({ renderer: app.getRenderer(), gui: null });
+      const effect = new TestEffect();
+
+      plane.addEffect(effect);
+
+      expect(() => manager.addEffect(effect, 100, 100)).toThrow(
+        /既に別の owner に登録済み/,
+      );
+      app.destroy();
+    });
+
+    it('removeEffect で dispose 済みの effect は再 addEffect できず throw する', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      const effect = new TestEffect();
+
+      plane.addEffect(effect);
+      plane.removeEffect(effect);
+
+      expect(() => plane.addEffect(effect)).toThrow(/dispose 済み/);
+      app.destroy();
+    });
+  });
+
+  describe('テクスチャ再読込の非同期 race（CR-08）', () => {
+    function makeTexEl(): HTMLElement {
+      const el = document.createElement('div');
+      el.setAttribute('data-texture', '/img/a.png');
+      document.body.appendChild(el);
+      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 100, 100),
+      );
+      return el;
+    }
+
+    it('ロード完了順が逆転しても後開始が勝ち、遅れて届いた古い texture は dispose される', () => {
+      // TextureLoader.load の onLoad を捕捉して手動発火する（既存のモック手法を踏襲）。
+      const loadCallbacks: Array<(t: THREE.Texture) => void> = [];
+      vi.spyOn(THREE.TextureLoader.prototype, 'load').mockImplementation(
+        ((_url: string, onLoad: (t: THREE.Texture) => void) => {
+          loadCallbacks.push(onLoad);
+          return new THREE.Texture();
+        }) as never,
+      );
+
+      const app = new DomSyncGL(container);
+      const el = makeTexEl();
+      const plane = app.createPlane(el) as DomPlane; // ロード A 開始
+
+      plane.reloadTexture(); // ロード B 開始
+      expect(loadCallbacks.length).toBe(2);
+
+      const texA = new THREE.Texture();
+      const texB = new THREE.Texture();
+      const disposeA = vi.spyOn(texA, 'dispose');
+
+      loadCallbacks[1](texB); // B が先に完了
+      loadCallbacks[0](texA); // A が遅れて完了 → stale
+
+      expect(disposeA).toHaveBeenCalledTimes(1);
+      expect(plane.texture).toBe(texB);
+      expect(plane.material.uniforms.uTexture.value).toBe(texB);
+      app.destroy();
+    });
+
+    it('ロード中に setTexture() すると、後から届いた stale なロード結果は破棄される', () => {
+      const loadCallbacks: Array<(t: THREE.Texture) => void> = [];
+      vi.spyOn(THREE.TextureLoader.prototype, 'load').mockImplementation(
+        ((_url: string, onLoad: (t: THREE.Texture) => void) => {
+          loadCallbacks.push(onLoad);
+          return new THREE.Texture();
+        }) as never,
+      );
+
+      const app = new DomSyncGL(container);
+      const el = makeTexEl();
+      const plane = app.createPlane(el) as DomPlane; // ロード開始
+
+      const texManual = new THREE.Texture();
+      plane.setTexture(texManual, true); // ロード中に手動差し替え
+
+      const texStale = new THREE.Texture();
+      const disposeStale = vi.spyOn(texStale, 'dispose');
+      loadCallbacks[0](texStale); // 遅れて届いたロード結果
+
+      expect(disposeStale).toHaveBeenCalledTimes(1);
+      expect(plane.texture).toBe(texManual);
+      expect(plane.material.uniforms.uTexture.value).toBe(texManual);
+      app.destroy();
+    });
+  });
+
+  describe('テクスチャの色空間契約（CR-04）', () => {
+    function makeTexEl(): HTMLElement {
+      const el = document.createElement('div');
+      el.setAttribute('data-texture', '/img/a.png');
+      document.body.appendChild(el);
+      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 100, 100),
+      );
+      return el;
+    }
+
+    it('data-texture ロードの colorSpace 既定は NoColorSpace（passthrough 契約）', () => {
+      const loadCallbacks: Array<(t: THREE.Texture) => void> = [];
+      vi.spyOn(THREE.TextureLoader.prototype, 'load').mockImplementation(
+        ((_url: string, onLoad: (t: THREE.Texture) => void) => {
+          loadCallbacks.push(onLoad);
+          return new THREE.Texture();
+        }) as never,
+      );
+
+      const app = new DomSyncGL(container);
+      const el = makeTexEl();
+      app.createPlane(el);
+
+      const tex = new THREE.Texture();
+      loadCallbacks[0](tex);
+
+      expect(tex.colorSpace).toBe(THREE.NoColorSpace);
+      app.destroy();
+    });
+
+    it('textureColorSpace オプション指定がロードした texture に反映される', () => {
+      const loadCallbacks: Array<(t: THREE.Texture) => void> = [];
+      vi.spyOn(THREE.TextureLoader.prototype, 'load').mockImplementation(
+        ((_url: string, onLoad: (t: THREE.Texture) => void) => {
+          loadCallbacks.push(onLoad);
+          return new THREE.Texture();
+        }) as never,
+      );
+
+      const app = new DomSyncGL(container);
+      const el = makeTexEl();
+      app.createPlane(el, { textureColorSpace: THREE.SRGBColorSpace });
+
+      const tex = new THREE.Texture();
+      loadCallbacks[0](tex);
+
+      expect(tex.colorSpace).toBe(THREE.SRGBColorSpace);
       app.destroy();
     });
   });

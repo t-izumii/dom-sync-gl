@@ -48,6 +48,34 @@ describe('PlaneComposer', () => {
     composer.dispose();
   });
 
+  it('addEffect の material は premultiplied 契約に沿った素通し設定になる（CR-03）', () => {
+    const scene = new THREE.Scene();
+    const sourceMesh = makeSourceMesh();
+    const composer = new PlaneComposer(makeRenderer(), sourceMesh, scene, 100, 50);
+    const pass = composer.addEffect({
+      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
+    });
+
+    expect(pass.material.blending).toBe(THREE.NoBlending);
+    expect(pass.material.transparent).toBe(false);
+    expect(pass.material.depthTest).toBe(false);
+    expect(pass.material.depthWrite).toBe(false);
+    composer.dispose();
+  });
+
+  it('proxyMaterial は premultipliedAlpha:true で合成する（CR-03）', () => {
+    const scene = new THREE.Scene();
+    const sourceMesh = makeSourceMesh();
+    const composer = new PlaneComposer(makeRenderer(), sourceMesh, scene, 100, 50);
+
+    const proxyMaterial = (
+      composer as unknown as { proxyMaterial: THREE.MeshBasicMaterial }
+    ).proxyMaterial;
+    expect(proxyMaterial.premultipliedAlpha).toBe(true);
+    expect(proxyMaterial.transparent).toBe(true);
+    composer.dispose();
+  });
+
   it('render: 有効な pass が 0 個なら bypass に入り sourceMesh が mainScene に戻る', () => {
     const scene = new THREE.Scene();
     const sourceMesh = makeSourceMesh();

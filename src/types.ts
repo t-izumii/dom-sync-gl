@@ -31,6 +31,11 @@ export interface DomSyncGLOptions {
 export interface CreatePlaneOptions {
   vertexShader?: string;
   fragmentShader?: string;
+  /**
+   * 追加のカスタム uniform。以下の予約名は DomPlane が内部で生成・毎フレーム
+   * 更新するため渡せない（渡すと throw する）:
+   * `uTexture` / `uAlpha` / `uResolution` / `uTime` / `uIsHovered` / `uMouseUV`。
+   */
   uniforms?: { [key: string]: THREE.IUniform };
   updateRectEveryFrame?: boolean;
   segments?: number;
@@ -39,6 +44,13 @@ export interface CreatePlaneOptions {
   inViewRootMargin?: string;
   inViewRepeat?: boolean;
   crossOrigin?: string;
+  /**
+   * data-texture で読み込むテクスチャの色空間。
+   * 既定は `NoColorSpace`: shader は生の sRGB 値をそのまま受け取り、DOM の画像と
+   * 表示が一致する。`SRGBColorSpace` を指定するとサンプル値が linear になるため、
+   * sRGB への出力変換は自前の shader で行う必要がある。
+   */
+  textureColorSpace?: THREE.ColorSpace;
 }
 
 export interface TextStyleOverrides {
