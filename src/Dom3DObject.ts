@@ -18,6 +18,9 @@ export class Dom3DObject {
   private observer: IntersectionObserver | null;
   private destroyed: boolean;
   private readonly scroll: { x: number; y: number };
+  // destroy() 直接呼び出しでも Core の registry から解除できるよう、生成元が
+  // 登録する解除 callback。destroy() 冒頭で一度だけ呼んで null に戻す。
+  private onDestroy: (() => void) | null = null;
 
   constructor(
     element: HTMLElement | null,
@@ -180,9 +183,16 @@ export class Dom3DObject {
     return this.model;
   }
 
+  public _setOnDestroy(cb: (() => void) | null): void {
+    this.onDestroy = cb;
+  }
+
   public destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    const onDestroy = this.onDestroy;
+    this.onDestroy = null;
+    onDestroy?.();
     this.observer?.disconnect();
 
     if (this.model) {

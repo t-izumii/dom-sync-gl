@@ -38,6 +38,7 @@ export class DomSyncGL {
   private options: DomSyncGLOptions;
   private rafId: number = 0;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private resizeObserver: ResizeObserver | null = null;
   private eventAbort: AbortController = new AbortController();
   private pointer!: PointerController;
   private effectManager!: EffectManager;
@@ -229,6 +230,8 @@ export class DomSyncGL {
       this.domPlaneByMesh.set(mesh, domPlane);
     }
 
+    domPlane._setOnDestroy(() => this.unregisterPlane(domPlane));
+
     return domPlane;
   }
 
@@ -261,20 +264,26 @@ export class DomSyncGL {
     const mesh = plane.getMesh();
     this.domPlaneMeshes.push(mesh);
     this.domPlaneByMesh.set(mesh, plane);
+    plane._setOnDestroy(() => this.unregisterPlane(plane));
     return plane;
+  }
+
+  // 生成時に登録する解除 callback の実体。destroy() 経由で呼ばれ、二重管理を避ける。
+  private unregisterPlane(domPlane: DomPlane): void {
+    const index = this.domPlanes.indexOf(domPlane);
+    if (index > -1) this.domPlanes.splice(index, 1);
+    const mesh = domPlane.getMesh();
+    const meshIndex = this.domPlaneMeshes.indexOf(mesh);
+    if (meshIndex > -1) this.domPlaneMeshes.splice(meshIndex, 1);
+    this.domPlaneByMesh.delete(mesh);
   }
 
   removePlane(domPlane: DomPlane) {
     if (this.destroyed) return;
-    const index = this.domPlanes.indexOf(domPlane);
-    if (index > -1) {
-      this.domPlanes.splice(index, 1);
-      const mesh = domPlane.getMesh();
-      const meshIndex = this.domPlaneMeshes.indexOf(mesh);
-      if (meshIndex > -1) this.domPlaneMeshes.splice(meshIndex, 1);
-      this.domPlaneByMesh.delete(mesh);
-      domPlane.destroy();
-    }
+    // 管理外(別インスタンス生成・破棄済み)の plane は従来どおり no-op にする。
+    if (!this.domPlanes.includes(domPlane)) return;
+    // registry からの解除は destroy() が呼ぶ unregister callback に一本化する。
+    domPlane.destroy();
   }
 
   create3DObject(
@@ -304,17 +313,20 @@ export class DomSyncGL {
       options,
     );
     this.dom3DObjects.push(dom3DObject);
+    dom3DObject._setOnDestroy(() => this.unregister3DObject(dom3DObject));
 
     return dom3DObject;
   }
 
+  private unregister3DObject(dom3DObject: Dom3DObject): void {
+    const index = this.dom3DObjects.indexOf(dom3DObject);
+    if (index > -1) this.dom3DObjects.splice(index, 1);
+  }
+
   remove3DObject(dom3DObject: Dom3DObject) {
     if (this.destroyed) return;
-    const index = this.dom3DObjects.indexOf(dom3DObject);
-    if (index > -1) {
-      this.dom3DObjects.splice(index, 1);
-      dom3DObject.destroy();
-    }
+    if (!this.dom3DObjects.includes(dom3DObject)) return;
+    dom3DObject.destroy();
   }
 
   /**
@@ -389,17 +401,24 @@ export class DomSyncGL {
     this.effectManager.clearEffects();
   }
 
+  // window.resize と ResizeObserver を同じ 100ms debounce 経路へ合流させる。
+  // debounce が同一フレームの複数通知も coalesce する。
+  private scheduleResize = () => {
+    if (this.resizeTimer) clearTimeout(this.resizeTimer);
+    this.resizeTimer = setTimeout(() => this.onResize(), 100);
+  };
+
   private setupEventListeners() {
     const signal = this.eventAbort.signal;
 
-    window.addEventListener(
-      'resize',
-      () => {
-        if (this.resizeTimer) clearTimeout(this.resizeTimer);
-        this.resizeTimer = setTimeout(() => this.onResize(), 100);
-      },
-      { signal },
-    );
+    window.addEventListener('resize', this.scheduleResize, { signal });
+
+    // window サイズが変わらない container 固有のサイズ変化（Grid 列幅・サイドバー
+    // 開閉・親のアニメーション等）にも追従する。未対応環境では window.resize のみ。
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this.scheduleResize);
+      this.resizeObserver.observe(this.container);
+    }
 
     // dom モードは canvas がスクロールで動きうるので、scrollSync 無しの場合と同様に
     // スクロールで pointer のキャッシュした rect を無効化する必要がある。
@@ -423,6 +442,16 @@ export class DomSyncGL {
 
   setMouseTrackingEnabled(enabled: boolean): void {
     this.setPointerTrackingEnabled(enabled);
+  }
+
+  /**
+   * debounce を挟まずレイアウトを即座に再計算する。
+   * SPA 遷移直後など、アプリ側が任意タイミングで反映したいときに呼ぶ。
+   * destroy 済みなら no-op。
+   */
+  resize(): void {
+    if (this.destroyed) return;
+    this.onResize();
   }
 
   private onResize() {
@@ -474,11 +503,15 @@ export class DomSyncGL {
     this.destroyed = true;
     cancelAnimationFrame(this.rafId);
     if (this.resizeTimer) clearTimeout(this.resizeTimer);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     this.eventAbort.abort();
     this.pointer.destroy();
 
-    this.domPlanes.forEach((plane) => plane.destroy());
-    this.dom3DObjects.forEach((obj) => obj.destroy());
+    // 各 destroy() が unregister callback 経由で registry を splice するため、
+    // snapshot を回して反復中の要素スキップを防ぐ。
+    this.domPlanes.slice().forEach((plane) => plane.destroy());
+    this.dom3DObjects.slice().forEach((obj) => obj.destroy());
     this.domPlanes = [];
     this.dom3DObjects = [];
     this.domPlaneMeshes = [];

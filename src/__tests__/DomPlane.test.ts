@@ -51,6 +51,7 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', () => ({
 
 import { DomSyncGL } from '../Core';
 import type { DomPlane } from '../DomPlane';
+import type { PlaneComposer } from '../PlaneComposer';
 import { EffectManager } from '../EffectManager';
 
 class TestEffect extends BaseEffect {
@@ -434,6 +435,56 @@ describe('DomPlane', () => {
       plane.removeEffect(effect);
 
       expect(() => plane.addEffect(effect)).toThrow(/dispose 済み/);
+      app.destroy();
+    });
+  });
+
+  describe('最後の effect 除去で PlaneComposer を解放する（CR-18）', () => {
+    type WithComposer = { planeComposer: PlaneComposer | null };
+
+    it('最後の effect を removeEffect すると composer が dispose され mesh が scene に戻る', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      const scene = app.getScene();
+      const mesh = plane.getMesh();
+
+      const effect = new TestEffect();
+      plane.addEffect(effect);
+      // composer 生成で sourceMesh は scene から外れ proxy 経由になる
+      expect(scene.children).not.toContain(mesh);
+
+      const composer = (plane as unknown as WithComposer).planeComposer!;
+      const disposeSpy = vi.spyOn(composer, 'dispose');
+
+      plane.removeEffect(effect);
+
+      expect(disposeSpy).toHaveBeenCalledTimes(1);
+      expect((plane as unknown as WithComposer).planeComposer).toBeNull();
+      // dispose が sourceMesh を scene へ戻す（二重 add にならない）
+      expect(scene.children).toContain(mesh);
+      app.destroy();
+    });
+
+    it('composer 解放後に再度 addEffect すると新しい composer で動作する', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      const scene = app.getScene();
+      const mesh = plane.getMesh();
+
+      const effect1 = new TestEffect();
+      plane.addEffect(effect1);
+      const composer1 = (plane as unknown as WithComposer).planeComposer;
+      plane.removeEffect(effect1);
+      expect((plane as unknown as WithComposer).planeComposer).toBeNull();
+
+      // dispose 済み effect は再利用できないため新しい effect を add する
+      plane.addEffect(new TestEffect());
+      const composer2 = (plane as unknown as WithComposer).planeComposer;
+
+      expect(composer2).not.toBeNull();
+      expect(composer2).not.toBe(composer1);
+      // 新しい composer が再び sourceMesh を scene から外す
+      expect(scene.children).not.toContain(mesh);
       app.destroy();
     });
   });

@@ -73,6 +73,9 @@ export class DomPlane {
   // インクリメントし、後着した古いロードの完了 callback を無効化する。
   private textureLoadGeneration = 0;
   private readonly scroll: { x: number; y: number };
+  // destroy() 直接呼び出しでも Core の registry から解除できるよう、生成元が
+  // 登録する解除 callback。destroy() 冒頭で一度だけ呼んで null に戻す。
+  private onDestroy: (() => void) | null = null;
 
   constructor(
     el: HTMLElement | null,
@@ -464,6 +467,12 @@ export class DomPlane {
       this.planeComposer.removeEffect(pass);
     }
     effect._dispose();
+    // 最後の effect が外れたら RenderTarget を抱えたままにせず解放する。
+    // dispose() は sourceMesh を scene へ戻すので、次の addEffect で再生成される。
+    if (this.effects.length === 0 && this.planeComposer) {
+      this.planeComposer.dispose();
+      this.planeComposer = null;
+    }
     return true;
   }
 
@@ -471,9 +480,16 @@ export class DomPlane {
     this.gui = gui;
   }
 
+  public _setOnDestroy(cb: (() => void) | null): void {
+    this.onDestroy = cb;
+  }
+
   public destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    const onDestroy = this.onDestroy;
+    this.onDestroy = null;
+    onDestroy?.();
     this.textureLoadGeneration++;
     this.observer?.disconnect();
 

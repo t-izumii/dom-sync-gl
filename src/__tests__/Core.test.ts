@@ -37,6 +37,8 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', () => ({
 }));
 
 import { DomSyncGL } from '../Core';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type * as THREE from 'three';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 
@@ -394,6 +396,194 @@ describe('DomSyncGL', () => {
       makeTextEl();
       app.destroy();
       expect(() => app.createTextPlane('.text-target')).toThrow(/destroy 済み/);
+    });
+  });
+
+  describe('子オブジェクトの直接 destroy で registry から解除される（CR-14）', () => {
+    type CoreInternals = {
+      domPlaneMeshes: THREE.Mesh[];
+      domPlaneByMesh: Map<THREE.Mesh, unknown>;
+    };
+
+    beforeEach(() => {
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(_callback: IntersectionObserverCallback) {}
+          observe() {}
+          unobserve() {}
+          disconnect() {}
+        }
+      );
+      // Core.test は three の GLTFLoader を差し替えないため、実ファイル取得を止める。
+      vi.spyOn(GLTFLoader.prototype, 'load').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function makeEl(cls: string): HTMLElement {
+      const el = document.createElement('div');
+      el.className = cls;
+      document.body.appendChild(el);
+      vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(
+        new DOMRect(0, 0, 100, 100)
+      );
+      return el;
+    }
+
+    it('plane.destroy() 直接呼び出しで domPlanes / raycast 配列・Map から消え、tick 更新対象にならない', () => {
+      const app = new DomSyncGL(container);
+      makeEl('plane-a');
+      const plane = app.createPlane('.plane-a')!;
+      const mesh = plane.getMesh();
+      const internals = app as unknown as CoreInternals;
+
+      expect(app.domPlanes).toContain(plane);
+      expect(internals.domPlaneMeshes).toContain(mesh);
+      expect(internals.domPlaneByMesh.has(mesh)).toBe(true);
+
+      const tickSpy = vi.spyOn(plane, '_tickApply');
+      plane.destroy();
+
+      expect(app.domPlanes).not.toContain(plane);
+      expect(internals.domPlaneMeshes).not.toContain(mesh);
+      expect(internals.domPlaneByMesh.has(mesh)).toBe(false);
+
+      app.tick();
+      expect(tickSpy).not.toHaveBeenCalled();
+      app.destroy();
+    });
+
+    it('dom3DObject.destroy() 直接呼び出しで dom3DObjects から消える', () => {
+      const app = new DomSyncGL(container);
+      makeEl('obj-a');
+      const obj = app.create3DObject('.obj-a', { modelPath: 'dummy.glb' });
+
+      expect(app.dom3DObjects).toContain(obj);
+      obj.destroy();
+      expect(app.dom3DObjects).not.toContain(obj);
+      app.destroy();
+    });
+
+    it('removePlane() は destroy を 1 回だけ呼び、registry からも消える（二重 destroy にならない）', () => {
+      const app = new DomSyncGL(container);
+      makeEl('plane-b');
+      const plane = app.createPlane('.plane-b')!;
+      const mesh = plane.getMesh();
+      const internals = app as unknown as CoreInternals;
+      const destroySpy = vi.spyOn(plane, 'destroy');
+
+      app.removePlane(plane);
+
+      expect(destroySpy).toHaveBeenCalledTimes(1);
+      expect(app.domPlanes).not.toContain(plane);
+      expect(internals.domPlaneMeshes).not.toContain(mesh);
+      expect(internals.domPlaneByMesh.has(mesh)).toBe(false);
+
+      // 解除済みへの再 removePlane も destroy が idempotent なので安全
+      expect(() => app.removePlane(plane)).not.toThrow();
+      app.destroy();
+    });
+
+    it('app.destroy() で複数 plane が全て破棄される（splice によるスキップが起きない）', () => {
+      const app = new DomSyncGL(container);
+      makeEl('p1');
+      makeEl('p2');
+      makeEl('p3');
+      const planes = [
+        app.createPlane('.p1')!,
+        app.createPlane('.p2')!,
+        app.createPlane('.p3')!,
+      ];
+      const spies = planes.map((p) => vi.spyOn(p, 'destroy'));
+
+      app.destroy();
+
+      for (const s of spies) expect(s).toHaveBeenCalledTimes(1);
+      expect(app.domPlanes).toEqual([]);
+    });
+  });
+
+  describe('container resize 追従と公開 resize()（CR-13）', () => {
+    let roCallback: ResizeObserverCallback | null;
+    let roObserve: ReturnType<typeof vi.fn>;
+    let roDisconnect: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      roCallback = null;
+      roObserve = vi.fn();
+      roDisconnect = vi.fn();
+      // jsdom は ResizeObserver 未実装のため、コールバックを捕捉するモックを注入する。
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          constructor(cb: ResizeObserverCallback) {
+            roCallback = cb;
+          }
+          observe = roObserve;
+          unobserve() {}
+          disconnect = roDisconnect;
+        }
+      );
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it('ResizeObserver の発火で debounce 経過後に onResize が走る', () => {
+      const app = new DomSyncGL(container);
+      expect(roObserve).toHaveBeenCalledWith(container);
+
+      const onResizeSpy = vi.spyOn(
+        app as unknown as { onResize: () => void },
+        'onResize'
+      );
+
+      roCallback!([], {} as ResizeObserver);
+      // debounce 前は未実行
+      expect(onResizeSpy).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(100);
+      expect(onResizeSpy).toHaveBeenCalledTimes(1);
+
+      app.destroy();
+    });
+
+    it('公開 resize() は debounce を挟まず即座に onResize を実行する', () => {
+      const app = new DomSyncGL(container);
+      const onResizeSpy = vi.spyOn(
+        app as unknown as { onResize: () => void },
+        'onResize'
+      );
+
+      app.resize();
+
+      expect(onResizeSpy).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it('destroy 済みインスタンスの resize() は no-op', () => {
+      const app = new DomSyncGL(container);
+      app.destroy();
+      const onResizeSpy = vi.spyOn(
+        app as unknown as { onResize: () => void },
+        'onResize'
+      );
+
+      app.resize();
+
+      expect(onResizeSpy).not.toHaveBeenCalled();
+    });
+
+    it('destroy() で ResizeObserver が disconnect される', () => {
+      const app = new DomSyncGL(container);
+      app.destroy();
+      expect(roDisconnect).toHaveBeenCalledTimes(1);
     });
   });
 });

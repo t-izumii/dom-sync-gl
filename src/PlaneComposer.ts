@@ -59,6 +59,8 @@ export class PlaneComposer implements EffectTarget {
       magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat,
       stencilBuffer: false,
+      // fullscreen quad と単一 plane しか描かないため depth は不要。VRAM を節約する。
+      depthBuffer: false,
     };
     this.targetA = new THREE.WebGLRenderTarget(w, h, rtOptions);
     this.targetB = new THREE.WebGLRenderTarget(w, h, rtOptions);

@@ -184,6 +184,20 @@ describe('PlaneComposer', () => {
     ).toThrow();
   });
 
+  it('RenderTarget を depthBuffer:false で生成する（CR-18）', () => {
+    const scene = new THREE.Scene();
+    const sourceMesh = makeSourceMesh();
+    const composer = new PlaneComposer(makeRenderer(), sourceMesh, scene, 100, 50);
+    const internals = composer as unknown as {
+      targetA: THREE.WebGLRenderTarget;
+      targetB: THREE.WebGLRenderTarget;
+    };
+
+    expect(internals.targetA.depthBuffer).toBe(false);
+    expect(internals.targetB.depthBuffer).toBe(false);
+    composer.dispose();
+  });
+
   it('resize は例外を投げずに解像度を更新できる', () => {
     const scene = new THREE.Scene();
     const sourceMesh = makeSourceMesh();

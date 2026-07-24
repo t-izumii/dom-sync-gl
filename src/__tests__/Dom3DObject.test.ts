@@ -177,6 +177,20 @@ describe('Dom3DObject', () => {
       expect(() => obj.destroy()).not.toThrow();
       expect(disconnectSpy).toHaveBeenCalledTimes(1); // 2 回目は早期 return
     });
+
+    it('_setOnDestroy の callback は destroy() で一度だけ呼ばれる（CR-14）', () => {
+      const el = makeElement(100, 100);
+      const obj = new Dom3DObject(el, scene, new DOMRect(0, 0, 1000, 1000), { x: 0, y: 0 }, {
+        modelPath: 'dummy.glb',
+      });
+      const onDestroy = vi.fn();
+      obj._setOnDestroy(onDestroy);
+
+      obj.destroy();
+      obj.destroy(); // 冪等 & 一度きり
+
+      expect(onDestroy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('position: sticky（毎フレーム再計測の回帰）', () => {
