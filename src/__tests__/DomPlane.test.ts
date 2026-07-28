@@ -1,18 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
+import { texture, uniform } from 'three/tsl';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
+import type { PlaneNodeContext } from '../types';
 
-// WebGLRenderer は WebGL コンテキストを要求し jsdom では失敗するためスタブ化（Core.test と同方針）。
+// WebGPURenderer は GPU device を要求し jsdom では失敗するためスタブ化（Core.test と同方針）。
 // PlaneComposer / FeedbackBuffer が使う renderer メソッドも含める。
-vi.mock('three', async () => {
-  const actual = await vi.importActual<typeof import('three')>('three');
-  class MockWebGLRenderer {
+vi.mock('three/webgpu', async () => {
+  const actual =
+    await vi.importActual<typeof import('three/webgpu')>('three/webgpu');
+  class MockWebGPURenderer {
     domElement: HTMLCanvasElement;
     outputColorSpace = '';
     private dpr = 1;
     constructor(opts: { canvas?: HTMLCanvasElement }) {
       this.domElement = opts.canvas ?? document.createElement('canvas');
+    }
+    init(): Promise<void> {
+      return Promise.resolve();
     }
     setSize() {}
     setPixelRatio(v: number) {
@@ -38,7 +44,7 @@ vi.mock('three', async () => {
   }
   return {
     ...actual,
-    WebGLRenderer: MockWebGLRenderer,
+    WebGPURenderer: MockWebGPURenderer,
   };
 });
 
@@ -56,7 +62,8 @@ import { EffectManager } from '../EffectManager';
 
 class TestEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
-    return { fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' };
+    // 前段の出力をそのまま返す素通しエフェクト（旧 passthrough fragmentShader 相当）
+    return { outputNode: (ctx) => ctx.inputTexture };
   }
 }
 
@@ -362,17 +369,24 @@ describe('DomPlane', () => {
     it('予約名 uniform を渡すと throw する', () => {
       const app = new DomSyncGL(container);
       expect(() =>
-        app.createPlane(null, { uniforms: { uResolution: { value: 0 } } }),
+        app.createPlane(null, { uniforms: { uResolution: uniform(0) } }),
       ).toThrow(/uResolution/);
       app.destroy();
     });
 
-    it('予約名以外のカスタム uniform は従来どおり通る', () => {
+    it('予約名以外のカスタム uniform は colorNode の ctx.uniforms から参照できる', () => {
       const app = new DomSyncGL(container);
-      const plane = app.createPlane(null, {
-        uniforms: { uCustom: { value: 1.23 } },
-      }) as DomPlane;
-      expect(plane.material.uniforms.uCustom.value).toBe(1.23);
+      const uCustom = uniform(1.23);
+      let captured: PlaneNodeContext | null = null;
+      app.createPlane(null, {
+        uniforms: { uCustom },
+        colorNode: (ctx) => {
+          captured = ctx;
+          return ctx.uTexture;
+        },
+      });
+      expect(captured!.uniforms.uCustom).toBe(uCustom);
+      expect(captured!.uniforms.uCustom.value).toBe(1.23);
       app.destroy();
     });
 
@@ -381,21 +395,38 @@ describe('DomPlane', () => {
       const plane = app.createPlane(null) as DomPlane;
       expect(() =>
         plane.addFeedback({
-          fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }',
+          outputNode: (ctx) => ctx.uPrev,
           outputUniform: 'uTexture',
         }),
       ).toThrow(/uTexture/);
       app.destroy();
     });
 
-    it('addFeedback の outputUniform が予約名以外なら従来どおり通る', () => {
+    it('addFeedback: outputUniform と同名の texture() ノードを事前宣言していないと throw する', () => {
+      // colorNode のノードグラフは構築時に確定するため、後から参照を注入できない
+      // （新契約: createPlane の options.uniforms で texture() ノードを事前宣言する）。
       const app = new DomSyncGL(container);
       const plane = app.createPlane(null) as DomPlane;
+      expect(() =>
+        plane.addFeedback({
+          outputNode: (ctx) => ctx.uPrev,
+          outputUniform: 'uFeedback',
+        }),
+      ).toThrow(/texture\(\) ノードが options\.uniforms にありません/);
+      app.destroy();
+    });
+
+    it('addFeedback: 事前宣言した texture() ノードへ出力テクスチャが供給される', () => {
+      const app = new DomSyncGL(container);
+      const uFeedback = texture(new THREE.Texture());
+      const plane = app.createPlane(null, {
+        uniforms: { uFeedback },
+      }) as DomPlane;
       const buffer = plane.addFeedback({
-        fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }',
+        outputNode: (ctx) => ctx.uPrev,
         outputUniform: 'uFeedback',
       });
-      expect(plane.material.uniforms.uFeedback.value).toBe(buffer.texture);
+      expect(uFeedback.value).toBe(buffer.texture);
       app.destroy();
     });
   });
@@ -514,7 +545,14 @@ describe('DomPlane', () => {
 
       const app = new DomSyncGL(container);
       const el = makeTexEl();
-      const plane = app.createPlane(el) as DomPlane; // ロード A 開始
+      // 内部の uTexture ノードは非公開のため、colorNode の ctx 経由で捕捉して検証する。
+      let captured: PlaneNodeContext | null = null;
+      const plane = app.createPlane(el, {
+        colorNode: (ctx) => {
+          captured = ctx;
+          return ctx.uTexture;
+        },
+      }) as DomPlane; // ロード A 開始
 
       plane.reloadTexture(); // ロード B 開始
       expect(loadCallbacks.length).toBe(2);
@@ -528,7 +566,7 @@ describe('DomPlane', () => {
 
       expect(disposeA).toHaveBeenCalledTimes(1);
       expect(plane.texture).toBe(texB);
-      expect(plane.material.uniforms.uTexture.value).toBe(texB);
+      expect(captured!.uTexture.value).toBe(texB);
       app.destroy();
     });
 
@@ -543,7 +581,13 @@ describe('DomPlane', () => {
 
       const app = new DomSyncGL(container);
       const el = makeTexEl();
-      const plane = app.createPlane(el) as DomPlane; // ロード開始
+      let captured: PlaneNodeContext | null = null;
+      const plane = app.createPlane(el, {
+        colorNode: (ctx) => {
+          captured = ctx;
+          return ctx.uTexture;
+        },
+      }) as DomPlane; // ロード開始
 
       const texManual = new THREE.Texture();
       plane.setTexture(texManual, true); // ロード中に手動差し替え
@@ -554,7 +598,7 @@ describe('DomPlane', () => {
 
       expect(disposeStale).toHaveBeenCalledTimes(1);
       expect(plane.texture).toBe(texManual);
-      expect(plane.material.uniforms.uTexture.value).toBe(texManual);
+      expect(captured!.uTexture.value).toBe(texManual);
       app.destroy();
     });
   });
@@ -570,7 +614,9 @@ describe('DomPlane', () => {
       return el;
     }
 
-    it('data-texture ロードの colorSpace 既定は NoColorSpace（passthrough 契約）', () => {
+    it('data-texture ロードの colorSpace 既定は SRGBColorSpace（NodeMaterial の出力変換と相殺して DOM と一致）', () => {
+      // 旧 GLSL 版の既定は NoColorSpace（生値素通し）だったが、NodeMaterial は
+      // 画面出力時に linear→sRGB 変換を行うため、入力側も SRGB デコードに揃える。
       const loadCallbacks: Array<(t: THREE.Texture) => void> = [];
       vi.spyOn(THREE.TextureLoader.prototype, 'load').mockImplementation(
         ((_url: string, onLoad: (t: THREE.Texture) => void) => {
@@ -586,11 +632,11 @@ describe('DomPlane', () => {
       const tex = new THREE.Texture();
       loadCallbacks[0](tex);
 
-      expect(tex.colorSpace).toBe(THREE.NoColorSpace);
+      expect(tex.colorSpace).toBe(THREE.SRGBColorSpace);
       app.destroy();
     });
 
-    it('textureColorSpace オプション指定がロードした texture に反映される', () => {
+    it('textureColorSpace オプション指定がロードした texture に反映される（旧挙動の NoColorSpace へ opt-out できる）', () => {
       const loadCallbacks: Array<(t: THREE.Texture) => void> = [];
       vi.spyOn(THREE.TextureLoader.prototype, 'load').mockImplementation(
         ((_url: string, onLoad: (t: THREE.Texture) => void) => {
@@ -601,12 +647,12 @@ describe('DomPlane', () => {
 
       const app = new DomSyncGL(container);
       const el = makeTexEl();
-      app.createPlane(el, { textureColorSpace: THREE.SRGBColorSpace });
+      app.createPlane(el, { textureColorSpace: THREE.NoColorSpace });
 
       const tex = new THREE.Texture();
       loadCallbacks[0](tex);
 
-      expect(tex.colorSpace).toBe(THREE.SRGBColorSpace);
+      expect(tex.colorSpace).toBe(THREE.NoColorSpace);
       app.destroy();
     });
   });

@@ -1,10 +1,12 @@
-import type { IUniform, Vector2, WebGLRenderer } from "three";
+import type { Node, UniformNode, Vector2, WebGPURenderer } from "three/webgpu";
 import type GUI from "lil-gui";
-import type { EffectTarget, EffectPass } from "../EffectComposer";
+import type { EffectContext, EffectTarget, EffectPass } from "../EffectComposer";
 
 export interface BaseEffectConfig {
-  fragmentShader: string;
-  uniforms?: { [key: string]: IUniform };
+  /** vec4 の色ノードを返すファクトリ。register 時に一度だけ呼ばれる */
+  outputNode: (ctx: EffectContext) => Node;
+  /** uniform() で生成したノードの名前つきマップ。setUniform/getUniform で参照される */
+  uniforms?: Record<string, UniformNode<unknown>>;
 }
 
 /**
@@ -49,13 +51,13 @@ export abstract class BaseEffect {
     }
     const config = this.getConfig();
     this.pass = target.addEffect({
-      fragmentShader: config.fragmentShader,
+      outputNode: config.outputNode,
       uniforms: config.uniforms,
     });
     this.pass.enabled = this._enabled;
   }
 
-  _setRenderer?(_renderer: WebGLRenderer): void;
+  _setRenderer?(_renderer: WebGPURenderer): void;
 
   update(_time: number, _mouse?: Vector2): void {}
 
@@ -93,7 +95,7 @@ export abstract class BaseEffect {
     this.pass?.setUniform(key, value);
   }
 
-  getUniform(key: string): IUniform | undefined {
+  getUniform(key: string): UniformNode<unknown> | undefined {
     return this.pass?.getUniform(key);
   }
 

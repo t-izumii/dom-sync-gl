@@ -1,6 +1,8 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
+import { texture, uniform, uv } from "three/tsl";
+import type { TextureNode, UniformNode } from "three/webgpu";
 import type GUI from "lil-gui";
-import type { CreatePlaneOptions } from "./types";
+import type { CreatePlaneOptions, PlaneNodeContext } from "./types";
 import { DomPositionCalculator } from "./DomPositionCalculator";
 import { PlaneComposer } from "./PlaneComposer";
 import type { BaseEffect } from "./effects/BaseEffect";
@@ -13,7 +15,7 @@ export interface AddFeedbackOptions extends FeedbackBufferOptions {
 const sharedTextureLoader = new THREE.TextureLoader();
 sharedTextureLoader.setCrossOrigin("anonymous");
 
-// DomPlane が内部で生成・毎フレーム更新する uniform。
+// DomPlane が内部で生成・毎フレーム更新するノード名。
 // options.uniforms からの上書きは内部処理を壊すため予約名として禁止する。
 const RESERVED_UNIFORM_NAMES: readonly string[] = [
   "uTexture",
@@ -24,33 +26,21 @@ const RESERVED_UNIFORM_NAMES: readonly string[] = [
   "uMouseUV",
 ];
 
-const defaultVertexShader = `
-  varying vec2 vUv;
-
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const defaultFragmentShader = `
-  uniform sampler2D uTexture;
-  uniform float uTime;
-  uniform vec2 uResolution;
-  varying vec2 vUv;
-
-  void main() {
-    vec4 texColor = texture2D(uTexture, vUv);
-    gl_FragColor = texColor;
-  }
-`;
+// テクスチャ未設定でも texture() ノードは有効な Texture を要求するため、
+// 全 plane で共有する 1x1 透明テクスチャを初期値に使う。
+const placeholderTexture = new THREE.DataTexture(
+  new Uint8Array([0, 0, 0, 0]),
+  1,
+  1,
+);
+placeholderTexture.needsUpdate = true;
 
 export class DomPlane {
   element: HTMLElement | null;
   texture: THREE.Texture | null;
   mesh: THREE.Mesh;
   geometry: THREE.PlaneGeometry;
-  material: THREE.ShaderMaterial;
+  material: THREE.MeshBasicNodeMaterial;
   scene: THREE.Scene;
   clock: THREE.Clock;
   positionCalculator: DomPositionCalculator | null;
@@ -60,7 +50,7 @@ export class DomPlane {
   private observer: IntersectionObserver | null;
   private destroyed: boolean;
   private planeComposer: PlaneComposer | null = null;
-  private renderer: THREE.WebGLRenderer;
+  private renderer: THREE.WebGPURenderer;
   private effects: BaseEffect[] = [];
   private feedbacks: { buffer: FeedbackBuffer; outputUniform: string }[] = [];
   private readonly _feedbackMouseUV: THREE.Vector2 = new THREE.Vector2();
@@ -77,12 +67,26 @@ export class DomPlane {
   // 登録する解除 callback。destroy() 冒頭で一度だけ呼んで null に戻す。
   private onDestroy: (() => void) | null = null;
 
+  // colorNode / positionNode から参照される内部ノード。構築後はノードグラフを
+  // 組み替えず `.value` の差し替えのみで毎フレーム更新する。
+  private readonly nodes: {
+    uTexture: TextureNode;
+    uAlpha: UniformNode<number>;
+    uResolution: UniformNode<THREE.Vector2>;
+    uTime: UniformNode<number>;
+    uIsHovered: UniformNode<number>;
+    uMouseUV: UniformNode<THREE.Vector2>;
+  };
+  private readonly userUniforms: Record<string, UniformNode<unknown>>;
+  // uIsHovered は shader 向けに float(0/1) で持つため、JS 向けの真偽値は別に持つ。
+  private _isHovered = false;
+
   constructor(
     el: HTMLElement | null,
     scene: THREE.Scene,
     canvasRect: DOMRect,
     scroll: { x: number; y: number },
-    renderer: THREE.WebGLRenderer,
+    renderer: THREE.WebGPURenderer,
     options: CreatePlaneOptions = {},
     sharedClock?: THREE.Clock,
   ) {
@@ -105,7 +109,8 @@ export class DomPlane {
     this.destroyed = false;
     this.updateRectEveryFrame = options.updateRectEveryFrame || false;
     this.crossOrigin = options.crossOrigin;
-    this.textureColorSpace = options.textureColorSpace ?? THREE.NoColorSpace;
+    // 既定 SRGBColorSpace の理由は types.ts の textureColorSpace JSDoc を参照。
+    this.textureColorSpace = options.textureColorSpace ?? THREE.SRGBColorSpace;
     this.clock = sharedClock ?? new THREE.Clock();
     this.canvasRect = canvasRect;
     this.positionCalculator = el
@@ -144,22 +149,33 @@ export class DomPlane {
     const segments = options.segments ?? 1;
     this.geometry = new THREE.PlaneGeometry(1, 1, segments, segments);
 
-    const uniforms = {
-      uTexture: { value: null },
-      uAlpha: { value: 1.0 },
-      uResolution: { value: new THREE.Vector2() },
-      uTime: { value: 0 },
-      uIsHovered: { value: false },
-      uMouseUV: { value: new THREE.Vector2(0, 0) },
-      ...options.uniforms,
+    const uTexture = texture(placeholderTexture);
+    const uAlpha = uniform(1.0);
+    const uResolution = uniform(new THREE.Vector2());
+    const uTime = uniform(0);
+    const uIsHovered = uniform(0);
+    const uMouseUV = uniform(new THREE.Vector2(0, 0));
+    this.nodes = { uTexture, uAlpha, uResolution, uTime, uIsHovered, uMouseUV };
+    this.userUniforms = { ...options.uniforms };
+
+    const ctx: PlaneNodeContext = {
+      uTexture,
+      uAlpha,
+      uResolution,
+      uTime,
+      uIsHovered,
+      uMouseUV,
+      uniforms: this.userUniforms,
+      uv: uv(),
     };
 
-    this.material = new THREE.ShaderMaterial({
-      transparent: true,
-      uniforms: uniforms,
-      vertexShader: options.vertexShader || defaultVertexShader,
-      fragmentShader: options.fragmentShader || defaultFragmentShader,
-    });
+    this.material = new THREE.MeshBasicNodeMaterial();
+    this.material.transparent = true;
+    // 既定はテクスチャをそのまま表示（旧 defaultFragmentShader と同じ挙動）。
+    this.material.colorNode = options.colorNode ? options.colorNode(ctx) : uTexture;
+    if (options.positionNode) {
+      this.material.positionNode = options.positionNode(ctx);
+    }
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.visible = this.isVisible;
 
@@ -179,7 +195,7 @@ export class DomPlane {
 
   public _tickApply(elapsedTime: number, scrollX: number, scrollY: number): void {
     if (!this.isVisible) return;
-    this.material.uniforms.uTime.value = elapsedTime;
+    this.nodes.uTime.value = elapsedTime;
     if (this.positionCalculator) {
       this.setPosition(scrollX, scrollY);
     }
@@ -218,15 +234,16 @@ export class DomPlane {
           texture.colorSpace = this.textureColorSpace;
           this.texture = texture;
           this.ownsTexture = true;
-          this.material.uniforms.uTexture.value = texture;
+          this.nodes.uTexture.value = texture;
         },
         undefined,
         (error: unknown) => {
           console.error(`Failed to load texture: ${texturePath}`, error);
         },
       );
-    } else if (this.material.uniforms.uTexture.value) {
-      this.texture = this.material.uniforms.uTexture.value;
+    } else if (this.nodes.uTexture.value !== placeholderTexture) {
+      // サブクラス等が構築中に uTexture を差し替えた場合はそれを引き継ぐ。
+      this.texture = this.nodes.uTexture.value;
       this.ownsTexture = false;
     }
   }
@@ -235,10 +252,10 @@ export class DomPlane {
     if (this.positionCalculator) {
       const rect = this.positionCalculator.rect;
       this.mesh.scale.set(rect.width, rect.height, 1);
-      this.material.uniforms.uResolution.value.set(rect.width, rect.height);
+      this.nodes.uResolution.value.set(rect.width, rect.height);
     } else {
       this.mesh.scale.set(this.canvasRect.width, this.canvasRect.height, 1);
-      this.material.uniforms.uResolution.value.set(
+      this.nodes.uResolution.value.set(
         this.canvasRect.width,
         this.canvasRect.height,
       );
@@ -302,7 +319,7 @@ export class DomPlane {
     if (this.texture && this.ownsTexture) {
       this.texture.dispose();
       this.texture = null;
-      this.material.uniforms.uTexture.value = null;
+      this.nodes.uTexture.value = placeholderTexture;
       this.ownsTexture = false;
     }
     this.loadTexture();
@@ -315,7 +332,7 @@ export class DomPlane {
     }
     this.texture = texture;
     this.ownsTexture = takeOwnership;
-    this.material.uniforms.uTexture.value = texture;
+    this.nodes.uTexture.value = texture;
   }
 
   public updateEffects(
@@ -345,16 +362,15 @@ export class DomPlane {
           const ly = (globalMouse.y - planeBottomYup) / planeH;
 
           if (lx >= 0 && lx <= 1 && ly >= 0 && ly <= 1) {
-            this.material.uniforms.uMouseUV.value.set(lx, ly);
+            this.nodes.uMouseUV.value.set(lx, ly);
           }
         }
       } else {
-        this.material.uniforms.uMouseUV.value.copy(globalMouse);
+        this.nodes.uMouseUV.value.copy(globalMouse);
       }
     }
 
-    const uniformUV = this.material.uniforms.uMouseUV.value as THREE.Vector2;
-    this._effectMouseUV.copy(uniformUV);
+    this._effectMouseUV.copy(this.nodes.uMouseUV.value);
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
@@ -364,17 +380,18 @@ export class DomPlane {
   }
 
   public getMouseUV(): THREE.Vector2 {
-    return this.material.uniforms.uMouseUV.value as THREE.Vector2;
+    return this.nodes.uMouseUV.value;
   }
 
   public isHovered(): boolean {
-    return this.material.uniforms.uIsHovered.value as boolean;
+    return this._isHovered;
   }
 
   public setHoverInfo(isHovered: boolean, uv: THREE.Vector2 | null) {
-    this.material.uniforms.uIsHovered.value = isHovered;
+    this._isHovered = isHovered;
+    this.nodes.uIsHovered.value = isHovered ? 1 : 0;
     if (uv) {
-      this.material.uniforms.uMouseUV.value.copy(uv);
+      this.nodes.uMouseUV.value.copy(uv);
     }
   }
 
@@ -412,11 +429,20 @@ export class DomPlane {
           `（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
       );
     }
-    const buffer = new FeedbackBuffer(this.renderer, options);
-    if (!this.material.uniforms[options.outputUniform]) {
-      this.material.uniforms[options.outputUniform] = { value: null };
+    // colorNode のノードグラフは構築時に確定しているため、後から参照を注入できない。
+    // 出力先の texture() ノードは createPlane の options.uniforms で事前に宣言してもらう。
+    const target = this.userUniforms[options.outputUniform] as
+      | Partial<TextureNode>
+      | undefined;
+    if (!target || target.isTextureNode !== true) {
+      throw new Error(
+        `[DomPlane] addFeedback の outputUniform "${options.outputUniform}" に対応する ` +
+          `texture() ノードが options.uniforms にありません。colorNode から参照するため、` +
+          `createPlane の options.uniforms に同名の texture() ノードを渡してください。`,
+      );
     }
-    this.material.uniforms[options.outputUniform].value = buffer.texture;
+    const buffer = new FeedbackBuffer(this.renderer, options);
+    (target as TextureNode).value = buffer.texture;
     this.feedbacks.push({ buffer, outputUniform: options.outputUniform });
     if (this.gui && options.setupGUI) {
       const folder = options.setupGUI(this.gui, buffer);
@@ -430,8 +456,10 @@ export class DomPlane {
     if (idx < 0) return false;
     const { outputUniform } = this.feedbacks[idx];
     this.feedbacks.splice(idx, 1);
-    if (this.material.uniforms[outputUniform]) {
-      this.material.uniforms[outputUniform].value = null;
+    const target = this.userUniforms[outputUniform];
+    if (target && (target as Partial<TextureNode>).isTextureNode === true) {
+      // dispose 済みテクスチャを参照し続けないようプレースホルダへ戻す。
+      (target as TextureNode).value = placeholderTexture;
     }
     buffer.dispose();
     return true;
@@ -441,10 +469,8 @@ export class DomPlane {
     if (!this.isVisible || this.feedbacks.length === 0) return;
     const rect = this.positionCalculator?.rect ?? this.canvasRect;
     const aspect = rect.height > 0 ? rect.width / rect.height : 1;
-    const hover = this.material.uniforms.uIsHovered.value ? 1 : 0;
-    this._feedbackMouseUV.copy(
-      this.material.uniforms.uMouseUV.value as THREE.Vector2,
-    );
+    const hover = this._isHovered ? 1 : 0;
+    this._feedbackMouseUV.copy(this.nodes.uMouseUV.value);
     for (let i = 0, n = this.feedbacks.length; i < n; i++) {
       const f = this.feedbacks[i];
       const tex = f.buffer.step({
@@ -453,7 +479,7 @@ export class DomPlane {
         time: elapsedTime,
         aspect,
       });
-      this.material.uniforms[f.outputUniform].value = tex;
+      (this.userUniforms[f.outputUniform] as TextureNode).value = tex;
     }
   }
 

@@ -1,27 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
+import { uniform } from 'three/tsl';
 import type GUI from 'lil-gui';
 import { EffectManager } from '../EffectManager';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 
-function makeRenderer(maxSamples = 0): THREE.WebGLRenderer {
-  let current: THREE.WebGLRenderTarget | null = null;
+function makeRenderer(maxSamples = 0): THREE.WebGPURenderer {
+  let current: THREE.RenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
     getRenderTarget: vi.fn(() => current),
-    setRenderTarget: vi.fn((t: THREE.WebGLRenderTarget | null = null) => {
+    setRenderTarget: vi.fn((t: THREE.RenderTarget | null = null) => {
       current = t;
     }),
     render: vi.fn(),
     capabilities: { maxSamples },
-  } as unknown as THREE.WebGLRenderer;
+  } as unknown as THREE.WebGPURenderer;
 }
 
 class TestEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
+    // 前段の出力をそのまま返す素通しエフェクト（旧 passthrough fragmentShader 相当）
     return {
-      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
-      uniforms: { uTime: { value: 0 } },
+      outputNode: (ctx) => ctx.inputTexture,
+      uniforms: { uTime: uniform(0) },
     };
   }
 }
@@ -179,7 +181,7 @@ describe('EffectManager', () => {
   it('render: postEffect が無ければ最終出力を outputTarget へ向ける（CR-05）', () => {
     const renderer = makeRenderer();
     const manager = new EffectManager({ renderer, gui: null });
-    const rt = {} as THREE.WebGLRenderTarget;
+    const rt = {} as THREE.RenderTarget;
 
     manager.render(new THREE.Scene(), new THREE.PerspectiveCamera(), rt);
 
@@ -189,7 +191,7 @@ describe('EffectManager', () => {
   it('render: postEffect 無しで外部 RT をバインド中でも呼び出し後に復元する（CR-05）', () => {
     const renderer = makeRenderer();
     const manager = new EffectManager({ renderer, gui: null });
-    const ext = {} as THREE.WebGLRenderTarget;
+    const ext = {} as THREE.RenderTarget;
     renderer.setRenderTarget(ext);
 
     manager.render(new THREE.Scene(), new THREE.PerspectiveCamera(), null);
@@ -204,7 +206,7 @@ describe('EffectManager', () => {
     manager.setPostEffect(postEffect);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera();
-    const rt = {} as THREE.WebGLRenderTarget;
+    const rt = {} as THREE.RenderTarget;
 
     manager.render(scene, camera, rt);
 

@@ -3,14 +3,15 @@
 [![npm](https://img.shields.io/npm/v/dom-sync-gl.svg)](https://www.npmjs.com/package/dom-sync-gl)
 [![license](https://img.shields.io/npm/l/dom-sync-gl.svg)](./LICENSE)
 
-DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、スクロールに同期させつつポストエフェクトを重ねるための薄いラッパー。
+DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、スクロールに同期させつつ TSL ベースのポストエフェクトを重ねるための薄いラッパー。WebGPU 既定・WebGL 2 自動フォールバック。
 
 ## Features
 
 - DOM 要素の bbox に追従する Three.js mesh を `createPlane(selector)` で作れる
+- レンダラーは `three/webgpu` の `WebGPURenderer`。WebGPU 非対応環境では WebGL 2 に自動フォールバックし、シェーダーは TSL で書くので 1 実装で WGSL / GLSL 両対応
 - `createTextPlane(selector)` で DOM のテキストを板に（スタイルは CSS 由来のまま、DOM も残る）
 - ネイティブスクロールと canvas のズレを毎フレーム補正する
-- `BaseEffect` を継承するだけでポストエフェクトを ping-pong で連結
+- `BaseEffect` を継承して TSL の `outputNode` を返すだけでポストエフェクトを ping-pong で連結
 - iOS Safari の動的アドレスバーに canvas 高を追従させる（`overscan`）
 - rAF を自前で持てる（`autoRaf: false` + `tick()`）ので、Lenis 等と 1 本のループに統合できる
 - lil-gui / stats.js は optional（使うときだけ install）
@@ -21,7 +22,8 @@ DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、
 npm install dom-sync-gl three
 ```
 
-必須は `three` だけ。GUI パネルや FPS パネルを出したいときだけ追加:
+必須は `three`（**>= 0.178.0**。内部で `three/webgpu` / `three/tsl` エントリポイントを使う）だけ。
+GUI パネルや FPS パネルを出したいときだけ追加:
 
 ```bash
 npm install lil-gui stats.js
@@ -41,7 +43,8 @@ npm install lenis
 ```
 
 ```ts
-import { DomSyncGL } from "dom-sync-gl";
+import { DomSyncGL, TSL } from "dom-sync-gl";
+const { vec4, sin } = TSL;
 
 const app = new DomSyncGL("#canvas", {
   scrollSync: true,
@@ -49,48 +52,67 @@ const app = new DomSyncGL("#canvas", {
 
 // .hero-card 要素にロックした plane
 app.createPlane(".hero-card", {
-  fragmentShader: `
-    precision highp float;
-    varying vec2 vUv;
-    uniform float uTime;
-    void main() {
-      gl_FragColor = vec4(vUv, 0.5 + 0.5 * sin(uTime), 1.0);
-    }
-  `,
+  colorNode: ({ uv, uTime }) =>
+    vec4(uv, sin(uTime).mul(0.5).add(0.5), 1),
 });
 
 // 全画面背景レイヤとして使う
 app.createPlane(null, {
-  fragmentShader: bgShader,
+  colorNode: bgNode,
 });
 ```
 
 ## Concepts
+
+### WebGPU first / WebGL 2 fallback
+
+renderer は `three/webgpu` の `WebGPURenderer`。WebGPU が使える環境では WebGPU、使えない環境では
+WebGL 2 バックエンドに自動フォールバックする。シェーダーは GLSL 文字列ではなく **TSL のノードファクトリ**
+で書き、three が WGSL / GLSL へ自動変換するので利用側は 1 実装だけ書けばよい。
+
+WebGPU の device 取得は非同期なので、初期化完了は `app.ready`（Promise）で待てる。
+
+```ts
+const app = new DomSyncGL("#canvas");
+await app.ready; // 待たなくても安全（初期化完了まで render が no-op になるだけ）
+
+app.isWebGPUBackend(); // WebGL 2 フォールバック時は false（ready 解決前も false）
+```
+
+デバッグ用に WebGL 2 バックエンドを強制する `forceWebGL: true` オプションもある。
 
 ### DOM-locked plane
 
 `createPlane(selector)` に渡した DOM 要素の位置・サイズに追従する Three.js mesh を作る。CSS で要素が動いてもピクセル単位で付いてくる。
 
 ```ts
+import { TSL } from "dom-sync-gl";
+const { uniform } = TSL;
+
+const uIntensity = uniform(0.5);
 const plane = app.createPlane(".card", {
-  fragmentShader,
+  colorNode,
   updateRectEveryFrame: true,  // CSS animation / GSAP で動く要素用
-  uniforms: {
-    uTexture: { value: texture },
-    uIntensity: { value: 0.5 },
-  },
-  onInView: (p) => (p.material.uniforms.uIntensity.value = 1),
+  uniforms: { uIntensity },    // 自前の uniform ノード（ctx.uniforms から参照できる）
+  onInView: () => (uIntensity.value = 1),
 });
 ```
 
-shader 側は次の uniform を宣言するだけで使える（値の更新は内部でやる）:
+`colorNode` / `positionNode` ファクトリの引数（ctx）には、宣言不要で使えるノードが渡ってくる
+（値の更新は内部でやる）:
 
-| uniform | 型 | 内容 |
+| ノード | 型 | 内容 |
 |---|---|---|
-| `uTime` | `float` | 経過秒 |
-| `uResolution` | `vec2` | plane の pixel 寸法 |
-| `uMouseUV` | `vec2` | hover 中の plane-local UV (0..1) |
-| `uIsHovered` | `bool` | raycast hit 中か |
+| `uTime` | `UniformNode<number>` | 経過秒 |
+| `uResolution` | `UniformNode<Vector2>` | plane の pixel 寸法 |
+| `uMouseUV` | `UniformNode<Vector2>` | hover 中の plane-local UV (0..1) |
+| `uIsHovered` | `UniformNode<number>` | raycast hit 中なら 1 / それ以外 0 |
+| `uTexture` | `TextureNode` | `data-texture` 属性 or `setTexture()` のテクスチャ |
+| `uv` | `Node` | UV ノード |
+
+`data-texture` で読むテクスチャの色空間の既定は `SRGBColorSpace`（NodeMaterial が画面出力時に
+linear→sRGB 変換を行うため、DOM の画像と表示が一致する）。生の値を素通ししたい場合のみ
+`textureColorSpace: THREE.NoColorSpace` を指定する。
 
 ### Scroll sync
 
@@ -176,26 +198,24 @@ ready.then(() => app.createTextPlane(".headline"));
 
 ### Post effects
 
-`BaseEffect` を継承して fragment shader を返すだけ。あとは `app.addEffect()` に渡すとフルスクリーンチェーンに繋がる。
+`BaseEffect` を継承して TSL の `outputNode` ファクトリを返すだけ。あとは `app.addEffect()` に渡すとフルスクリーンチェーンに繋がる。前段の結果は `ctx.inputTexture` で受け取れる。
 
 ```ts
-import { BaseEffect, type BaseEffectConfig } from "dom-sync-gl";
+import { BaseEffect, type BaseEffectConfig, TSL } from "dom-sync-gl";
+const { uniform, vec2, vec4, fract, sin, dot } = TSL;
 
 class GrainEffect extends BaseEffect {
+  private uTime = uniform(0);
+
   protected getConfig(): BaseEffectConfig {
     return {
-      fragmentShader: `
-        precision highp float;
-        uniform sampler2D tDiffuse;
-        uniform float uTime;
-        varying vec2 vUv;
-        void main() {
-          vec4 src = texture2D(tDiffuse, vUv);
-          float g = fract(sin(dot(vUv + uTime, vec2(12.9898, 78.233))) * 43758.5453);
-          gl_FragColor = vec4(src.rgb + (g - 0.5) * 0.06, src.a);
-        }
-      `,
-      uniforms: { uTime: { value: 0 } },
+      outputNode: ({ inputTexture, uv }) => {
+        const g = fract(
+          sin(dot(uv.add(this.uTime), vec2(12.9898, 78.233))).mul(43758.5453),
+        );
+        return vec4(inputTexture.rgb.add(g.sub(0.5).mul(0.06)), inputTexture.a);
+      },
+      uniforms: { uTime: this.uTime },
     };
   }
   update(time: number) {
@@ -210,6 +230,9 @@ app.addEffect(new GrainEffect());
 `setupGUI(gui)` を実装しておくと、`gui` オプションに lil-gui インスタンスを渡したときだけ
 コントロールが出る。
 
+v0.3 の GLSL API（`fragmentShader` / `tDiffuse` / `IUniform`）からの移行はドキュメントの
+「v0.3 からの移行」を参照。
+
 ## API reference
 
 ### `new DomSyncGL(selector, options?)`
@@ -219,8 +242,10 @@ app.addEffect(new GrainEffect());
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
 | `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` なら自前の rAF から `tick()` で駆動 |
 | `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
+| `forceWebGL` | `boolean` | `false` | WebGPU が使えても WebGL 2 バックエンドを強制（デバッグ用） |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限 (モバイルは `1.5` 推奨) |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
+| `effectSamples` | `number` | `4` | EffectComposer の scene 描画 RT の MSAA サンプル数。`0` で無効化 |
 | `stats` | `Stats \| null` | `null` | 呼び出し元が生成した stats.js インスタンス |
 | `gui` | `GUI \| null` | `null` | 呼び出し元が生成した lil-gui インスタンス |
 
@@ -228,12 +253,14 @@ app.addEffect(new GrainEffect());
 > ライブラリは受け取ったものを使うだけ。以前の `showStats` / `showGUI` / `statsParent` / `guiTitle` は**廃止**。
 > `enableMouseTracking` / `setMouseTrackingEnabled()` は `enablePointerTracking` 系の別名として残っている。
 
-#### Main methods
+#### Main methods / properties
 
+- `ready` — renderer の非同期初期化（WebGPU device 取得）の完了 Promise。await しなくても安全
+- `isWebGPUBackend()` — WebGPU バックエンドで動作しているか（`ready` 解決前は常に `false`）
 - `createPlane(selector, options?)` — DOM 要素にロックした plane を生成 (`selector` が `null` だと全画面背景)
 - `createTextPlane(selector, options?)` — DOM のテキストを焼いた plane を生成
 - `create3DObject(selector, options)` — GLTF モデルを DOM 要素にフィット
-- `tick(time?)` — 1 フレーム進める (`autoRaf: false` のとき自前の rAF から呼ぶ)
+- `tick(time?)` — 1 フレーム進める (`autoRaf: false` のとき自前の rAF から呼ぶ)。内部は `update()` → `render()` の分割で、個別にも呼べる
 - `addEffect(effect)` / `removeEffect(effect)` — フルスクリーンチェーンの管理
 - `addObject(obj3d)` / `removeObject(obj3d)` — シーンに直接追加
 - `addUpdateCallback(fn)` — 毎フレ呼ばれるコールバック登録 (unsubscribe 関数を返す)
@@ -267,14 +294,16 @@ app.addEffect(new GrainEffect());
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `vertexShader` / `fragmentShader` | `string` | デフォルト passthrough | shader ソース |
-| `uniforms` | `{ [key]: IUniform }` | `{}` | ユーザー定義 uniform |
+| `colorNode` | `(ctx: PlaneNodeContext) => Node` | テクスチャをそのまま表示 | plane の色を決める vec4 ノードを返す TSL ファクトリ |
+| `positionNode` | `(ctx: PlaneNodeContext) => Node` | 既定の頂点処理 | 頂点変位用の position ノードを返すファクトリ |
+| `uniforms` | `Record<string, UniformNode>` | `{}` | `uniform()` / `texture()` で生成した自前のノード |
 | `updateRectEveryFrame` | `boolean` | `false` | 毎フレ bbox を取り直す |
 | `segments` | `number` | `1` | PlaneGeometry セグメント数 |
 | `onInView` / `onOutView` | `(plane) => void` | — | IntersectionObserver コールバック |
 | `inViewRootMargin` | `string` | `'100%'` | IO の rootMargin |
 | `inViewRepeat` | `boolean` | `false` | `true` で出入りのたび `onInView` が発火 |
 | `crossOrigin` | `string` | `'anonymous'` | `data-texture` 読み込み時の CORS 属性 |
+| `textureColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | `data-texture` で読むテクスチャの色空間 |
 
 ### Exports
 
@@ -292,14 +321,15 @@ import {
   BaseScene,
   // Utility
   DomPositionCalculator,
-  // Three.js を再 export (利用側で別途 import 不要)
-  THREE,
+  // three/webgpu と three/tsl を再 export (利用側で別途 import 不要)
+  THREE, TSL,
 } from "dom-sync-gl";
 
 import type {
   DomSyncGLOptions,
   CreatePlaneOptions,
   CreateTextPlaneOptions,
+  PlaneNodeContext,
   TextStyleOverrides,
   ResolvedTextStyle,
   FontFaceSource,
@@ -311,10 +341,12 @@ import type {
   PointerType,
   BaseEffectConfig,
   EffectOptions,
+  EffectContext,
   EffectTarget,
   EffectLike,
   FeedbackBufferOptions,
   FeedbackInput,
+  FeedbackContext,
   AddFeedbackOptions,
 } from "dom-sync-gl";
 ```
@@ -322,17 +354,13 @@ import type {
 ## Browser support
 
 - Chrome / Edge / Firefox / Safari の最新 2 バージョン
-- iOS Safari 15.4+
+- WebGPU が使えない環境では WebGL 2 バックエンドに自動フォールバック（WebGL 2 は必須）
 - IE11 などは対象外
 
 ## Bundle
 
-| 形式 | サイズ | gzip |
-|---|---:|---:|
-| ESM (`dist/index.js`) | 62.8 kB | **15.1 kB** |
-| CJS (`dist/index.cjs`) | 49.0 kB | **13.0 kB** |
-
-`three` / `lil-gui` / `stats.js` はバンドルしていない（peer dependency）。`sideEffects: false` なので tree-shaking も効く。
+`three` / `lil-gui` / `stats.js` はバンドルしていない（peer dependency。`three` は **>= 0.178.0**）。
+`sideEffects: false` なので tree-shaking も効く。
 Lenis もランタイム依存には含まない（使う場合はアプリ側で install する）。
 
 ## Develop

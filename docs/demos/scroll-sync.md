@@ -29,30 +29,25 @@
 ## TypeScript
 
 ```ts
-import { DomSyncGL } from 'dom-sync-gl';
+import { DomSyncGL, TSL } from 'dom-sync-gl';
+const { vec3, vec4, sin } = TSL;
 
 const app = new DomSyncGL('#stage');
 
-// 各カードに別 shader で plane を貼る
-const colors = [
-  'vec3(0.34, 0.43, 0.99)',
-  'vec3(0.96, 0.34, 0.62)',
-  'vec3(0.27, 0.83, 0.58)',
+// 各カードに別カラーで plane を貼る
+const colors: [number, number, number][] = [
+  [0.34, 0.43, 0.99],
+  [0.96, 0.34, 0.62],
+  [0.27, 0.83, 0.58],
 ];
 
 for (let i = 0; i < 3; i++) {
   app.createPlane(`[data-card="${i}"]`, {
     updateRectEveryFrame: true,
-    fragmentShader: /* glsl */ `
-      precision highp float;
-      varying vec2 vUv;
-      uniform float uTime;
-      void main() {
-        float g = 0.5 + 0.5 * sin(uTime + vUv.x * 6.0);
-        vec3 col = ${colors[i]} * (0.6 + g * 0.4);
-        gl_FragColor = vec4(col, 1.0);
-      }
-    `,
+    colorNode: ({ uv, uTime }) => {
+      const g = sin(uTime.add(uv.x.mul(6))).mul(0.5).add(0.5);
+      return vec4(vec3(...colors[i]).mul(g.mul(0.4).add(0.6)), 1);
+    },
   });
 }
 ```

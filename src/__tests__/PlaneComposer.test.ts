@@ -1,31 +1,35 @@
 import { describe, it, expect, vi } from 'vitest';
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { PlaneComposer } from '../PlaneComposer';
+import type { EffectContext } from '../EffectComposer';
 
-function makeRenderer(): THREE.WebGLRenderer {
-  let current: THREE.WebGLRenderTarget | null = null;
+function makeRenderer(): THREE.WebGPURenderer {
+  let current: THREE.RenderTarget | null = null;
   return {
     getPixelRatio: () => 1,
     getRenderTarget: vi.fn(() => current),
-    setRenderTarget: vi.fn((t: THREE.WebGLRenderTarget | null = null) => {
+    setRenderTarget: vi.fn((t: THREE.RenderTarget | null = null) => {
       current = t;
     }),
     render: vi.fn(),
-  } as unknown as THREE.WebGLRenderer;
+  } as unknown as THREE.WebGPURenderer;
 }
 
 function makeSourceMesh(): THREE.Mesh {
   const geo = new THREE.PlaneGeometry(1, 1);
-  const mat = new THREE.ShaderMaterial();
+  const mat = new THREE.MeshBasicMaterial();
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(10, 20, 0);
   mesh.scale.set(100, 50, 1);
   return mesh;
 }
 
+// 前段の出力をそのまま返す素通しエフェクト（旧 passthrough fragmentShader 相当）
+const passthrough = (ctx: EffectContext) => ctx.inputTexture;
+
 // displayMaterial は private のためテストから参照するためのアクセサ。
-function getDisplayMaterial(composer: PlaneComposer): THREE.MeshBasicMaterial {
-  return (composer as unknown as { displayMaterial: THREE.MeshBasicMaterial })
+function getDisplayMaterial(composer: PlaneComposer): THREE.MeshBasicNodeMaterial {
+  return (composer as unknown as { displayMaterial: THREE.MeshBasicNodeMaterial })
     .displayMaterial;
 }
 
@@ -49,9 +53,7 @@ describe('PlaneComposer', () => {
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
 
-    const pass = composer.addEffect({
-      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
-    });
+    const pass = composer.addEffect({ outputNode: passthrough });
     expect(pass).toBeDefined();
     expect(pass.enabled).toBe(true);
     composer.dispose();
@@ -60,9 +62,7 @@ describe('PlaneComposer', () => {
   it('addEffect の material は premultiplied 契約に沿った素通し設定になる（CR-03）', () => {
     const sourceMesh = makeSourceMesh();
     const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
-    const pass = composer.addEffect({
-      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
-    });
+    const pass = composer.addEffect({ outputNode: passthrough });
 
     expect(pass.material.blending).toBe(THREE.NoBlending);
     expect(pass.material.transparent).toBe(false);
@@ -99,7 +99,7 @@ describe('PlaneComposer', () => {
     scene.add(sourceMesh);
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
-    composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    composer.addEffect({ outputNode: passthrough });
 
     composer.render();
 
@@ -111,6 +111,23 @@ describe('PlaneComposer', () => {
     composer.dispose();
   });
 
+  it('render: 最終読み取り RT が displayTexture ノードの value に反映される', () => {
+    const sourceMesh = makeSourceMesh();
+    const renderer = makeRenderer();
+    const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
+    composer.addEffect({ outputNode: passthrough });
+    const internals = composer as unknown as {
+      targetB: THREE.RenderTarget;
+      displayTexture: { value: THREE.Texture };
+    };
+
+    composer.render();
+
+    // pass 1 個: localScene→targetA、pass が targetB へ書いて swap → 表示は targetB
+    expect(internals.displayTexture.value).toBe(internals.targetB.texture);
+    composer.dispose();
+  });
+
   it('render: effect 有効化の前後で renderOrder / layers / frustumCulled が変わらない', () => {
     const sourceMesh = makeSourceMesh();
     sourceMesh.renderOrder = 5;
@@ -119,7 +136,7 @@ describe('PlaneComposer', () => {
     const layerMaskBefore = sourceMesh.layers.mask;
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
-    composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    composer.addEffect({ outputNode: passthrough });
 
     composer.render();
 
@@ -137,7 +154,7 @@ describe('PlaneComposer', () => {
     original.depthWrite = false;
     original.side = THREE.DoubleSide;
     const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
-    composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    composer.addEffect({ outputNode: passthrough });
 
     composer.render();
 
@@ -152,8 +169,8 @@ describe('PlaneComposer', () => {
     const sourceMesh = makeSourceMesh();
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
-    composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
-    const ext = {} as THREE.WebGLRenderTarget;
+    composer.addEffect({ outputNode: passthrough });
+    const ext = {} as THREE.RenderTarget;
     renderer.setRenderTarget(ext);
 
     composer.render();
@@ -168,7 +185,7 @@ describe('PlaneComposer', () => {
     const original = sourceMesh.material;
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
-    const pass = composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    const pass = composer.addEffect({ outputNode: passthrough });
 
     // まず有効化して displayMaterial にしておく
     composer.render();
@@ -185,7 +202,7 @@ describe('PlaneComposer', () => {
     const sourceMesh = makeSourceMesh();
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
-    composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    composer.addEffect({ outputNode: passthrough });
     sourceMesh.visible = false;
 
     composer.render();
@@ -197,7 +214,7 @@ describe('PlaneComposer', () => {
   it('removeEffect: 登録済み pass を取り除き material を dispose する', () => {
     const sourceMesh = makeSourceMesh();
     const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
-    const pass = composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    const pass = composer.addEffect({ outputNode: passthrough });
     const disposeSpy = vi.spyOn(pass.material, 'dispose');
 
     expect(composer.removeEffect(pass)).toBe(true);
@@ -211,7 +228,7 @@ describe('PlaneComposer', () => {
     const original = sourceMesh.material;
     const renderer = makeRenderer();
     const composer = new PlaneComposer(renderer, sourceMesh, 100, 50);
-    const pass = composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' });
+    const pass = composer.addEffect({ outputNode: passthrough });
     composer.render(); // displayMaterial に差し替えた状態にしておく
     expect(sourceMesh.material).toBe(getDisplayMaterial(composer));
 
@@ -225,35 +242,20 @@ describe('PlaneComposer', () => {
     expect(matDisposeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('dispose: postMesh に自動生成された既定 material も dispose される（回収漏れの回帰）', () => {
-    const sourceMesh = makeSourceMesh();
-    const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
-    const defaultMaterial = (
-      composer as unknown as { postMeshDefaultMaterial: THREE.Material }
-    ).postMeshDefaultMaterial;
-    const disposeSpy = vi.spyOn(defaultMaterial, 'dispose');
-
-    composer.dispose();
-
-    expect(disposeSpy).toHaveBeenCalledTimes(1);
-  });
-
   it('dispose 後は addEffect すると例外を投げる', () => {
     const sourceMesh = makeSourceMesh();
     const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
     composer.dispose();
 
-    expect(() =>
-      composer.addEffect({ fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' })
-    ).toThrow();
+    expect(() => composer.addEffect({ outputNode: passthrough })).toThrow();
   });
 
   it('RenderTarget を depthBuffer:false で生成する（CR-18）', () => {
     const sourceMesh = makeSourceMesh();
     const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
     const internals = composer as unknown as {
-      targetA: THREE.WebGLRenderTarget;
-      targetB: THREE.WebGLRenderTarget;
+      targetA: THREE.RenderTarget;
+      targetB: THREE.RenderTarget;
     };
 
     expect(internals.targetA.depthBuffer).toBe(false);

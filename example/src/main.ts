@@ -1,11 +1,13 @@
-import { DomSyncGL, THREE, loadFont } from "dom-sync-gl";
+import { DomSyncGL, THREE, TSL, loadFont } from "dom-sync-gl";
 import Lenis from "lenis";
 import type Stats from "stats.js";
 import type GUI from "lil-gui";
 import "lenis/dist/lenis.css";
-import { heroFragment, workFragment } from "./shaders";
+import { heroColorNode, workColorNode } from "./shaders";
 import { FilmEffect, TextHoverEffect } from "./effects";
 import "./style.css";
+
+const { uniform } = TSL;
 
 // ============================================================================
 // 環境フラグ（パフォーマンス / アクセシビリティの分岐）
@@ -61,6 +63,11 @@ const app = new DomSyncGL("#gl", {
   gui,
 });
 
+// WebGPU の device 取得は非同期なので、rAF ループ開始前に初期化完了を待つ。
+// await しなくても render() は init 完了まで no-op で安全だが、待ってから
+// 始めることで初回フレームから確実に描画される。
+await app.ready;
+
 // 1 本の rAF で「Lenis → DomSyncGL」の順に駆動する。
 // lenis.raf() でスクロールを確定させた後に app.tick() が読むので、
 // 背景固定・DOM 追従の両方が同一フレームで同期する（ジッターが出ない）。
@@ -78,10 +85,13 @@ const scrollSync = app.getScrollSync();
 //    DOM は透明にして canvas を覗かせる構成なので、これがページ全体の地になる。
 //    uTime / uResolution / uMouseUV は DomPlane が自動更新する。uStrength だけ手動。
 // ============================================================================
+// uniform ノードは createPlane に渡す前に作って参照を握っておき、
+// 毎フレーム `.value` を書き換える（material.uniforms のような参照経路は無い）。
+const heroStrength = uniform(0);
 const heroPlane = app.createPlane(null, {
-  fragmentShader: heroFragment,
+  colorNode: heroColorNode,
   uniforms: {
-    uStrength: { value: 0 },
+    uStrength: heroStrength,
   },
 });
 // 背景は常に最背面。works の板を必ず上に重ねたいので renderOrder と深度設定で制御する。
@@ -95,6 +105,10 @@ heroPlane.material.depthWrite = false;
 type WorkState = {
   el: HTMLElement;
   plane: ReturnType<DomSyncGL["createPlane"]>;
+  // 毎フレーム `.value` を書き換える uniform ノードへの参照
+  uHover: THREE.UniformNode<number>;
+  uReveal: THREE.UniformNode<number>;
+  uStrength: THREE.UniformNode<number>;
   hover: number;
   hoverTarget: number;
   reveal: number;
@@ -118,18 +132,23 @@ document.querySelectorAll<HTMLElement>(".work").forEach((workEl, i) => {
 
   const [a, b] = palettes[i % palettes.length];
 
+  // JS から毎フレーム更新する uniform ノード（参照を WorkState に保持する）
+  const uHover = uniform(0);
+  const uReveal = uniform(0);
+  const uStrength = uniform(0);
+
   const plane = app.createPlane(visual, {
-    fragmentShader: workFragment,
+    colorNode: workColorNode,
     updateRectEveryFrame: true, // sticky/CSS で動いても追従させる
     inViewRepeat: true,
     inViewRootMargin: "0px",
     uniforms: {
-      uHover: { value: 0 },
-      uReveal: { value: 0 },
-      uStrength: { value: 0 },
-      uColorA: { value: new THREE.Color(a) },
-      uColorB: { value: new THREE.Color(b) },
-      uSeed: { value: i * 1.37 + 0.21 },
+      uHover,
+      uReveal,
+      uStrength,
+      uColorA: uniform(new THREE.Color(a)),
+      uColorB: uniform(new THREE.Color(b)),
+      uSeed: uniform(i * 1.37 + 0.21),
     },
     onInView: () => (state.revealTarget = 1),
     onOutView: () => (state.revealTarget = 0),
@@ -142,6 +161,9 @@ document.querySelectorAll<HTMLElement>(".work").forEach((workEl, i) => {
   const state: WorkState = {
     el: workEl,
     plane,
+    uHover,
+    uReveal,
+    uStrength,
     hover: 0,
     hoverTarget: 0,
     reveal: 0,
@@ -238,15 +260,15 @@ app.addUpdateCallback(() => {
   strength = lerp(strength, target, 0.25);
   if (strength < EPS) strength = 0;
 
-  heroPlane.material.uniforms.uStrength.value = strength;
+  heroStrength.value = strength;
   film.setStrength(strength);
 
   for (const w of works) {
     w.hover = lerp(w.hover, w.hoverTarget, 0.12);
     w.reveal = lerp(w.reveal, w.revealTarget, 0.08);
-    w.plane.material.uniforms.uHover.value = w.hover;
-    w.plane.material.uniforms.uReveal.value = w.reveal;
-    w.plane.material.uniforms.uStrength.value = strength;
+    w.uHover.value = w.hover;
+    w.uReveal.value = w.reveal;
+    w.uStrength.value = strength;
   }
 });
 

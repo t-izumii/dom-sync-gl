@@ -69,13 +69,23 @@ container 自身の CSS 配置をそのまま尊重する。canvas は container
 止めると `strengthDecay` に従って指数的に 0 へ戻る。
 
 ```ts
+import { TSL } from 'dom-sync-gl';
+const { uniform, vec3, vec4 } = TSL;
+
 const app = new DomSyncGL('#canvas', {
   scrollSync: { trackStrength: true },
 });
 const scrollSync = app.getScrollSync();
 
+// colorNode から参照する uniform ノードを自前で持ち、毎フレ値を流し込む
+const uStrength = uniform(0);
+const plane = app.createPlane('.card', {
+  uniforms: { uStrength },
+  colorNode: () => vec4(vec3(uStrength), 1), // 速いほど白く
+});
+
 app.addUpdateCallback(() => {
-  plane.material.uniforms.uStrength.value = scrollSync.strength;
+  uStrength.value = scrollSync.strength;
 });
 ```
 

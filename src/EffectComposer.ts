@@ -1,4 +1,6 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
+import { texture, uv } from 'three/tsl';
+import type { Node, TextureNode, UniformNode } from 'three/webgpu';
 
 export interface EffectLike {
   /**
@@ -12,15 +14,29 @@ export interface EffectLike {
   render(
     scene: THREE.Scene,
     camera: THREE.Camera,
-    outputTarget: THREE.WebGLRenderTarget | null,
+    outputTarget: THREE.RenderTarget | null,
   ): void;
   resize(width: number, height: number): void;
   dispose(): void;
 }
 
+/**
+ * outputNode ファクトリに渡されるコンテキスト。
+ * TSL ノードは pass 追加時に一度だけ構築され、以後は uniform / texture の
+ * `.value` 差し替えのみで毎フレーム更新される。
+ */
+export interface EffectContext {
+  /** 前段パスの出力を読む texture ノード。そのまま使うと uv() でサンプルされる */
+  inputTexture: TextureNode;
+  /** スクリーン UV ノード */
+  uv: Node;
+}
+
 export interface EffectOptions {
-  fragmentShader: string;
-  uniforms?: { [key: string]: THREE.IUniform };
+  /** vec4 の色ノードを返すファクトリ。pass 追加時に一度だけ呼ばれる */
+  outputNode: (ctx: EffectContext) => Node;
+  /** uniform() で生成したノードの名前つきマップ。setUniform/getUniform で参照される */
+  uniforms?: Record<string, UniformNode<unknown>>;
 }
 
 export interface EffectTarget {
@@ -28,24 +44,27 @@ export interface EffectTarget {
   removeEffect(pass: EffectPass): boolean;
 }
 
-const defaultVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position, 1.0);
-  }
-`;
-
 export class EffectPass {
-  readonly material: THREE.ShaderMaterial;
+  readonly material: THREE.MeshBasicNodeMaterial;
+  /** ping-pong の読み取り元 RT を毎パス差し替えるための入力テクスチャノード */
+  readonly inputTexture: TextureNode;
   enabled = true;
 
-  constructor(material: THREE.ShaderMaterial) {
+  private readonly uniformNodes: Record<string, UniformNode<unknown>>;
+
+  constructor(
+    material: THREE.MeshBasicNodeMaterial,
+    inputTexture: TextureNode,
+    uniformNodes: Record<string, UniformNode<unknown>>,
+  ) {
     this.material = material;
+    this.inputTexture = inputTexture;
+    this.uniformNodes = uniformNodes;
   }
 
   setUniform(key: string, value: unknown): void {
-    if (this.material.uniforms[key] === undefined) {
+    const node = this.uniformNodes[key];
+    if (node === undefined) {
       if (import.meta.env?.DEV) {
         console.warn(
           `[EffectPass] uniform "${key}" は定義されていません。タイポか、` +
@@ -54,38 +73,34 @@ export class EffectPass {
       }
       return;
     }
-    this.material.uniforms[key].value = value;
+    node.value = value;
   }
 
-  getUniform(key: string): THREE.IUniform | undefined {
-    return this.material.uniforms[key];
+  getUniform(key: string): UniformNode<unknown> | undefined {
+    return this.uniformNodes[key];
   }
 }
 
 export class EffectComposer implements EffectTarget, EffectLike {
-  private renderer: THREE.WebGLRenderer;
+  private renderer: THREE.WebGPURenderer;
   private passes: Array<EffectPass> = [];
 
-  private targetA: THREE.WebGLRenderTarget;
-  private targetB: THREE.WebGLRenderTarget;
+  private targetA: THREE.RenderTarget;
+  private targetB: THREE.RenderTarget;
   // MSAA は scene を最初に描く target でのみ意味を持つ（中間の fullscreen pass に
   // は不要）。samples>0 のときだけ scene 描画専用の MSAA target を1枚確保し、
   // ping-pong 用の targetA/B は samples なしに保つ。null は MSAA 無効。
-  private sceneTarget: THREE.WebGLRenderTarget | null = null;
+  private sceneTarget: THREE.RenderTarget | null = null;
 
-  private postScene: THREE.Scene;
-  private postCamera: THREE.OrthographicCamera;
-  private postMesh: THREE.Mesh;
-  private geometry: THREE.PlaneGeometry;
-  // postMesh.material は render() 中に各 pass.material へ差し替えられるため、
-  // 構築時に THREE.Mesh が自動生成する既定 material 自体はどの pass にも
-  // 属さず誰も dispose しない。dispose() で確実に解放できるよう個別に保持する。
-  private readonly postMeshDefaultMaterial: THREE.Material;
+  // fullscreen pass の描画は自前の ortho カメラではなく QuadMesh に任せる。
+  // 自前 ortho の clip 空間 z は WebGL([-1,1]) と WebGPU([0,1]) で異なり
+  // 描画が欠けうるため、両バックエンドを吸収する公式ヘルパーを使う。
+  private quad: THREE.QuadMesh;
 
   private _disposed: boolean = false;
 
   constructor(
-    renderer: THREE.WebGLRenderer,
+    renderer: THREE.WebGPURenderer,
     width: number,
     height: number,
     samples: number = 0,
@@ -104,52 +119,53 @@ export class EffectComposer implements EffectTarget, EffectLike {
       stencilBuffer: false,
     };
 
-    this.targetA = new THREE.WebGLRenderTarget(w, h, rtOptions);
-    this.targetB = new THREE.WebGLRenderTarget(w, h, rtOptions);
+    this.targetA = new THREE.RenderTarget(w, h, rtOptions);
+    this.targetB = new THREE.RenderTarget(w, h, rtOptions);
 
-    // WebGL1 等で maxSamples が 0 のときは MSAA 無効に落とす。
-    const maxSamples = renderer.capabilities?.maxSamples ?? 0;
+    // WebGPURenderer は init() 完了まで capabilities を提供しない場合があるため、
+    // 取得できないときは WebGPU の標準サンプル数 4 を上限として扱う。
+    const caps = (
+      renderer as unknown as { capabilities?: { maxSamples?: number } }
+    ).capabilities;
+    const maxSamples = caps?.maxSamples ?? 4;
     const effectiveSamples = Math.min(Math.max(0, samples), maxSamples);
     if (effectiveSamples > 0) {
-      this.sceneTarget = new THREE.WebGLRenderTarget(w, h, {
+      this.sceneTarget = new THREE.RenderTarget(w, h, {
         ...rtOptions,
         samples: effectiveSamples,
       });
     }
 
-    this.postScene = new THREE.Scene();
-    this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    this.geometry = new THREE.PlaneGeometry(2, 2);
-    this.postMesh = new THREE.Mesh(this.geometry);
-    this.postMeshDefaultMaterial = this.postMesh.material as THREE.Material;
-    this.postScene.add(this.postMesh);
+    this.quad = new THREE.QuadMesh();
   }
 
   /**
    * fullscreen pass を追加する。
    *
-   * alpha 契約: 中間 RenderTarget と tDiffuse は premultiplied alpha。各 pass は
+   * alpha 契約: 中間 RenderTarget と inputTexture は premultiplied alpha。各 pass は
    * 前段の結果を丸ごと置き換えるため NoBlending で素通しする（NormalBlending だと
    * alpha が pass ごとに再乗算され透明部が暗くなる）。
+   *
+   * material は MeshBasicNodeMaterial の colorNode を使う（fragmentNode ではなく）。
+   * fragmentNode は出力の色空間変換まで素通しするため、最終 pass を画面に描く際に
+   * linear→sRGB 変換が掛からず暗くなる。colorNode なら中間 RT へは無変換・画面へは
+   * 出力変換ありという renderer 既定のパイプラインに乗る。
    */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
       throw new Error('[EffectComposer] dispose 済みのインスタンスでは addEffect() できません。');
     }
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        tDiffuse: { value: null },
-        ...options.uniforms,
-      },
-      vertexShader: defaultVertexShader,
-      fragmentShader: options.fragmentShader,
-      transparent: false,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.NoBlending,
-    });
+    const inputTexture = texture(this.targetA.texture);
+    const material = new THREE.MeshBasicNodeMaterial();
+    material.colorNode = options.outputNode({ inputTexture, uv: uv() });
+    material.transparent = false;
+    material.depthTest = false;
+    material.depthWrite = false;
+    material.blending = THREE.NoBlending;
 
-    const pass = new EffectPass(material);
+    const pass = new EffectPass(material, inputTexture, {
+      ...options.uniforms,
+    });
     this.passes.push(pass);
     return pass;
   }
@@ -166,7 +182,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
   render(
     scene: THREE.Scene,
     camera: THREE.Camera,
-    outputTarget: THREE.WebGLRenderTarget | null = null,
+    outputTarget: THREE.RenderTarget | null = null,
   ): void {
     if (this._disposed) return;
 
@@ -199,7 +215,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
     // ping-pong は samples なしの targetA/B のみで往復する。sceneTarget を使う
     // 場合は両方空くので targetA(index 0) から、使わない場合は targetA が読み取り
     // 元なので targetB(index 1) から書き始める。
-    const pingPong: [THREE.WebGLRenderTarget, THREE.WebGLRenderTarget] = [
+    const pingPong: [THREE.RenderTarget, THREE.RenderTarget] = [
       this.targetA,
       this.targetB,
     ];
@@ -211,12 +227,12 @@ export class EffectComposer implements EffectTarget, EffectLike {
       if (!pass.enabled) continue;
       const isLast = i === lastActiveIndex;
 
-      pass.material.uniforms['tDiffuse'].value = readTarget.texture;
-      this.postMesh.material = pass.material;
+      pass.inputTexture.value = readTarget.texture;
+      this.quad.material = pass.material;
 
       const writeTarget = pingPong[writeIndex];
       this.renderer.setRenderTarget(isLast ? outputTarget : writeTarget);
-      this.renderer.render(this.postScene, this.postCamera);
+      this.quad.render(this.renderer);
 
       if (!isLast) {
         readTarget = writeTarget;
@@ -243,8 +259,8 @@ export class EffectComposer implements EffectTarget, EffectLike {
     this.targetA.dispose();
     this.targetB.dispose();
     this.sceneTarget?.dispose();
-    this.geometry.dispose();
-    this.postMeshDefaultMaterial.dispose();
+    // QuadMesh の geometry は全インスタンス共有のため dispose してはいけない。
+    // 解放対象は pass ごとの material のみ。
     for (const pass of this.passes) {
       pass.material.dispose();
     }

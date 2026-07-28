@@ -20,7 +20,7 @@
     />
   </head>
   <body>
-    <!-- WebGL canvas mount。scrollSync が absolute 化して viewport に追従させる -->
+    <!-- WebGPU canvas mount。scrollSync が absolute 化して viewport に追従させる -->
     <div id="gl"></div>
 
     <!-- カスタムカーソル -->
@@ -67,11 +67,11 @@
       <div class="marquee" aria-hidden="true">
         <div class="marquee__track">
           <span>Creative Development</span><span class="marquee__dot">凪</span>
-          <span>WebGL</span><span class="marquee__dot">凪</span>
+          <span>WebGPU</span><span class="marquee__dot">凪</span>
           <span>Art Direction</span><span class="marquee__dot">凪</span>
           <span>Motion</span><span class="marquee__dot">凪</span>
           <span>Creative Development</span><span class="marquee__dot">凪</span>
-          <span>WebGL</span><span class="marquee__dot">凪</span>
+          <span>WebGPU</span><span class="marquee__dot">凪</span>
           <span>Art Direction</span><span class="marquee__dot">凪</span>
           <span>Motion</span><span class="marquee__dot">凪</span>
         </div>
@@ -99,7 +99,7 @@
           <div class="work__body">
             <span class="work__no">01</span>
             <h3 class="work__title">朝霧 <em>Asagiri</em></h3>
-            <p class="work__tags">WebGL · Brand Site</p>
+            <p class="work__tags">WebGPU · Brand Site</p>
             <span class="work__year">2026</span>
           </div>
         </article>
@@ -129,13 +129,13 @@
           <div class="work__body">
             <span class="work__no">04</span>
             <h3 class="work__title">月影 <em>Tsukikage</em></h3>
-            <p class="work__tags">WebGL · Editorial</p>
+            <p class="work__tags">WebGPU · Editorial</p>
             <span class="work__year">2024</span>
           </div>
         </article>
       </section>
 
-      <!-- DomTextPlane — テキストレイヤーも WebGL 管理下に置くデモ -->
+      <!-- DomTextPlane — テキストレイヤーも WebGPU 管理下に置くデモ -->
       <!--
         本文の p には data-reveal を付けない。DOM 側の opacity は GL の板には効かないので、
         reveal 中に DOM だけ透明・GL の文字は出たまま、という食い違いが起きるため。
@@ -144,7 +144,7 @@
       -->
       <section class="text-planes" id="text">
         <span class="section-index" data-reveal>(03) — DomTextPlane</span>
-        <p class="text-plane-demo">この段落は DOM のまま WebGL のテクスチャへ焼かれ、板として描かれています。</p>
+        <p class="text-plane-demo">この段落は DOM のまま WebGPU のテクスチャへ焼かれ、板として描かれています。</p>
         <p class="text-plane-fontface-demo">loadFont() — hover me.</p>
       </section>
 
@@ -153,7 +153,7 @@
         <span class="section-index" data-reveal>(04) — Capabilities</span>
         <ul class="caps__list">
           <li data-reveal><span>01</span> Creative Development</li>
-          <li data-reveal><span>02</span> WebGL / Shader 表現</li>
+          <li data-reveal><span>02</span> WebGPU / Shader 表現</li>
           <li data-reveal><span>03</span> Art Direction</li>
           <li data-reveal><span>04</span> Motion &amp; Interaction</li>
         </ul>

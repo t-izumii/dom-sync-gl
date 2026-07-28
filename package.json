@@ -1,7 +1,7 @@
 {
   "name": "dom-sync-gl",
-  "version": "0.3.0",
-  "description": "domSyncGL — DOM ↔ WebGL synchronization with composable post effects and Lenis-based smooth scroll.",
+  "version": "0.4.0",
+  "description": "domSyncGL — DOM ↔ WebGPU/WebGL synchronization with TSL-based composable post effects and Lenis-based smooth scroll.",
   "type": "module",
   "license": "MIT",
   "files": [
@@ -35,7 +35,7 @@
   "peerDependencies": {
     "lil-gui": ">=0.19.0",
     "stats.js": ">=0.17.0",
-    "three": ">=0.160.0"
+    "three": ">=0.178.0"
   },
   "peerDependenciesMeta": {
     "lil-gui": {
@@ -61,8 +61,10 @@
     "vitest": "^4.1.6"
   },
   "keywords": [
+    "webgpu",
     "webgl",
     "three.js",
+    "tsl",
     "post-effect",
     "shader",
     "scroll-sync",

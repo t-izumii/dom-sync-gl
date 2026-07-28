@@ -1,11 +1,11 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import type GUI from 'lil-gui';
 import { EffectComposer } from './EffectComposer';
 import type { EffectLike } from './EffectComposer';
 import type { BaseEffect } from './effects/BaseEffect';
 
 export class EffectManager {
-  private readonly renderer: THREE.WebGLRenderer;
+  private readonly renderer: THREE.WebGPURenderer;
   private readonly gui: GUI | null;
   // scene 描画 RenderTarget の MSAA サンプル数。既定値の解決は Core が行い、
   // 直接生成した場合は 0（MSAA 無効）。
@@ -22,7 +22,7 @@ export class EffectManager {
   private lastHeight: number | undefined;
 
   constructor(opts: {
-    renderer: THREE.WebGLRenderer;
+    renderer: THREE.WebGPURenderer;
     gui: GUI | null;
     effectSamples?: number;
   }) {
@@ -162,7 +162,7 @@ export class EffectManager {
   render(
     scene: THREE.Scene,
     camera: THREE.Camera,
-    outputTarget: THREE.WebGLRenderTarget | null,
+    outputTarget: THREE.RenderTarget | null,
   ): void {
     if (this.postEffect) {
       this.postEffect.render(scene, camera, outputTarget);

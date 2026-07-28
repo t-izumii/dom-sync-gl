@@ -6,27 +6,37 @@
 
 | option | type | default | 説明 |
 |---|---|---|---|
-| `vertexShader` / `fragmentShader` | `string` | デフォルト passthrough | shader ソース |
-| `uniforms` | `{ [key]: IUniform }` | `{}` | ユーザー定義 uniform |
+| `colorNode` | `(ctx: PlaneNodeContext) => Node` | テクスチャをそのまま表示 | plane の色を決める vec4 ノードを返す TSL ファクトリ |
+| `positionNode` | `(ctx: PlaneNodeContext) => Node` | 既定の頂点処理 | 頂点変位用の position ノードを返すファクトリ |
+| `uniforms` | `Record<string, UniformNode>` | `{}` | TSL の `uniform()` / `texture()` で生成した自前のノード。`ctx.uniforms` から参照できる |
 | `updateRectEveryFrame` | `boolean` | `false` | 毎フレ bbox を取り直す（CSS animation / GSAP で動く要素用） |
 | `segments` | `number` | `1` | PlaneGeometry セグメント数（vertex displacement 用） |
 | `onInView` / `onOutView` | `(plane) => void` | — | IntersectionObserver コールバック |
 | `inViewRootMargin` | `string` | `'100%'` | IO の rootMargin |
 | `inViewRepeat` | `boolean` | `false` | `true` で出入りのたび発火 |
 | `crossOrigin` | `string` | `'anonymous'` | `data-texture` 読み込み時の CORS 属性 |
+| `textureColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | `data-texture` で読むテクスチャの色空間。[後述](#texturecolorspace) |
 
-## Built-in uniforms
+`colorNode` / `positionNode` は plane 構築時に**一度だけ**呼ばれてノードグラフを返す。
+以後の毎フレーム更新は ctx のノードの `.value` 差し替えで行われる（グラフは組み直されない）。
 
-createPlane で生成される plane には、宣言するだけで使える uniform が組み込まれている。
+## PlaneNodeContext（ビルトインノード）
 
-| uniform | 型 | 中身 |
+`colorNode` / `positionNode` ファクトリの引数。宣言不要で使えるノードが渡ってくる。
+
+| ノード | 型 | 中身 |
 |---|---|---|
-| `uTime` | `float` | 経過秒 |
-| `uResolution` | `vec2` | plane の pixel 寸法 |
-| `uTexture` | `sampler2D` | `data-texture` 属性 or `setTexture()` で渡したテクスチャ |
-| `uAlpha` | `float` | 透明度（デフォルト 1.0） |
-| `uMouseUV` | `vec2` | hover 中の plane-local UV (0..1) |
-| `uIsHovered` | `bool` | raycast hit 中か |
+| `uTime` | `UniformNode<number>` | 経過秒 |
+| `uResolution` | `UniformNode<Vector2>` | plane の pixel 寸法 |
+| `uTexture` | `TextureNode` | `data-texture` 属性 or `setTexture()` で渡したテクスチャ |
+| `uAlpha` | `UniformNode<number>` | 透明度（既定 1.0） |
+| `uMouseUV` | `UniformNode<Vector2>` | hover 中の plane-local UV (0..1, 左下原点) |
+| `uIsHovered` | `UniformNode<number>` | raycast hit 中なら 1、そうでなければ 0（float） |
+| `uniforms` | `Record<string, UniformNode>` | `options.uniforms` で渡した自前のノード |
+| `uv` | `Node` | UV ノード |
+
+これらの名前は**予約 uniform 名**で、`options.uniforms` から同名のノードを渡すと throw する
+（内部で毎フレーム更新するため）。
 
 ## Methods
 
@@ -36,18 +46,30 @@ plane 単位の **post エフェクト**チェーン（描画パイプライン�
 
 ### `addFeedback(options)` / `removeFeedback(buffer)`
 
-plane に **feedback バッファ（generator）** を紐づける。標準 WebGL の render-to-texture を ping-pong
-して状態を時間蓄積し、その出力テクスチャを毎フレ `options.outputUniform` の uniform に供給する
-（マウス軌跡・流体・拡散など）。RT 確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。返り値は
-[`FeedbackBuffer`](/guide/post-effects#feedback-バッファ-generator)。
+plane に **feedback バッファ（generator）** を紐づける。RenderTarget 2 枚の ping-pong で状態を
+時間蓄積し、その出力テクスチャを毎フレ `options.outputUniform` と同名の `texture()` ノードに
+供給する（マウス軌跡・流体・拡散など）。RT 確保 / 毎フレ駆動 / dispose はライブラリが面倒を見る。
+返り値は [`FeedbackBuffer`](/guide/post-effects#feedback-バッファ-generator)。
+
+colorNode のノードグラフは構築時に確定するため、**出力先の `texture()` ノードを
+`createPlane` の `options.uniforms` に `outputUniform` と同名で事前宣言しておく**必要がある
+（無いと throw する）。
 
 ```ts
-const plane = app.createPlane('.card', { fragmentShader }); // shader 内で uniform sampler2D uTrailTex; を宣言
+import { TSL } from 'dom-sync-gl';
+const { texture, uniform, vec3, vec4 } = TSL;
+
+const uTrailTex = texture(); // 出力先ノードを事前宣言
+const plane = app.createPlane('.card', {
+  uniforms: { uTrailTex },
+  colorNode: () => vec4(vec3(uTrailTex.r), 1),
+});
+
 plane.addFeedback({
-  fragmentShader: trailFragment, // uPrev/uMouse/uHover を読んで軌跡を蓄積
+  outputNode: trailNode, // uPrev/uMouse/uHover を読んで軌跡を蓄積する TSL ファクトリ
   size: 256,
   outputUniform: 'uTrailTex',
-  uniforms: { uDecay: { value: 0.94 }, uRadius: { value: 0.2 } },
+  uniforms: { uDecay: uniform(0.94), uRadius: uniform(0.2) },
 });
 ```
 
@@ -56,8 +78,8 @@ plane.addFeedback({
 
 ### `setTexture(texture, takeOwnership?)`
 
-`material.uniforms.uTexture` を差し替える。`takeOwnership: true` を渡した texture は
-`destroy()` 時に dispose される。
+内部の `uTexture`（`TextureNode`）の `.value` を差し替える。`takeOwnership: true` を渡した
+texture は `destroy()` 時に dispose される。
 
 ### `reloadTexture()`
 
@@ -77,7 +99,7 @@ THREE.Mesh 本体。shadow / layer 等を直接弄りたいときに。
 
 ### `resize()`
 
-DOM サイズの再計算 + uniform/scale の更新。DomSyncGL の resize で自動で呼ばれる。
+DOM サイズの再計算 + ノード/scale の更新。DomSyncGL の resize で自動で呼ばれる。
 
 ### `destroy()`
 
@@ -90,17 +112,29 @@ geometry / material / observer / planeComposer / 自前 load した texture を�
 ```
 
 ```ts
+// colorNode 未指定ならテクスチャがそのまま表示される
+app.createPlane('.card');
+
+// 自前の colorNode から使う場合は ctx.uTexture を参照する
 app.createPlane('.card', {
-  fragmentShader: `
-    precision highp float;
-    varying vec2 vUv;
-    uniform sampler2D uTexture;
-    void main() {
-      gl_FragColor = texture2D(uTexture, vUv);
-    }
-  `,
+  colorNode: ({ uTexture }) => uTexture, // そのままで uv() サンプルされる
 });
 ```
 
 要素に `data-texture` 属性があると、自動で `THREE.TextureLoader` で読み込んで
-`uTexture` に流し込む。
+`uTexture` ノードに流し込む。別 UV で読みたい場合は `uTexture.sample(customUv)`。
+
+## textureColorSpace
+
+`data-texture` で読み込むテクスチャの色空間。既定は **`SRGBColorSpace`**。
+
+サンプル時に linear へデコードされ、画面出力時に sRGB へ再エンコードされるため、DOM の
+`<img>` と表示色が一致する（NodeMaterial は画面出力時の色空間変換を自動で行うため、v0.3 の
+「生の値を素通しする」前提の `NoColorSpace` 既定から変更された）。データテクスチャ等で
+生の値をそのまま扱いたい場合のみ `NoColorSpace` を指定する。
+
+```ts
+app.createPlane('.card', {
+  textureColorSpace: THREE.NoColorSpace, // 旧挙動（生の値を素通し）
+});
+```

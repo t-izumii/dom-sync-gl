@@ -1,16 +1,29 @@
-import { BaseEffect, type BaseEffectConfig, THREE } from "dom-sync-gl";
-import { filmFragment, textHoverFragment } from "./shaders";
+import { BaseEffect, type BaseEffectConfig, THREE, TSL } from "dom-sync-gl";
+import { filmNode, textHoverNode } from "./shaders";
 
-// 色収差 + グレイン + ビネット + 走査線をまとめた仕上げ用フルスクリーンエフェクト。
+const { uniform } = TSL;
+
+// 色収差 + グレイン + ビネットをまとめた仕上げ用フルスクリーンエフェクト。
 // app.addEffect(new FilmEffect()) で内部 EffectComposer のチェーンに繋がる。
+// uniform ノードはフィールドとして生成時に作り、getConfig() の outputNode と
+// uniforms（setUniform の参照先）の両方から同じノードを共有する。
 export class FilmEffect extends BaseEffect {
+  private readonly uTime = uniform(0);
+  private readonly uResolution = uniform(new THREE.Vector2(1, 1));
+  private readonly uStrength = uniform(0);
+
   protected getConfig(): BaseEffectConfig {
     return {
-      fragmentShader: filmFragment,
+      outputNode: (ctx) =>
+        filmNode(ctx, {
+          uTime: this.uTime,
+          uResolution: this.uResolution,
+          uStrength: this.uStrength,
+        }),
       uniforms: {
-        uTime: { value: 0 },
-        uResolution: { value: new THREE.Vector2(1, 1) },
-        uStrength: { value: 0 },
+        uTime: this.uTime,
+        uResolution: this.uResolution,
+        uStrength: this.uStrength,
       },
     };
   }
@@ -32,13 +45,15 @@ export class FilmEffect extends BaseEffect {
 
 // DomTextPlane に addEffect() する板単位のエフェクト。
 // app.addEffect() のフルスクリーン合成とは別経路で、その板だけに掛かる。
-// tDiffuse は EffectPass が自動注入するので getConfig() では宣言しない。
+// 前段テクスチャは ctx.inputTexture として自動注入されるので getConfig() では宣言しない。
 export class TextHoverEffect extends BaseEffect {
+  private readonly uHover = uniform(0);
+
   protected getConfig(): BaseEffectConfig {
     return {
-      fragmentShader: textHoverFragment,
+      outputNode: (ctx) => textHoverNode(ctx, this.uHover),
       uniforms: {
-        uHover: { value: 0 },
+        uHover: this.uHover,
       },
     };
   }

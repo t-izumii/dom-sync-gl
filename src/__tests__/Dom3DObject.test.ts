@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 
 // GLTFLoader は実ファイル取得を行うため、load() を同期的にフェイクシーンで
-// 解決するようにモックする。three 自体はこのファイルではモックしないため、
+// 解決するようにモックする。three/webgpu 自体はこのファイルではモックしないため、
 // factory 内で改めて import してジオメトリ/マテリアル/テクスチャを本物で作る
 // （vi.mock は import 文より前にホイストされるため、外側の THREE 束縛には頼らない）。
+// src 本体と同じ three/webgpu から import しないと instanceof が二重化して壊れる。
 vi.mock('three/examples/jsm/loaders/GLTFLoader.js', async () => {
-  const RealTHREE = await import('three');
+  const RealTHREE = await import('three/webgpu');
   return {
     GLTFLoader: class {
       load(

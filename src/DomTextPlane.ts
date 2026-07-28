@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import { DomPlane } from "./DomPlane";
 import {
   resolveTextStyle,
@@ -30,7 +30,7 @@ export class DomTextPlane extends DomPlane {
     scene: THREE.Scene,
     canvasRect: DOMRect,
     scroll: { x: number; y: number },
-    renderer: THREE.WebGLRenderer,
+    renderer: THREE.WebGPURenderer,
     options: CreateTextPlaneOptions = {},
     sharedClock?: THREE.Clock,
   ) {
@@ -48,9 +48,10 @@ export class DomTextPlane extends DomPlane {
 
     this.textCanvas = document.createElement("canvas");
     this.textTexture = new THREE.CanvasTexture(this.textCanvas);
-    // SRGBColorSpace だとデコードされた linear 値が ShaderMaterial から素通しで
-    // 出力されて暗くなるため、生の sRGB 値のまま渡して DOM の文字色と一致させる。
-    this.textTexture.colorSpace = THREE.NoColorSpace;
+    // NodeMaterial は画面出力時に linear→sRGB 変換を行うため、入力側も
+    // SRGBColorSpace にしてサンプル時に linear へデコードさせる。decode→encode が
+    // 相殺され DOM の文字色と一致する（旧 ShaderMaterial の素通し前提から変更）。
+    this.textTexture.colorSpace = THREE.SRGBColorSpace;
     this.textTexture.generateMipmaps = false;
     this.textTexture.minFilter = THREE.LinearFilter;
     this.setTexture(this.textTexture, true);

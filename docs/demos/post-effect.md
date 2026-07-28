@@ -18,49 +18,41 @@ WebGL を載せるコンテナ 1 つだけ。
 ## TypeScript
 
 ```ts
-import { DomSyncGL, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
+import { DomSyncGL, BaseEffect, type BaseEffectConfig, TSL } from 'dom-sync-gl';
+const { uniform, vec2, vec3, vec4, sin, mix, fract, dot } = TSL;
 
 const app = new DomSyncGL('#stage');
 
 // 1. 全画面背景 plane（selector に null を渡す）
 app.createPlane(null, {
-  fragmentShader: /* glsl */ `
-    precision highp float;
-    varying vec2 vUv;
-    uniform float uTime;
-    void main() {
-      vec2 uv = vUv;
-      float wave = 0.5 + 0.5 * sin(uv.x * 8.0 + uTime * 0.8);
-      vec3 col = mix(
-        vec3(0.13, 0.18, 0.36),
-        vec3(0.43, 0.95, 0.96),
-        uv.y * wave
-      );
-      gl_FragColor = vec4(col, 1.0);
-    }
-  `,
+  colorNode: ({ uv, uTime }) => {
+    const wave = sin(uv.x.mul(8).add(uTime.mul(0.8))).mul(0.5).add(0.5);
+    const col = mix(
+      vec3(0.13, 0.18, 0.36),
+      vec3(0.43, 0.95, 0.96),
+      uv.y.mul(wave),
+    );
+    return vec4(col, 1);
+  },
 });
 
 // 2. ポストエフェクトを 1 つ書く
 class GrainEffect extends BaseEffect {
+  private uTime = uniform(0);
+  private uAmount = uniform(0.18);
+
   protected getConfig(): BaseEffectConfig {
     return {
-      fragmentShader: /* glsl */ `
-        precision highp float;
-        varying vec2 vUv;
-        uniform sampler2D tDiffuse;
-        uniform float uTime;
-        uniform float uAmount;
-        void main() {
-          vec4 src = texture2D(tDiffuse, vUv);
-          float g = fract(sin(dot(vUv + uTime, vec2(12.9898, 78.233))) * 43758.5453);
-          gl_FragColor = vec4(src.rgb + (g - 0.5) * uAmount, src.a);
-        }
-      `,
-      uniforms: {
-        uTime: { value: 0 },
-        uAmount: { value: 0.18 },
+      outputNode: ({ inputTexture, uv }) => {
+        const g = fract(
+          sin(dot(uv.add(this.uTime), vec2(12.9898, 78.233))).mul(43758.5453),
+        );
+        return vec4(
+          inputTexture.rgb.add(g.sub(0.5).mul(this.uAmount)),
+          inputTexture.a,
+        );
       },
+      uniforms: { uTime: this.uTime, uAmount: this.uAmount },
     };
   }
   update(time: number) {
@@ -79,11 +71,12 @@ button.addEventListener('click', () => {
 
 ## ポイント
 
-### 1. 前段の結果は `tDiffuse` で受け取る
+### 1. 前段の結果は `ctx.inputTexture` で受け取る
 
-ポストエフェクトの fragment は、必ず `uniform sampler2D tDiffuse;` を宣言して
-`texture2D(tDiffuse, vUv)` で前段の結果を取り出す。`tDiffuse` は EffectComposer
-側で自動で配線される（自分で uniforms に入れる必要はない）。
+ポストエフェクトの `outputNode` は、ctx で渡ってくる `inputTexture`（`TextureNode`）から
+前段の結果を取り出す。配線は EffectComposer 側で自動で行われる（v0.3 の `tDiffuse` 宣言は不要に
+なった）。そのまま使うと `uv()` でサンプルされ、歪ませたい場合は
+`inputTexture.sample(customUv)` で別 UV から読める。
 
 ### 2. チェーンの順番 = `addEffect` した順
 
@@ -105,7 +98,7 @@ ping-pong RT で順に適用される。エフェクト数が増えても RT は
 全画面エフェクトと別系統で動く。
 
 ```ts
-const card = app.createPlane('#card', { fragmentShader });
+const card = app.createPlane('#card', { colorNode });
 card.addEffect(new GrainEffect());
 ```
 

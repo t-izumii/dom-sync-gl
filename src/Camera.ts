@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import { CAMERA_FOV, CAMERA_NEAR, CAMERA_FAR } from "./constants";
 
 export class Camera {

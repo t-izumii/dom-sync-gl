@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { PointerController } from '../PointerController';
 import type { Camera } from '../Camera';
 import type { DomPlane } from '../DomPlane';

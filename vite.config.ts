@@ -25,14 +25,17 @@ export default defineConfig({
     },
     rollupOptions: {
       // peerDependencies / dependencies は bundle に含めず、利用側のものを使わせる。
-      // three の examples/jsm/* もサブパスごと external 指定する必要がある
+      // three の webgpu/tsl/examples/jsm/* もサブパスごと external 指定する必要がある
       // （正規表現で three の全サブパスをまとめて弾く）。
-      // lenis は dependencies なので利用側に自動インストールされる。同梱せず外部化して重複を防ぐ。
+      // lenis は src では import しておらず example 専用の devDependency。利用側が
+      // Lenis 併用する場合に自前導入する前提のため、誤って同梱しないよう外部化だけしておく。
       external: ["three", /^three\/.+/, "lil-gui", "stats.js", "lenis"],
       output: {
         // ESM 出力でも globals は CJS ビルドで利用される。peer 名と揃える。
         globals: {
           three: "THREE",
+          "three/webgpu": "THREE",
+          "three/tsl": "TSL",
           "lil-gui": "GUI",
           "stats.js": "Stats",
           lenis: "Lenis",

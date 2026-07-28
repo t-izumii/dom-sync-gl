@@ -44,7 +44,8 @@ const plane = app.createTextPlane('.headline', {
 | `pixelRatio` | `number` | `min(devicePixelRatio, 2)` | canvas の解像度倍率 |
 | `hideElementText` | `boolean` | `true` | 元 DOM テキストを `color: transparent` で隠すか |
 
-`fragmentShader` を指定しない場合、テキストの canvas がそのまま `uTexture` として描かれる。
+`colorNode` を指定しない場合、テキストの canvas がそのまま `uTexture` として描かれる。
+自前の `colorNode` からは `ctx.uTexture` でテキストのテクスチャを参照できる。
 
 ### `TextStyleOverrides`
 

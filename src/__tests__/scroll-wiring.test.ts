@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// WebGLRenderer は WebGL コンテキストを要求し jsdom では失敗するためスタブ化（Core.test と同方針）。
-vi.mock('three', async () => {
-  const actual = await vi.importActual<typeof import('three')>('three');
-  class MockWebGLRenderer {
+// WebGPURenderer は GPU device を要求し jsdom では失敗するためスタブ化（Core.test と同方針）。
+vi.mock('three/webgpu', async () => {
+  const actual =
+    await vi.importActual<typeof import('three/webgpu')>('three/webgpu');
+  class MockWebGPURenderer {
     domElement: HTMLCanvasElement;
     outputColorSpace = '';
     private dpr = 1;
     constructor(opts: { canvas?: HTMLCanvasElement }) {
       this.domElement = opts.canvas ?? document.createElement('canvas');
+    }
+    init(): Promise<void> {
+      return Promise.resolve();
     }
     setSize() {}
     setPixelRatio(v: number) {
@@ -34,7 +38,7 @@ vi.mock('three', async () => {
   }
   return {
     ...actual,
-    WebGLRenderer: MockWebGLRenderer,
+    WebGPURenderer: MockWebGPURenderer,
   };
 });
 
@@ -53,6 +57,8 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
   },
 }));
 
+import * as THREE from 'three/webgpu';
+import { texture } from 'three/tsl';
 import { DomSyncGL } from '../Core';
 import type { DomPlane } from '../DomPlane';
 import type { Dom3DObject } from '../Dom3DObject';
@@ -160,7 +166,7 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
     app.destroy();
   });
 
-  it('フルスクリーン plane(element 無し)も hover 経路に入り setHoverInfo で uniform が更新される', () => {
+  it('フルスクリーン plane(element 無し)も hover 経路に入り setHoverInfo で hover 状態が更新される', () => {
     // Given: DOM-locked plane を 1 つも作らず、フルスクリーン plane だけを生成
     const app = new DomSyncGL(container);
     const plane = app.createPlane(null) as DomPlane;
@@ -171,36 +177,42 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
 
     // Then: 背景 plane も毎フレ setHoverInfo を受ける。mouse 未移動なので inside=false で流れる。
     expect(spy).toHaveBeenCalledWith(false, expect.anything());
-    expect(plane.material.uniforms.uIsHovered.value).toBe(false);
+    expect(plane.isHovered()).toBe(false);
 
     app.destroy();
   });
 
-  it('addFeedback: 出力テクスチャが plane の uniform に供給され、animate で step 更新される', () => {
+  it('addFeedback: 出力テクスチャが事前宣言した texture ノードに供給され、animate で step 更新される', async () => {
     const app = new DomSyncGL(container);
+    // 新契約: outputUniform と同名の texture() ノードを createPlane 側で事前宣言する。
+    const uTrailTex = texture(new THREE.Texture());
     // フルスクリーン plane（isVisible=true）にして _tickFeedback が走るようにする
     const plane = app.createPlane(null, {
-      fragmentShader:
-        'uniform sampler2D uTrailTex; varying vec2 vUv; void main(){ gl_FragColor = texture2D(uTrailTex, vUv); }',
+      uniforms: { uTrailTex },
+      colorNode: (ctx) => ctx.uniforms.uTrailTex,
     }) as DomPlane;
 
     const fb = plane.addFeedback({
-      fragmentShader: 'void main(){ gl_FragColor = vec4(0.0); }',
+      outputNode: (ctx) => ctx.uPrev,
       outputUniform: 'uTrailTex',
       size: 64,
     });
 
-    // 出力 uniform が自動で生え、初期テクスチャが供給されている
-    expect(plane.material.uniforms.uTrailTex).toBeDefined();
-    expect(plane.material.uniforms.uTrailTex.value).toBe(fb.texture);
+    // 事前宣言したノードへ初期テクスチャが供給されている
+    expect(uTrailTex.value).toBe(fb.texture);
+
+    // render は renderer.init() 完了までガードされるため ready を待つ
+    await app.ready;
 
     // animate 1 フレームで _tickFeedback → step → 最新テクスチャを供給
     (app as unknown as { animate: () => void }).animate.call(app);
-    expect(plane.material.uniforms.uTrailTex.value).toBe(fb.texture);
+    expect(uTrailTex.value).toBe(fb.texture);
 
-    // removeFeedback で外すと uniform は null に戻る
+    // removeFeedback で外すと dispose 済みテクスチャを参照し続けないようプレースホルダへ戻る
+    const lastTexture = fb.texture;
     expect(plane.removeFeedback(fb)).toBe(true);
-    expect(plane.material.uniforms.uTrailTex.value).toBeNull();
+    expect(uTrailTex.value).not.toBe(lastTexture);
+    expect((uTrailTex.value as THREE.Texture).isTexture).toBe(true);
 
     app.destroy();
   });
