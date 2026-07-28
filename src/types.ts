@@ -1,4 +1,10 @@
-import * as THREE from "three";
+import type {
+  ColorSpace,
+  Node,
+  TextureNode,
+  UniformNode,
+  Vector2,
+} from "three/webgpu";
 import type GUI from "lil-gui";
 import type Stats from "stats.js";
 import type { ScrollSyncOptions } from "./ScrollSync";
@@ -13,7 +19,7 @@ export interface DomSyncGLOptions {
   enablePointerTracking?: boolean;
   enableMouseTracking?: boolean;
   scrollSync?: boolean | ScrollSyncOptions;
-  outputColorSpace?: THREE.ColorSpace;
+  outputColorSpace?: ColorSpace;
   maxPixelRatio?: number;
   /**
    * 内部で requestAnimationFrame ループを回すか。
@@ -22,27 +28,63 @@ export interface DomSyncGLOptions {
    *   Lenis 等のスムーズスクロールと 1 本の rAF で順序を保証したい場合に使う。
    */
   autoRaf?: boolean;
+  /**
+   * WebGPU が利用可能でも WebGL 2 バックエンドを強制する（デバッグ用）。
+   * フォールバック時の見た目・挙動の検証に使う。既定: false（自動選択）。
+   */
+  forceWebGL?: boolean;
   /** 呼び出し元が生成した lil-gui インスタンス。渡された場合のみ setupGUI() 系のフックが有効になる（生成・破棄は呼び出し元の責務）。 */
   gui?: GUI | null;
   /** 呼び出し元が生成した stats.js インスタンス。渡された場合のみ毎フレーム begin()/end() を呼ぶ（DOM への挿入・破棄は呼び出し元の責務）。 */
   stats?: Stats | null;
   /**
    * EffectComposer の scene 描画 RenderTarget の MSAA サンプル数。既定 4、0 で無効化。
-   * GPU 上限（renderer.capabilities.maxSamples）で clamp される。
+   * GPU 上限（取得できない場合は WebGPU 標準の 4）で clamp される。
    * effect 有効時に 3D geometry のエッジがジャギーになるのを防ぐ。
    */
   effectSamples?: number;
 }
 
+/**
+ * createPlane の colorNode / positionNode ファクトリに渡されるコンテキスト。
+ * ノードは plane 構築時に一度だけ作られ、以後は DomPlane が `.value` を毎フレーム
+ * 更新する。ファクトリ内では TSL でノードグラフを組み立てて返す。
+ */
+export interface PlaneNodeContext {
+  /** plane のテクスチャ（data-texture / setTexture / テキストラスタライズ結果） */
+  uTexture: TextureNode;
+  uAlpha: UniformNode<number>;
+  /** plane の CSS ピクセルサイズ */
+  uResolution: UniformNode<Vector2>;
+  uTime: UniformNode<number>;
+  /** hover 中 1 / 非 hover 0 */
+  uIsHovered: UniformNode<number>;
+  /** plane ローカルの マウス UV（左下原点） */
+  uMouseUV: UniformNode<Vector2>;
+  /** options.uniforms で渡したユーザー uniform / texture ノード */
+  uniforms: Record<string, UniformNode<unknown>>;
+  uv: Node;
+}
+
 export interface CreatePlaneOptions {
-  vertexShader?: string;
-  fragmentShader?: string;
   /**
-   * 追加のカスタム uniform。以下の予約名は DomPlane が内部で生成・毎フレーム
-   * 更新するため渡せない（渡すと throw する）:
-   * `uTexture` / `uAlpha` / `uResolution` / `uTime` / `uIsHovered` / `uMouseUV`。
+   * plane の色を決める vec4 ノードを返すファクトリ。未指定ならテクスチャを
+   * そのまま表示する。構築時に一度だけ呼ばれ、以後の毎フレーム更新は ctx の
+   * ノードの `.value` 差し替えで行われる。
    */
-  uniforms?: { [key: string]: THREE.IUniform };
+  colorNode?: (ctx: PlaneNodeContext) => Node;
+  /** 頂点変位用の position ノードを返すファクトリ。未指定なら既定の頂点処理 */
+  positionNode?: (ctx: PlaneNodeContext) => Node;
+  /**
+   * 追加のカスタム uniform / texture ノード（TSL の uniform() / texture() で生成）。
+   * colorNode / positionNode から ctx.uniforms 経由で参照できる。
+   * 以下の予約名は DomPlane が内部で生成・毎フレーム更新するため渡せない
+   * （渡すと throw する）:
+   * `uTexture` / `uAlpha` / `uResolution` / `uTime` / `uIsHovered` / `uMouseUV`。
+   * addFeedback() を使う場合は outputUniform と同名の texture() ノードをここに
+   * 渡しておく（FeedbackBuffer の出力がそのノードへ毎フレーム反映される）。
+   */
+  uniforms?: Record<string, UniformNode<unknown>>;
   updateRectEveryFrame?: boolean;
   segments?: number;
   onInView?: (plane: import('./DomPlane').DomPlane) => void;
@@ -52,11 +94,13 @@ export interface CreatePlaneOptions {
   crossOrigin?: string;
   /**
    * data-texture で読み込むテクスチャの色空間。
-   * 既定は `NoColorSpace`: shader は生の sRGB 値をそのまま受け取り、DOM の画像と
-   * 表示が一致する。`SRGBColorSpace` を指定するとサンプル値が linear になるため、
-   * sRGB への出力変換は自前の shader で行う必要がある。
+   * 既定は `SRGBColorSpace`: サンプル時に linear へデコードされ、画面出力時に
+   * sRGB へ再エンコードされるため DOM の画像と表示が一致する（NodeMaterial は
+   * 画面出力時の色空間変換を自動で行うため、旧版の「生の値を素通しする」前提の
+   * `NoColorSpace` 既定から変更した）。生の値をそのまま扱いたい場合のみ
+   * `NoColorSpace` を指定する。
    */
-  textureColorSpace?: THREE.ColorSpace;
+  textureColorSpace?: ColorSpace;
 }
 
 export interface TextStyleOverrides {

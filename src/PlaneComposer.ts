@@ -1,35 +1,25 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
+import { texture, uv } from 'three/tsl';
+import type { TextureNode } from 'three/webgpu';
 import type { EffectOptions, EffectTarget } from './EffectComposer';
 import { EffectPass } from './EffectComposer';
 
-const defaultVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position, 1.0);
-  }
-`;
-
 export class PlaneComposer implements EffectTarget {
-  private renderer: THREE.WebGLRenderer;
+  private renderer: THREE.WebGPURenderer;
   private sourceMesh: THREE.Mesh;
   private passes: EffectPass[] = [];
 
-  private targetA: THREE.WebGLRenderTarget;
-  private targetB: THREE.WebGLRenderTarget;
+  private targetA: THREE.RenderTarget;
+  private targetB: THREE.RenderTarget;
 
   private localScene: THREE.Scene;
   private localCamera: THREE.OrthographicCamera;
   private localMesh: THREE.Mesh;
 
-  private postScene: THREE.Scene;
-  private postCamera: THREE.OrthographicCamera;
-  private postMesh: THREE.Mesh;
-  private postGeo: THREE.PlaneGeometry;
-  // postMesh.material は render() 中に各 pass.material へ差し替えられるため、
-  // 構築時に THREE.Mesh が自動生成する既定 material 自体はどの pass にも
-  // 属さず誰も dispose しない。dispose() で確実に解放できるよう個別に保持する。
-  private readonly postMeshDefaultMaterial: THREE.Material;
+  // fullscreen pass の描画は自前の ortho カメラではなく QuadMesh に任せる。
+  // 自前 ortho の clip 空間 z は WebGL([-1,1]) と WebGPU([0,1]) で異なり
+  // 描画が欠けうるため、両バックエンドを吸収する公式ヘルパーを使う。
+  private quad: THREE.QuadMesh;
 
   // sourceMesh を Object3D として mainScene に残したまま、effect 有効時だけ
   // material をこれに差し替えて合成結果を表示する（renderOrder / layers /
@@ -38,14 +28,16 @@ export class PlaneComposer implements EffectTarget {
   // 再乗算を防ぐ。depthTest / depthWrite / side は originalMaterial の値を毎
   // render で同期してユーザー設定を維持する。カスタム blending は premultiplied
   // 合成と両立しないため同期しない。
-  private readonly displayMaterial: THREE.MeshBasicMaterial;
+  private readonly displayMaterial: THREE.MeshBasicNodeMaterial;
+  // 表示する ping-pong 結果 RT を毎フレーム差し替えるためのテクスチャノード。
+  private readonly displayTexture: TextureNode;
   // effect 有効時に差し替える前の material。bypass / dispose で戻す。
   private readonly originalMaterial: THREE.Material;
 
   private _disposed: boolean = false;
 
   constructor(
-    renderer: THREE.WebGLRenderer,
+    renderer: THREE.WebGPURenderer,
     sourceMesh: THREE.Mesh,
     width: number,
     height: number,
@@ -66,8 +58,8 @@ export class PlaneComposer implements EffectTarget {
       // fullscreen quad と単一 plane しか描かないため depth は不要。VRAM を節約する。
       depthBuffer: false,
     };
-    this.targetA = new THREE.WebGLRenderTarget(w, h, rtOptions);
-    this.targetB = new THREE.WebGLRenderTarget(w, h, rtOptions);
+    this.targetA = new THREE.RenderTarget(w, h, rtOptions);
+    this.targetB = new THREE.RenderTarget(w, h, rtOptions);
 
     this.localScene = new THREE.Scene();
     this.localCamera = new THREE.OrthographicCamera(
@@ -80,44 +72,40 @@ export class PlaneComposer implements EffectTarget {
     this.localMesh.scale.copy(sourceMesh.scale);
     this.localScene.add(this.localMesh);
 
-    this.postScene = new THREE.Scene();
-    this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    this.postGeo = new THREE.PlaneGeometry(2, 2);
-    this.postMesh = new THREE.Mesh(this.postGeo);
-    this.postMeshDefaultMaterial = this.postMesh.material as THREE.Material;
-    this.postScene.add(this.postMesh);
+    this.quad = new THREE.QuadMesh();
 
-    this.displayMaterial = new THREE.MeshBasicMaterial({
-      map: this.targetA.texture,
-      transparent: true,
-      premultipliedAlpha: true,
-    });
+    this.displayTexture = texture(this.targetA.texture);
+    this.displayMaterial = new THREE.MeshBasicNodeMaterial();
+    this.displayMaterial.colorNode = this.displayTexture;
+    this.displayMaterial.transparent = true;
+    this.displayMaterial.premultipliedAlpha = true;
   }
 
   /**
    * fullscreen pass を追加する。
    *
-   * alpha 契約: 中間 RenderTarget と tDiffuse は premultiplied alpha。各 pass は
+   * alpha 契約: 中間 RenderTarget と inputTexture は premultiplied alpha。各 pass は
    * 前段の結果を丸ごと置き換えるため NoBlending で素通しする（NormalBlending だと
    * alpha が pass ごとに再乗算され透明部が暗くなる）。
+   *
+   * material の colorNode 選択理由は EffectComposer.addEffect() と同じ
+   * （fragmentNode は画面出力時の色空間変換まで素通ししてしまう）。
    */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
       throw new Error('[PlaneComposer] dispose 済みのインスタンスでは addEffect() できません。');
     }
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        tDiffuse: { value: null },
-        ...options.uniforms,
-      },
-      vertexShader: defaultVertexShader,
-      fragmentShader: options.fragmentShader,
-      transparent: false,
-      depthTest: false,
-      depthWrite: false,
-      blending: THREE.NoBlending,
+    const inputTexture = texture(this.targetA.texture);
+    const material = new THREE.MeshBasicNodeMaterial();
+    material.colorNode = options.outputNode({ inputTexture, uv: uv() });
+    material.transparent = false;
+    material.depthTest = false;
+    material.depthWrite = false;
+    material.blending = THREE.NoBlending;
+
+    const pass = new EffectPass(material, inputTexture, {
+      ...options.uniforms,
     });
-    const pass = new EffectPass(material);
     this.passes.push(pass);
     return pass;
   }
@@ -157,17 +145,17 @@ export class PlaneComposer implements EffectTarget {
 
     for (const pass of this.passes) {
       if (!pass.enabled) continue;
-      pass.material.uniforms['tDiffuse'].value = read.texture;
-      this.postMesh.material = pass.material;
+      pass.inputTexture.value = read.texture;
+      this.quad.material = pass.material;
       this.renderer.setRenderTarget(write);
-      this.renderer.render(this.postScene, this.postCamera);
+      this.quad.render(this.renderer);
 
       const tmp = read;
       read = write;
       write = tmp;
     }
 
-    this.displayMaterial.map = read.texture;
+    this.displayTexture.value = read.texture;
     this.sourceMesh.material = this.displayMaterial;
     this.renderer.setRenderTarget(prevTarget);
   }
@@ -205,8 +193,7 @@ export class PlaneComposer implements EffectTarget {
 
     this.targetA.dispose();
     this.targetB.dispose();
-    this.postGeo.dispose();
-    this.postMeshDefaultMaterial.dispose();
+    // QuadMesh の geometry は全インスタンス共有のため dispose してはいけない。
     this.displayMaterial.dispose();
     for (const pass of this.passes) {
       pass.material.dispose();

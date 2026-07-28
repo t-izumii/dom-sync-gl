@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import { Camera } from "../Camera";
 
 export abstract class BaseScene {

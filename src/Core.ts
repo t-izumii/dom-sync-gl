@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type GUI from 'lil-gui';
 import { Camera } from './Camera';
@@ -24,7 +24,7 @@ export class DomSyncGL {
   container: HTMLElement;
   canvas: HTMLCanvasElement;
   scene: THREE.Scene;
-  renderer: THREE.WebGLRenderer;
+  renderer: THREE.WebGPURenderer;
   camera: Camera;
   light: Light;
   controls: OrbitControls | null;
@@ -50,6 +50,14 @@ export class DomSyncGL {
   // update() が取得したフレーム状態を render() へ渡すための保持。update() 未実行で
   // render() を呼んでも直近フレーム（初期値 0）で描画でき例外にならない。
   private _frameElapsed: number = 0;
+  /**
+   * renderer の非同期初期化の完了を示す Promise。WebGPU の device 取得は
+   * async のため、バックエンド確定後の処理（isWebGPUBackend() の判定など）は
+   * これを await してから行う。await しなくても render() は初期化完了まで
+   * no-op になるだけで安全。
+   */
+  readonly ready: Promise<void>;
+  private _rendererReady = false;
 
   constructor(selector: string | HTMLElement, options: DomSyncGLOptions = {}) {
     const element =
@@ -66,10 +74,21 @@ export class DomSyncGL {
 
     this.rect = this.container.getBoundingClientRect();
     this.scene = new THREE.Scene();
-    this.renderer = new THREE.WebGLRenderer({
+    this.renderer = new THREE.WebGPURenderer({
       canvas: this.canvas,
       antialias: true,
       alpha: true,
+      forceWebGL: options.forceWebGL ?? false,
+    });
+    // 初期化失敗（WebGPU も WebGL 2 も使えない環境）は console へ流しつつ、
+    // ready を await する呼び出し元でも捕捉できるようにする。内部で catch した
+    // 別 Promise を作らず同一 Promise に catch を付けるのは、呼び出し元が
+    // await しなかった場合の unhandled rejection を防ぐため。
+    this.ready = this.renderer.init().then(() => {
+      this._rendererReady = true;
+    });
+    this.ready.catch((err) => {
+      console.error('[DomSyncGL] renderer の初期化に失敗しました。', err);
     });
     this.camera = new Camera(this.rect);
     this.light = new Light(this.scene);
@@ -185,6 +204,18 @@ export class DomSyncGL {
 
   getScrollSync() {
     return this.scrollSync;
+  }
+
+  /**
+   * WebGPU バックエンドで動作しているか。WebGL 2 フォールバック時は false。
+   * バックエンドは `ready` の解決後に確定するため、init 前の呼び出しは常に false。
+   */
+  isWebGPUBackend(): boolean {
+    if (!this._rendererReady) return false;
+    const backend = (
+      this.renderer as unknown as { backend?: { isWebGPUBackend?: boolean } }
+    ).backend;
+    return backend?.isWebGPUBackend === true;
   }
 
   addObject(object: THREE.Object3D) {
@@ -608,8 +639,11 @@ export class DomSyncGL {
    *
    * @param options.outputTarget 最終描画先。省略時は画面（null）。
    */
-  render = (options?: { outputTarget?: THREE.WebGLRenderTarget | null }) => {
+  render = (options?: { outputTarget?: THREE.RenderTarget | null }) => {
     if (this.destroyed) return;
+    // renderer.init() 完了前に GPU コマンドを発行できないため no-op にする。
+    // update() は GPU を触らないのでガード不要（先行して状態だけ進む）。
+    if (!this._rendererReady) return;
 
     const outputTarget = options?.outputTarget ?? null;
     const elapsed = this._frameElapsed;

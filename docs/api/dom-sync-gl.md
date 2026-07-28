@@ -19,6 +19,10 @@ new DomSyncGL(selector: string | HTMLElement, options?: DomSyncGLOptions)
 
 `selector` で canvas を載せる container を指定する。文字列 or HTMLElement。
 
+renderer は `three/webgpu` の `WebGPURenderer`。WebGPU が使えない環境では WebGL 2 バックエンドに
+自動フォールバックする。初期化は非同期なので、バックエンド確定後の処理は [`ready`](#ready) を await
+してから行う（await しなくても描画が初期化完了まで no-op になるだけで安全）。
+
 ## Options
 
 | option | type | default | 説明 |
@@ -26,9 +30,10 @@ new DomSyncGL(selector: string | HTMLElement, options?: DomSyncGLOptions)
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化。詳細は [Scroll](/api/scroll) |
 | `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` にすると自前の rAF から [`tick()`](#tick-time) で駆動する |
 | `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
+| `forceWebGL` | `boolean` | `false` | WebGPU が利用可能でも WebGL 2 バックエンドを強制する（フォールバック時の見た目・挙動の検証用） |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限（モバイルは `1.5` 推奨） |
 | `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
-| `effectSamples` | `number` | `4` | EffectComposer の scene 描画 RenderTarget の MSAA サンプル数。`0` で無効化。GPU 上限（`renderer.capabilities.maxSamples`）で clamp される。effect 有効時のエッジのジャギーを防ぐ |
+| `effectSamples` | `number` | `4` | EffectComposer の scene 描画 RenderTarget の MSAA サンプル数。`0` で無効化。GPU 上限（取得できない場合は WebGPU 標準の 4）で clamp される。effect 有効時のエッジのジャギーを防ぐ |
 | `stats` | `Stats \| null` | `null` | 呼び出し元が生成した stats.js インスタンス。渡すと毎フレーム `begin()`/`end()` を呼ぶ |
 | `gui` | `GUI \| null` | `null` | 呼び出し元が生成した lil-gui インスタンス。渡すと `setupGUI()` 系のフックが有効になる |
 
@@ -54,6 +59,27 @@ const app = new DomSyncGL('#canvas', { stats, gui });
 `enableMouseTracking` は `enablePointerTracking` の別名として残っているが、新しいコードでは
 後者を使う。
 
+## Properties
+
+### `ready`
+
+```ts
+readonly ready: Promise<void>
+```
+
+renderer の非同期初期化（WebGPU の device 取得）の完了を示す Promise。
+
+```ts
+const app = new DomSyncGL('#canvas');
+await app.ready;
+console.log(app.isWebGPUBackend());
+```
+
+- await しなくても安全。初期化完了まで `render()` が no-op になるだけで、`createPlane()` 等は
+  初期化前に呼んでよい（`update()` は GPU を触らないので先行して状態だけ進む）
+- WebGPU も WebGL 2 も使えない環境では reject する（await していれば捕捉できる。
+  await しない場合も内部で console.error される）
+
 ## Methods
 
 ### `createPlane(selector, options?)` / `removePlane(plane)`
@@ -62,10 +88,15 @@ DOM 要素にロックした plane を生成 / 削除する。`selector` に `nu
 返り値は [`DomPlane`](/api/dom-plane)。
 
 ```ts
+import { TSL } from 'dom-sync-gl';
+const { uniform } = TSL;
+
+const uIntensity = uniform(0.5);
 const plane = app.createPlane('.card', {
-  fragmentShader,
+  colorNode,
+  uniforms: { uIntensity },
   updateRectEveryFrame: true,
-  onInView: (p) => (p.material.uniforms.uIntensity.value = 1),
+  onInView: () => (uIntensity.value = 1),
 });
 app.removePlane(plane); // 1 つだけ取り外して destroy
 ```
@@ -113,15 +144,28 @@ requestAnimationFrame(raf);
 - `update(time?)` — DOM 読み取り・スクロール／ポインタ更新・plane / object の座標反映。
   GPU 描画パスは一切実行しない。
 - `render(options?)` — plane composer の合成と最終出力の描画。
-  `options.outputTarget`（`THREE.WebGLRenderTarget | null`、既定は画面 = `null`）で
+  `options.outputTarget`（`THREE.RenderTarget | null`、既定は画面 = `null`）で
   最終出力先を指定できる。**`render()` は呼び出し前にバインドされていた RenderTarget を
   呼び出し後も維持し（保存・復元）、最終出力は `outputTarget` にのみ書く**。複数 Scene を
   外部 FBO へ描いて遷移させる用途で、外部の RenderTarget を壊さずに描画できる。
+  renderer の初期化（[`ready`](#ready)）完了前は no-op。
 
 ```ts
 // 外部 FBO へ描画（バインド中の RT は破壊されない）
 app.update(time);
 app.render({ outputTarget: fbo });
+```
+
+### `isWebGPUBackend()`
+
+WebGPU バックエンドで動作しているか。WebGL 2 フォールバック時（`forceWebGL: true` 含む）は
+`false`。バックエンドは `ready` の解決後に確定するため、**初期化前の呼び出しは常に `false`** を返す。
+
+```ts
+await app.ready;
+if (!app.isWebGPUBackend()) {
+  // WebGL 2 フォールバック時だけ品質を落とす、など
+}
 ```
 
 ### `create3DObject(selector, options)` / `remove3DObject(obj)`
@@ -193,7 +237,7 @@ pointer listener の動的 ON/OFF。重い UI を開いている間など、hove
 |---|---|---|
 | `getScene()` | `THREE.Scene` | Three.js の生 scene |
 | `getCamera()` | `Camera` | カメララッパー（`.instance` で `THREE.PerspectiveCamera`） |
-| `getRenderer()` | `THREE.WebGLRenderer` | renderer |
+| `getRenderer()` | `THREE.WebGPURenderer` | renderer（`three/webgpu`） |
 | `getLight()` | `Light` | ambient + directional のラッパー |
 | `getViewPort()` | `DOMRect` | canvas の logical rect（ScrollSync 有効時は viewport ぴったり） |
 | `getMouse()` | `THREE.Vector2` | 現フレの canvas UV (0..1, Y-up) |

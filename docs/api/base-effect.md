@@ -1,41 +1,48 @@
 # BaseEffect
 
-ポストエフェクトの基底クラス。`getConfig()` で fragment shader と uniform を返すと、
+ポストエフェクトの基底クラス。`getConfig()` で TSL の `outputNode` ファクトリと uniform を返すと、
 `addEffect()` 経由でチェーンに繋がる。
 
 ## Minimal example
 
 ```ts
-import { BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
+import { BaseEffect, type BaseEffectConfig, THREE, TSL } from 'dom-sync-gl';
+const { uniform, vec4, mix } = TSL;
 
 class TintEffect extends BaseEffect {
+  private uColor = uniform(new THREE.Color('#ff66aa'));
+
   protected getConfig(): BaseEffectConfig {
     return {
-      fragmentShader: `
-        precision highp float;
-        varying vec2 vUv;
-        uniform sampler2D tDiffuse;
-        uniform vec3 uColor;
-        void main() {
-          vec4 src = texture2D(tDiffuse, vUv);
-          gl_FragColor = vec4(mix(src.rgb, uColor, 0.3), src.a);
-        }
-      `,
-      uniforms: {
-        uColor: { value: new THREE.Color('#ff66aa') },
-      },
+      outputNode: ({ inputTexture }) =>
+        vec4(mix(inputTexture.rgb, this.uColor, 0.3), inputTexture.a),
+      uniforms: { uColor: this.uColor },
     };
   }
 }
 ```
 
-前段の結果は `tDiffuse` で受け取れる。
+前段の結果は `ctx.inputTexture`（`TextureNode`）で受け取れる。そのまま使うと `uv()` で
+サンプルされ、別 UV で読む場合は `ctx.inputTexture.sample(customUv)`。スクリーン UV は
+`ctx.uv` で渡ってくる。
+
+`outputNode` は pass 追加時に**一度だけ**呼ばれ、以後の毎フレーム更新は `uniforms` に渡した
+`UniformNode` の `.value` 差し替え（= `setUniform()`）で行われる。
+
+→ v0.3 の `fragmentShader` / `tDiffuse` からの書き換えは [移行ガイド](/guide/migration-v0-4)。
 
 ## Abstract / overridable
 
 ### `getConfig(): BaseEffectConfig` *(abstract)*
 
-fragment shader と uniform を返す。
+`outputNode` ファクトリと uniform を返す。
+
+```ts
+interface BaseEffectConfig {
+  outputNode: (ctx: EffectContext) => Node;
+  uniforms?: Record<string, UniformNode<unknown>>;
+}
+```
 
 ### `update(time, mouse?)`
 
@@ -72,8 +79,8 @@ setupGUI(gui) {
 
 | メソッド | 説明 |
 |---|---|
-| `setUniform(key, value)` | uniform を更新（未定義キーは DEV で警告） |
-| `getUniform(key)` | `THREE.IUniform` を取得 |
+| `setUniform(key, value)` | uniform の `.value` を更新（未定義キーは DEV で警告） |
+| `getUniform(key)` | `UniformNode` を取得（`.value` で読み書き） |
 | `getPass()` | 内部 `EffectPass` を取得 |
 | `enabled` (getter/setter) | `false` でパススルー |
 

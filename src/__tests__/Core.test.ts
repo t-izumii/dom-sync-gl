@@ -1,17 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Three.js の WebGLRenderer は WebGL コンテキストを要求するため jsdom では失敗する。
+// WebGPURenderer は GPU device / WebGL コンテキストを要求するため jsdom では失敗する。
 // 機能テストに不要な部分なのでクラス全体を差し替える。
-vi.mock('three', async () => {
-  const actual = await vi.importActual<typeof import('three')>('three');
-  class MockWebGLRenderer {
+vi.mock('three/webgpu', async () => {
+  const actual =
+    await vi.importActual<typeof import('three/webgpu')>('three/webgpu');
+  class MockWebGPURenderer {
     domElement: HTMLCanvasElement;
     outputColorSpace = '';
+    // isWebGPUBackend() の判定対象。init() 後にのみ参照される想定。
+    backend = { isWebGPUBackend: true };
     private dpr = 1;
     // render() の保存・復元契約を検証できるよう、バインド中の RT を保持する。
     private currentTarget: unknown = null;
     constructor(opts: { canvas?: HTMLCanvasElement }) {
       this.domElement = opts.canvas ?? document.createElement('canvas');
+    }
+    // 実物と同じく非同期初期化。Core の ready / render ガードの検証に使う。
+    init(): Promise<void> {
+      return Promise.resolve();
     }
     setSize() {}
     setPixelRatio(v: number) {
@@ -31,7 +38,7 @@ vi.mock('three', async () => {
   }
   return {
     ...actual,
-    WebGLRenderer: MockWebGLRenderer,
+    WebGPURenderer: MockWebGPURenderer,
   };
 });
 
@@ -45,13 +52,14 @@ vi.mock('three/examples/jsm/controls/OrbitControls.js', () => ({
 
 import { DomSyncGL } from '../Core';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type * as THREE from 'three';
+import type * as THREE from 'three/webgpu';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 
 class TestEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
-    return { fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }' };
+    // 前段の出力をそのまま返す素通しエフェクト（旧 passthrough fragmentShader 相当）
+    return { outputNode: (ctx) => ctx.inputTexture };
   }
 }
 
@@ -595,8 +603,10 @@ describe('DomSyncGL', () => {
   });
 
   describe('update() / render() 分割（CR-05）', () => {
-    it('update() は GPU 描画パス（render / setRenderTarget）を一切呼ばない', () => {
+    it('update() は GPU 描画パス（render / setRenderTarget）を一切呼ばない', async () => {
       const app = new DomSyncGL(container);
+      // ready ガードで no-op になっているだけではないことを保証するため init 完了後に検証
+      await app.ready;
       const renderer = app.getRenderer();
       const renderSpy = vi.spyOn(renderer, 'render');
       const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
@@ -642,11 +652,12 @@ describe('DomSyncGL', () => {
       expect(setRTSpy).not.toHaveBeenCalled();
     });
 
-    it('render({ outputTarget }) は postEffect 無し経路で最終出力を outputTarget へ向ける', () => {
+    it('render({ outputTarget }) は postEffect 無し経路で最終出力を outputTarget へ向ける', async () => {
       const app = new DomSyncGL(container);
+      await app.ready;
       const renderer = app.getRenderer();
       const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
-      const rt = {} as THREE.WebGLRenderTarget;
+      const rt = {} as THREE.RenderTarget;
 
       app.render({ outputTarget: rt });
 
@@ -654,12 +665,13 @@ describe('DomSyncGL', () => {
       app.destroy();
     });
 
-    it('render({ outputTarget }) は EffectComposer 経路でも最終出力を outputTarget へ向ける', () => {
+    it('render({ outputTarget }) は EffectComposer 経路でも最終出力を outputTarget へ向ける', async () => {
       const app = new DomSyncGL(container);
       app.addEffect(new TestEffect());
+      await app.ready;
       const renderer = app.getRenderer();
       const setRTSpy = vi.spyOn(renderer, 'setRenderTarget');
-      const rt = {} as THREE.WebGLRenderTarget;
+      const rt = {} as THREE.RenderTarget;
 
       app.render({ outputTarget: rt });
 
@@ -667,10 +679,11 @@ describe('DomSyncGL', () => {
       app.destroy();
     });
 
-    it('外部 RT をバインドした状態で render() しても、呼び出し後に元の RT が復元される（postEffect 無し経路）', () => {
+    it('外部 RT をバインドした状態で render() しても、呼び出し後に元の RT が復元される（postEffect 無し経路）', async () => {
       const app = new DomSyncGL(container);
+      await app.ready;
       const renderer = app.getRenderer();
-      const ext = {} as THREE.WebGLRenderTarget;
+      const ext = {} as THREE.RenderTarget;
       renderer.setRenderTarget(ext);
 
       app.render();
@@ -679,17 +692,51 @@ describe('DomSyncGL', () => {
       app.destroy();
     });
 
-    it('外部 RT をバインドした状態で render() しても、呼び出し後に元の RT が復元される（EffectComposer 経路）', () => {
+    it('外部 RT をバインドした状態で render() しても、呼び出し後に元の RT が復元される（EffectComposer 経路）', async () => {
       const app = new DomSyncGL(container);
       app.addEffect(new TestEffect());
+      await app.ready;
       const renderer = app.getRenderer();
-      const ext = {} as THREE.WebGLRenderTarget;
+      const ext = {} as THREE.RenderTarget;
       renderer.setRenderTarget(ext);
 
       app.render();
 
       expect(renderer.getRenderTarget()).toBe(ext);
       app.destroy();
+    });
+  });
+
+  describe('ready / 非同期初期化（WebGPU 移行）', () => {
+    it('render() は renderer.init() 完了前は no-op、ready 解決後に描画する', async () => {
+      const app = new DomSyncGL(container);
+      const renderer = app.getRenderer();
+      const renderSpy = vi.spyOn(renderer, 'render');
+
+      // init はマイクロタスクで解決するため、同期呼び出し時点ではまだ未完了
+      app.render();
+      expect(renderSpy).not.toHaveBeenCalled();
+
+      await app.ready;
+      app.render();
+      expect(renderSpy).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it('isWebGPUBackend() は init 前 false、init 後は backend の判定値を返す', async () => {
+      const app = new DomSyncGL(container);
+      expect(app.isWebGPUBackend()).toBe(false);
+
+      await app.ready;
+      // MockWebGPURenderer の backend は isWebGPUBackend: true
+      expect(app.isWebGPUBackend()).toBe(true);
+      app.destroy();
+    });
+
+    it('ready 解決前に destroy() しても例外にならない', async () => {
+      const app = new DomSyncGL(container);
+      expect(() => app.destroy()).not.toThrow();
+      await expect(app.ready).resolves.toBeUndefined();
     });
   });
 });

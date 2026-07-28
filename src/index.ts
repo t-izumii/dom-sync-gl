@@ -23,6 +23,7 @@ export type {
   Dom3DObjectFitMode,
   Offset3D,
   DOMPositionInfo,
+  PlaneNodeContext,
 } from "./types";
 
 export * from "./constants";
@@ -30,14 +31,26 @@ export * from "./constants";
 export { BaseScene } from "./scenes/BaseScene";
 
 export { EffectComposer, EffectPass } from "./EffectComposer";
-export type { EffectOptions, EffectTarget, EffectLike } from "./EffectComposer";
+export type {
+  EffectOptions,
+  EffectTarget,
+  EffectLike,
+  EffectContext,
+} from "./EffectComposer";
 export { PlaneComposer } from "./PlaneComposer";
 export { BaseEffect } from "./effects/BaseEffect";
 export type { BaseEffectConfig } from "./effects/BaseEffect";
 
 export { FeedbackBuffer } from "./FeedbackBuffer";
-export type { FeedbackBufferOptions, FeedbackInput } from "./FeedbackBuffer";
+export type {
+  FeedbackBufferOptions,
+  FeedbackInput,
+  FeedbackContext,
+} from "./FeedbackBuffer";
 export type { AddFeedbackOptions } from "./DomPlane";
 
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 export { THREE };
+// TSL のノードビルダー（uniform / texture / Fn 等）を利用側が別途 import せずに
+// 使えるよう再エクスポートする。
+export * as TSL from "three/tsl";

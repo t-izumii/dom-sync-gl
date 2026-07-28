@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import {
   AMBIENT_LIGHT_COLOR,
   AMBIENT_LIGHT_INTENSITY,

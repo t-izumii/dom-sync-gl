@@ -1,21 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
-import * as THREE from 'three';
+import type * as THREE from 'three/webgpu';
+import { uniform } from 'three/tsl';
 import { EffectComposer } from '../EffectComposer';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
 
-function makeRenderer(): THREE.WebGLRenderer {
+function makeRenderer(): THREE.WebGPURenderer {
   return {
     getPixelRatio: () => 1,
     setRenderTarget: vi.fn(),
     render: vi.fn(),
-  } as unknown as THREE.WebGLRenderer;
+  } as unknown as THREE.WebGPURenderer;
 }
 
 class TestEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
+    // 前段の出力をそのまま返す素通しエフェクト（旧 passthrough fragmentShader 相当）
     return {
-      fragmentShader: 'void main(){ gl_FragColor = vec4(1.0); }',
-      uniforms: { uTime: { value: 0 } },
+      outputNode: (ctx) => ctx.inputTexture,
+      uniforms: { uTime: uniform(0) },
     };
   }
 }

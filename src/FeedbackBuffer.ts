@@ -1,17 +1,38 @@
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
+import { texture, uniform, uv } from 'three/tsl';
+import type { Node, TextureNode, UniformNode } from 'three/webgpu';
 import type GUI from 'lil-gui';
 
+/**
+ * outputNode ファクトリに渡されるコンテキスト。
+ * ノードは構築時に一度だけ作られ、以後は step() が `.value` を毎フレーム更新する。
+ */
+export interface FeedbackContext {
+  /** 前フレームの自身の出力を読む texture ノード */
+  uPrev: TextureNode;
+  uMouse: UniformNode<THREE.Vector2>;
+  uPrevMouse: UniformNode<THREE.Vector2>;
+  uHover: UniformNode<number>;
+  uTime: UniformNode<number>;
+  uResolution: UniformNode<THREE.Vector2>;
+  uAspect: UniformNode<number>;
+  uMove: UniformNode<number>;
+  /** options.uniforms で渡したユーザー uniform */
+  uniforms: Record<string, UniformNode<unknown>>;
+  uv: Node;
+}
+
 export interface FeedbackBufferOptions {
-  fragmentShader: string;
-  vertexShader?: string;
+  /** vec4 の色ノードを返すファクトリ。構築時に一度だけ呼ばれる */
+  outputNode: (ctx: FeedbackContext) => Node;
   size?: number;
   /**
    * 追加のカスタム uniform。以下の予約名は FeedbackBuffer が内部で生成・毎フレーム
-   * 更新するため渡せない（渡すと throw する）:
+   * 更新し ctx 経由で渡すため使えない（渡すと throw する）:
    * `uPrev` / `uMouse` / `uPrevMouse` / `uHover` / `uTime` / `uResolution` /
    * `uAspect` / `uMove`。
    */
-  uniforms?: Record<string, THREE.IUniform>;
+  uniforms?: Record<string, UniformNode<unknown>>;
 
   setupGUI?: (gui: GUI, buffer: FeedbackBuffer) => GUI | void;
   /**
@@ -37,14 +58,6 @@ export interface FeedbackInput {
   aspect: number;
 }
 
-const defaultVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position.xy, 0.0, 1.0);
-  }
-`;
-
 // FeedbackBuffer が内部で生成・毎フレーム更新する uniform。
 // options.uniforms からの上書きは内部処理を壊すため予約名として禁止する。
 const RESERVED_UNIFORM_NAMES: readonly string[] = [
@@ -59,15 +72,30 @@ const RESERVED_UNIFORM_NAMES: readonly string[] = [
 ];
 
 export class FeedbackBuffer {
-  private readonly renderer: THREE.WebGLRenderer;
+  private readonly renderer: THREE.WebGPURenderer;
   private readonly _size: number;
-  private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.Camera();
-  private readonly geometry: THREE.PlaneGeometry;
-  private readonly material: THREE.ShaderMaterial;
-  private read: THREE.WebGLRenderTarget;
-  private write: THREE.WebGLRenderTarget;
+  // fullscreen 描画は QuadMesh に任せる（clip 空間 z の WebGL/WebGPU 差の吸収。
+  // Why の詳細は EffectComposer の quad 宣言部を参照）。
+  private readonly quad: THREE.QuadMesh;
+  private readonly material: THREE.MeshBasicNodeMaterial;
+  private read: THREE.RenderTarget;
+  private write: THREE.RenderTarget;
   private disposed = false;
+  // renderer.init() 完了前に GPU コマンドを発行できないため、RT の初期クリアは
+  // コンストラクタではなく初回 step()（render ループ内 = init 完了後）まで遅延する。
+  private cleared = false;
+
+  private readonly nodes: {
+    uPrev: TextureNode;
+    uMouse: UniformNode<THREE.Vector2>;
+    uPrevMouse: UniformNode<THREE.Vector2>;
+    uHover: UniformNode<number>;
+    uTime: UniformNode<number>;
+    uResolution: UniformNode<THREE.Vector2>;
+    uAspect: UniformNode<number>;
+    uMove: UniformNode<number>;
+  };
+  private readonly userUniforms: Record<string, UniformNode<unknown>>;
 
   private readonly _prevMouse = new THREE.Vector2();
   private _hasPrevMouse = false;
@@ -76,7 +104,7 @@ export class FeedbackBuffer {
   private _moveRelease: number;
   private _gui: GUI | null = null;
 
-  constructor(renderer: THREE.WebGLRenderer, options: FeedbackBufferOptions) {
+  constructor(renderer: THREE.WebGPURenderer, options: FeedbackBufferOptions) {
     if (options.uniforms) {
       for (const name of RESERVED_UNIFORM_NAMES) {
         if (name in options.uniforms) {
@@ -94,33 +122,53 @@ export class FeedbackBuffer {
     this._moveScale = options.moveScale ?? 0.01;
     this._moveRelease = options.moveRelease ?? 0.85;
 
-    this.material = new THREE.ShaderMaterial({
-      vertexShader: options.vertexShader ?? defaultVertexShader,
-      fragmentShader: options.fragmentShader,
-      depthTest: false,
-      depthWrite: false,
-      uniforms: {
-        uPrev: { value: null },
-        uMouse: { value: new THREE.Vector2(0.5, 0.5) },
-        uPrevMouse: { value: new THREE.Vector2(0.5, 0.5) },
-        uHover: { value: 0 },
-        uTime: { value: 0 },
-        uResolution: { value: new THREE.Vector2(this._size, this._size) },
-        uAspect: { value: 1 },
-        uMove: { value: 0 },
-        ...options.uniforms,
-      },
-    });
-    this.geometry = new THREE.PlaneGeometry(2, 2);
-    this.scene.add(new THREE.Mesh(this.geometry, this.material));
-
     this.read = this.makeTarget();
     this.write = this.makeTarget();
-    this.clearTargets();
+
+    const uPrev = texture(this.read.texture);
+    const uMouse = uniform(new THREE.Vector2(0.5, 0.5));
+    const uPrevMouse = uniform(new THREE.Vector2(0.5, 0.5));
+    const uHover = uniform(0);
+    const uTime = uniform(0);
+    const uResolution = uniform(new THREE.Vector2(this._size, this._size));
+    const uAspect = uniform(1);
+    const uMove = uniform(0);
+    this.nodes = {
+      uPrev,
+      uMouse,
+      uPrevMouse,
+      uHover,
+      uTime,
+      uResolution,
+      uAspect,
+      uMove,
+    };
+    this.userUniforms = { ...options.uniforms };
+
+    this.material = new THREE.MeshBasicNodeMaterial();
+    this.material.colorNode = options.outputNode({
+      uPrev,
+      uMouse,
+      uPrevMouse,
+      uHover,
+      uTime,
+      uResolution,
+      uAspect,
+      uMove,
+      uniforms: this.userUniforms,
+      uv: uv(),
+    });
+    this.material.depthTest = false;
+    this.material.depthWrite = false;
+    // 旧実装（transparent: false の ShaderMaterial）は実質 blend なしで RT を
+    // 丸ごと置き換えていた。バックエンド差で挙動が揺れないよう明示する。
+    this.material.blending = THREE.NoBlending;
+
+    this.quad = new THREE.QuadMesh(this.material);
   }
 
-  private makeTarget(): THREE.WebGLRenderTarget {
-    return new THREE.WebGLRenderTarget(this._size, this._size, {
+  private makeTarget(): THREE.RenderTarget {
+    return new THREE.RenderTarget(this._size, this._size, {
       format: THREE.RGBAFormat,
       depthBuffer: false,
       stencilBuffer: false,
@@ -134,7 +182,14 @@ export class FeedbackBuffer {
   private clearTargets(): void {
     const r = this.renderer;
     const prevTarget = r.getRenderTarget();
-    const prevColor = r.getClearColor(new THREE.Color());
+    // WebGPURenderer の getClearColor は Color4 を要求するが、three/webgpu は
+    // Color4 をランタイム export していないため Color を流用する（copy で rgb が
+    // 写り、alpha は getClearAlpha() で別途保存・復元する）。
+    const prevColor = r.getClearColor(
+      new THREE.Color() as unknown as Parameters<
+        THREE.WebGPURenderer['getClearColor']
+      >[0],
+    );
     const prevAlpha = r.getClearAlpha();
     r.setClearColor(0x000000, 0);
     r.setRenderTarget(this.read);
@@ -149,8 +204,12 @@ export class FeedbackBuffer {
     return this.read.texture;
   }
 
-  get uniforms(): { [name: string]: THREE.IUniform } {
-    return this.material.uniforms;
+  /** 内部管理ノード（予約名）とユーザー uniform をまとめた参照。`.value` 更新用 */
+  get uniforms(): Record<string, UniformNode<unknown>> {
+    return {
+      ...(this.nodes as unknown as Record<string, UniformNode<unknown>>),
+      ...this.userUniforms,
+    };
   }
 
   get size(): number {
@@ -181,12 +240,17 @@ export class FeedbackBuffer {
   step(input: FeedbackInput): THREE.Texture {
     if (this.disposed) return this.read.texture;
 
-    const u = this.material.uniforms;
-    u.uPrev.value = this.read.texture;
-    (u.uMouse.value as THREE.Vector2).copy(input.mouse);
-    u.uHover.value = input.hover;
-    u.uTime.value = input.time;
-    u.uAspect.value = input.aspect;
+    if (!this.cleared) {
+      this.clearTargets();
+      this.cleared = true;
+    }
+
+    const n = this.nodes;
+    n.uPrev.value = this.read.texture;
+    n.uMouse.value.copy(input.mouse);
+    n.uHover.value = input.hover;
+    n.uTime.value = input.time;
+    n.uAspect.value = input.aspect;
 
     let move = 0;
     if (this._hasPrevMouse) {
@@ -196,20 +260,17 @@ export class FeedbackBuffer {
       move =
         dist > this._moveThreshold ? Math.min(1, dist / this._moveScale) : 0;
     }
-    (u.uPrevMouse.value as THREE.Vector2).copy(
+    n.uPrevMouse.value.copy(
       this._hasPrevMouse ? this._prevMouse : input.mouse
     );
     this._prevMouse.copy(input.mouse);
     this._hasPrevMouse = true;
-    u.uMove.value = Math.max(
-      move,
-      (u.uMove.value as number) * this._moveRelease
-    );
+    n.uMove.value = Math.max(move, n.uMove.value * this._moveRelease);
 
     const r = this.renderer;
     const prevTarget = r.getRenderTarget();
     r.setRenderTarget(this.write);
-    r.render(this.scene, this.camera);
+    this.quad.render(r);
     r.setRenderTarget(prevTarget);
 
     const tmp = this.read;
@@ -233,7 +294,7 @@ export class FeedbackBuffer {
     this._gui = null;
     this.read.dispose();
     this.write.dispose();
-    this.geometry.dispose();
+    // QuadMesh の geometry は全インスタンス共有のため dispose してはいけない。
     this.material.dispose();
   }
 }

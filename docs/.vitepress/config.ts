@@ -27,6 +27,7 @@ export default defineConfig({
             { text: 'Scroll Sync', link: '/guide/scroll-sync' },
             { text: 'Text Planes', link: '/guide/text-planes' },
             { text: 'Post Effects', link: '/guide/post-effects' },
+            { text: 'v0.3 からの移行', link: '/guide/migration-v0-4' },
           ],
         },
       ],

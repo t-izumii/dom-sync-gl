@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { DomSyncGL } from 'dom-sync-gl';
+import { DomSyncGL, TSL } from 'dom-sync-gl';
+
+const { vec3, vec4, sin } = TSL;
 
 const scroller = ref<HTMLDivElement | null>(null);
 const inner = ref<HTMLDivElement | null>(null);
@@ -9,23 +11,11 @@ let app: InstanceType<typeof DomSyncGL> | null = null;
 
 // scroller の中で scroll が起こる擬似ページ。3 枚のカードに plane をロック。
 const cards = [0, 1, 2];
-const colors = [
-  'vec3(0.34, 0.43, 0.99)',
-  'vec3(0.96, 0.34, 0.62)',
-  'vec3(0.27, 0.83, 0.58)',
+const colors: [number, number, number][] = [
+  [0.34, 0.43, 0.99],
+  [0.96, 0.34, 0.62],
+  [0.27, 0.83, 0.58],
 ];
-
-const makeShader = (color: string) => /* glsl */ `
-  precision highp float;
-  varying vec2 vUv;
-  uniform float uTime;
-
-  void main() {
-    float g = 0.5 + 0.5 * sin(uTime + vUv.x * 6.0);
-    vec3 col = ${color} * (0.6 + g * 0.4);
-    gl_FragColor = vec4(col, 1.0);
-  }
-`;
 
 onMounted(() => {
   if (!stage.value || !scroller.value) return;
@@ -39,8 +29,11 @@ onMounted(() => {
     const el = scroller.value!.querySelector<HTMLElement>(`[data-card="${i}"]`);
     if (!el) return;
     app!.createPlane(el, {
-      fragmentShader: makeShader(colors[i]),
       updateRectEveryFrame: true,
+      colorNode: ({ uv, uTime }) => {
+        const g = sin(uTime.add(uv.x.mul(6))).mul(0.5).add(0.5);
+        return vec4(vec3(...colors[i]).mul(g.mul(0.4).add(0.6)), 1);
+      },
     });
   });
 });

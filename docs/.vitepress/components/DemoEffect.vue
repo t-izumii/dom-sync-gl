@@ -1,47 +1,30 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { DomSyncGL, BaseEffect, type BaseEffectConfig } from 'dom-sync-gl';
+import { DomSyncGL, BaseEffect, type BaseEffectConfig, TSL } from 'dom-sync-gl';
+
+const { uniform, vec2, vec3, vec4, sin, mix, fract, dot } = TSL;
 
 const stage = ref<HTMLDivElement | null>(null);
 let app: InstanceType<typeof DomSyncGL> | null = null;
 let grain: GrainEffect | null = null;
 const grainOn = ref(true);
 
-const baseShader = /* glsl */ `
-  precision highp float;
-  varying vec2 vUv;
-  uniform float uTime;
-  void main() {
-    vec2 uv = vUv;
-    float wave = 0.5 + 0.5 * sin(uv.x * 8.0 + uTime * 0.8);
-    vec3 col = mix(
-      vec3(0.13, 0.18, 0.36),
-      vec3(0.43, 0.95, 0.96),
-      uv.y * wave
-    );
-    gl_FragColor = vec4(col, 1.0);
-  }
-`;
-
 class GrainEffect extends BaseEffect {
+  private uTime = uniform(0);
+  private uAmount = uniform(0.18);
+
   protected getConfig(): BaseEffectConfig {
     return {
-      fragmentShader: /* glsl */ `
-        precision highp float;
-        varying vec2 vUv;
-        uniform sampler2D tDiffuse;
-        uniform float uTime;
-        uniform float uAmount;
-        void main() {
-          vec4 src = texture2D(tDiffuse, vUv);
-          float g = fract(sin(dot(vUv + uTime, vec2(12.9898, 78.233))) * 43758.5453);
-          gl_FragColor = vec4(src.rgb + (g - 0.5) * uAmount, src.a);
-        }
-      `,
-      uniforms: {
-        uTime: { value: 0 },
-        uAmount: { value: 0.18 },
+      outputNode: ({ inputTexture, uv }) => {
+        const g = fract(
+          sin(dot(uv.add(this.uTime), vec2(12.9898, 78.233))).mul(43758.5453),
+        );
+        return vec4(
+          inputTexture.rgb.add(g.sub(0.5).mul(this.uAmount)),
+          inputTexture.a,
+        );
       },
+      uniforms: { uTime: this.uTime, uAmount: this.uAmount },
     };
   }
   update(time: number) {
@@ -52,7 +35,17 @@ class GrainEffect extends BaseEffect {
 onMounted(() => {
   if (!stage.value) return;
   app = new DomSyncGL(stage.value);
-  app.createPlane(null, { fragmentShader: baseShader });
+  app.createPlane(null, {
+    colorNode: ({ uv, uTime }) => {
+      const wave = sin(uv.x.mul(8).add(uTime.mul(0.8))).mul(0.5).add(0.5);
+      const col = mix(
+        vec3(0.13, 0.18, 0.36),
+        vec3(0.43, 0.95, 0.96),
+        uv.y.mul(wave),
+      );
+      return vec4(col, 1);
+    },
+  });
   grain = new GrainEffect();
   app.addEffect(grain);
 });

@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Three.js の WebGLRenderer は WebGL コンテキストを要求し jsdom では失敗するためスタブ化（DomPlane.test と同方針）。
-vi.mock("three", async () => {
-  const actual = await vi.importActual<typeof import("three")>("three");
-  class MockWebGLRenderer {
+// WebGPURenderer は GPU device を要求し jsdom では失敗するためスタブ化（DomPlane.test と同方針）。
+vi.mock("three/webgpu", async () => {
+  const actual =
+    await vi.importActual<typeof import("three/webgpu")>("three/webgpu");
+  class MockWebGPURenderer {
     domElement: HTMLCanvasElement;
     outputColorSpace = "";
     private dpr = 1;
     constructor(opts: { canvas?: HTMLCanvasElement }) {
       this.domElement = opts.canvas ?? document.createElement("canvas");
+    }
+    init(): Promise<void> {
+      return Promise.resolve();
     }
     setSize() {}
     setPixelRatio(v: number) {
@@ -34,7 +38,7 @@ vi.mock("three", async () => {
   }
   return {
     ...actual,
-    WebGLRenderer: MockWebGLRenderer,
+    WebGPURenderer: MockWebGPURenderer,
   };
 });
 
@@ -45,7 +49,7 @@ vi.mock("three/examples/jsm/controls/OrbitControls.js", () => ({
   },
 }));
 
-import * as THREE from "three";
+import * as THREE from "three/webgpu";
 import { DomSyncGL } from "../Core";
 import { DomTextPlane } from "../DomTextPlane";
 
@@ -193,13 +197,15 @@ describe("DomTextPlane", () => {
       expect(() => app.createTextPlane(".not-exist")).toThrow(/destroy 済み/);
     });
 
-    it("textTexture.colorSpace は NoColorSpace（DOM 文字色と一致させる passthrough 契約, CR-04）", async () => {
+    it("textTexture.colorSpace は SRGBColorSpace（NodeMaterial の出力変換と相殺して DOM 文字色と一致, CR-04）", async () => {
+      // 旧 GLSL 版は NoColorSpace の passthrough 契約だったが、NodeMaterial は
+      // 画面出力時に linear→sRGB 変換を行うため、入力側も SRGB デコードに揃える。
       const app = new DomSyncGL(container);
       const el = makeTextEl();
       const plane = app.createTextPlane(el) as DomTextPlane;
       await flush();
 
-      expect((plane.texture as THREE.Texture).colorSpace).toBe(THREE.NoColorSpace);
+      expect((plane.texture as THREE.Texture).colorSpace).toBe(THREE.SRGBColorSpace);
       app.destroy();
     });
 
