@@ -150,12 +150,19 @@ export class EffectManager {
     this.internalComposer = null;
   }
 
+  // effect.update に渡すマウスの変換バッファ(毎フレームの alloc を避ける)。
+  private readonly _effectMouse = new THREE.Vector2();
+
   update(elapsed: number, mouse: THREE.Vector2): void {
+    // PointerController のマウスは左下原点(Y 上向き)だが、fullscreen pass の
+    // ctx.uv(three の QuadMesh / screenUV 系)は左上原点(Y 下向き)。effect が
+    // ctx.uv とそのまま比較できるよう、pass の座標系に合わせて Y を反転して渡す。
+    this._effectMouse.set(mouse.x, 1 - mouse.y);
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
       if (!effect.enabled) continue;
-      effect.update(elapsed, mouse);
+      effect.update(elapsed, this._effectMouse);
     }
   }
 

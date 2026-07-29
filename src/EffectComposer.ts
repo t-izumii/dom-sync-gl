@@ -28,7 +28,12 @@ export interface EffectLike {
 export interface EffectContext {
   /** 前段パスの出力を読む texture ノード。そのまま使うと uv() でサンプルされる */
   inputTexture: TextureNode;
-  /** スクリーン UV ノード */
+  /**
+   * スクリーン UV ノード。three の QuadMesh / screenUV 系に合わせて
+   * **左上原点(Y 下向き)**。plane geometry の UV(左下原点)とは向きが異なる。
+   * BaseEffect.update() に渡されるマウス UV はこの向きに変換済みなので、
+   * そのまま比較してよい。
+   */
   uv: Node;
 }
 

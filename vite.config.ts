@@ -6,8 +6,14 @@ export default defineConfig({
   plugins: [
     dts({
       // src/ 以下のみ型を出す。__tests__ や vite/vitest config は配布物に入れない。
+      // effectsLib はサンプル集で配布対象外（index.ts から import しない限り
+      // JS バンドルにも入らない）。型定義も出さない。
       include: ["src"],
-      exclude: ["src/**/__tests__/**", "src/**/*.test.ts"],
+      exclude: [
+        "src/**/__tests__/**",
+        "src/**/*.test.ts",
+        "src/effectsLib/**",
+      ],
       // index.d.ts を 1 ファイルに統合せず、ファイル構造をそのまま dist に投影する。
       // tree-shake しやすく、ユーザー側で部分 import しても型が引ける。
       rollupTypes: false,

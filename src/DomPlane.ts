@@ -370,7 +370,11 @@ export class DomPlane {
       }
     }
 
-    this._effectMouseUV.copy(this.nodes.uMouseUV.value);
+    // uMouseUV(plane geometry の UV = 左下原点)を、PlaneComposer の fullscreen
+    // pass の ctx.uv(左上原点)に合わせて Y 反転して渡す。material 側の uniform は
+    // geometry UV 系のまま維持する(colorNode は geometry UV と比較するため)。
+    const uv = this.nodes.uMouseUV.value;
+    this._effectMouseUV.set(uv.x, 1 - uv.y);
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
