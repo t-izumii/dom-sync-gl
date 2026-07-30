@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type * as THREE from 'three/webgpu';
+import * as THREE from 'three/webgpu';
 import { uniform } from 'three/tsl';
 import { EffectComposer } from '../EffectComposer';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
@@ -24,6 +24,19 @@ class TestEffect extends BaseEffect {
 
 function makeGUI(): { destroy: ReturnType<typeof vi.fn> } {
   return { destroy: vi.fn() };
+}
+
+// protected な共通実行時状態をアサートするためだけの公開窓口
+class StateEffect extends TestEffect {
+  get size(): { width: number; height: number } {
+    return { width: this.width, height: this.height };
+  }
+  get time(): number {
+    return this.uTime.value;
+  }
+  get mouse(): THREE.Vector2 {
+    return this.uMouse.value;
+  }
 }
 
 describe('BaseEffect._register()', () => {
@@ -94,5 +107,60 @@ describe('BaseEffect._attachGUI() / _dispose()', () => {
     effect._dispose();
 
     expect(folder.destroy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BaseEffect._setSize() / _setFrameState()', () => {
+  it('初期値は width/height = 1、uTime = 0、uMouse = (0.5, 0.5)', () => {
+    const effect = new StateEffect();
+
+    expect(effect.size).toEqual({ width: 1, height: 1 });
+    expect(effect.time).toBe(0);
+    expect(effect.mouse.x).toBe(0.5);
+    expect(effect.mouse.y).toBe(0.5);
+  });
+
+  it('_setSize() が width/height を更新する', () => {
+    const effect = new StateEffect();
+
+    effect._setSize(320, 180);
+
+    expect(effect.size).toEqual({ width: 320, height: 180 });
+  });
+
+  it('_setFrameState() が uTime.value と uMouse.value を更新する', () => {
+    const effect = new StateEffect();
+
+    effect._setFrameState(1.25, new THREE.Vector2(0.2, 0.8));
+
+    expect(effect.time).toBe(1.25);
+    expect(effect.mouse.x).toBeCloseTo(0.2);
+    expect(effect.mouse.y).toBeCloseTo(0.8);
+  });
+
+  it('mouse 未指定の _setFrameState() は uMouse を前回値のまま保持する', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, new THREE.Vector2(0.2, 0.8));
+
+    effect._setFrameState(2);
+
+    expect(effect.time).toBe(2);
+    expect(effect.mouse.x).toBeCloseTo(0.2);
+    expect(effect.mouse.y).toBeCloseTo(0.8);
+  });
+
+  it('uMouse は同じ Vector2 インスタンスを使い回す（参照差し替えではなく copy）', () => {
+    const effect = new StateEffect();
+    const before = effect.mouse;
+    const shared = new THREE.Vector2(0.1, 0.9);
+
+    effect._setFrameState(0, shared);
+    // 呼び出し元が渡した Vector2 を使い回して書き換えても effect 側は影響を受けない
+    shared.set(0.7, 0.3);
+
+    expect(effect.mouse).toBe(before);
+    expect(effect.mouse).not.toBe(shared);
+    expect(effect.mouse.x).toBeCloseTo(0.1);
+    expect(effect.mouse.y).toBeCloseTo(0.9);
   });
 });

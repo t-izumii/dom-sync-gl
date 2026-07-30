@@ -40,7 +40,6 @@ export class MouseFlowEffect extends BaseEffect {
   private cleared = false;
 
   private readonly tMap: TextureNode;
-  private readonly uMouse: UniformNode<THREE.Vector2>;
   private readonly uDeltaMouse: UniformNode<THREE.Vector2>;
   private readonly uDissipation: UniformNode<number>;
   private readonly uFalloff: UniformNode<number>;
@@ -64,7 +63,6 @@ export class MouseFlowEffect extends BaseEffect {
 
     this.tMap = texture(this.read.texture);
     this.tFlow = texture(this.read.texture);
-    this.uMouse = uniform(new THREE.Vector2(0.5, 0.5));
     this.uDeltaMouse = uniform(new THREE.Vector2());
     this.uDissipation = uniform(this.dissipation);
     this.uFalloff = uniform(this.falloff);
@@ -168,7 +166,6 @@ export class MouseFlowEffect extends BaseEffect {
     this._prevMouse.copy(m);
     this._hasPrevMouse = true;
 
-    this.uMouse.value.copy(m);
     this.uDeltaMouse.value.copy(this._delta);
     this.uDissipation.value = this.dissipation;
     this.uFalloff.value = this.falloff;

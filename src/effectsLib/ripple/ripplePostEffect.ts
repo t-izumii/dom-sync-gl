@@ -86,7 +86,6 @@ export class RipplePostEffect extends BaseEffect {
 
   private _gridW = 1;
   private _gridH = 1;
-  private _aspect = 1;
   private readonly _prevMouse = new THREE.Vector2(0.5, 0.5);
   private _hasPrevMouse = false;
 
@@ -218,8 +217,7 @@ export class RipplePostEffect extends BaseEffect {
   _setRenderer(renderer: THREE.WebGPURenderer): void {
     this.renderer = renderer;
     const sz = renderer.getSize(new THREE.Vector2());
-    this._aspect = sz.x / sz.y || 1;
-    this.buildTargets(this._aspect);
+    this.buildTargets(sz.x / sz.y || 1);
   }
 
   protected getConfig(): BaseEffectConfig {
@@ -311,7 +309,7 @@ export class RipplePostEffect extends BaseEffect {
     sim
       .add(this, 'resolution', [64, 128, 256, 320, 512])
       .name('解像度')
-      .onFinishChange(() => this.buildTargets(this._aspect));
+      .onFinishChange(() => this.buildTargets(this.width / this.height || 1));
     sim.add(this, 'speed', 0.05, 0.5, 0.005).name('波速');
     sim.add(this, 'damping', 0.9, 1.0, 0.0005).name('減衰（消える速さ）');
     sim.add(this, 'splatStrength', 0.0, 3.0, 0.01).name('波源の強さ');
@@ -327,8 +325,7 @@ export class RipplePostEffect extends BaseEffect {
   }
 
   resize(width: number, height: number): void {
-    this._aspect = width / height || 1;
-    this.buildTargets(this._aspect);
+    this.buildTargets(width / height || 1);
   }
 
   dispose(): void {

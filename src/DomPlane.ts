@@ -305,6 +305,7 @@ export class DomPlane {
       const rect = this.positionCalculator?.rect ?? this.canvasRect;
       this.planeComposer.resize(rect.width, rect.height);
       for (const effect of this.effects) {
+        effect._setSize(rect.width, rect.height);
         effect.resize?.(rect.width, rect.height);
       }
     }
@@ -379,6 +380,7 @@ export class DomPlane {
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
       if (!effect.enabled) continue;
+      effect._setFrameState(time, this._effectMouseUV);
       effect.update(time, this._effectMouseUV);
     }
   }
@@ -416,6 +418,7 @@ export class DomPlane {
     effect._setRenderer?.(this.renderer);
     effect._register(composer);
     const rect = this.positionCalculator?.rect ?? this.canvasRect;
+    effect._setSize(rect.width, rect.height);
     effect.resize?.(rect.width, rect.height);
     if (this.gui && effect.setupGUI) {
       const folder = effect.setupGUI(this.gui);

@@ -58,9 +58,6 @@ export class SmoothCursorEffect extends BaseEffect {
   private _idleTime = Infinity;
   private readonly _idleFadeDelay: number;
 
-  private _height = 1;
-  private _aspect = 1;
-
   private readonly _maxDelta = 0.2;
 
   constructor(options: SmoothCursorEffectOptions = {}) {
@@ -171,6 +168,7 @@ export class SmoothCursorEffect extends BaseEffect {
     const count = Math.min(Math.max(Math.round(this.pointsCount), 2), MAX_POINTS);
     const alpha = this._presence * this.trailOpacity;
     const s = Math.min(Math.max(this.smoothFactor, 0), 1) * 0.5;
+    const heightPx = Math.max(this.height, 1);
 
     for (let i = 0; i < count; i++) {
       let x = this._px[i];
@@ -182,11 +180,11 @@ export class SmoothCursorEffect extends BaseEffect {
 
       let velFactor = 1;
       if (this.velocityScale > 0) {
-        const speedPx = Math.hypot(this._vx[i], this._vy[i]) * this._height;
+        const speedPx = Math.hypot(this._vx[i], this._vy[i]) * heightPx;
         velFactor = 1 + Math.min(0.5 * this.velocityScale * speedPx, 2);
       }
       const widthPx = this.lineWidth * (count - i) * velFactor;
-      const halfWidthUv = (0.5 * widthPx) / this._height;
+      const halfWidthUv = (0.5 * widthPx) / heightPx;
 
       this._pointsUniform[i].set(x, y, halfWidthUv, alpha);
     }
@@ -200,9 +198,7 @@ export class SmoothCursorEffect extends BaseEffect {
   }
 
   resize(width: number, height: number): void {
-    this._height = Math.max(height, 1);
-    this._aspect = width / Math.max(height, 1);
-    this._uAspect.value = this._aspect;
+    this._uAspect.value = width / Math.max(height, 1);
   }
 
   setupGUI(gui: GUI): GUI {

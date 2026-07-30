@@ -1,4 +1,6 @@
-import type { Node, UniformNode, Vector2, WebGPURenderer } from "three/webgpu";
+import { Vector2 } from "three/webgpu";
+import { uniform } from "three/tsl";
+import type { Node, UniformNode, WebGPURenderer } from "three/webgpu";
 import type GUI from "lil-gui";
 import type { EffectContext, EffectTarget, EffectPass } from "../EffectComposer";
 
@@ -20,6 +22,24 @@ export abstract class BaseEffect {
   protected pass: EffectPass | null = null;
   private _guiFolder: GUI | null = null;
   private _disposed = false;
+
+  /**
+   * 直近の描画サイズ（CSS px）。owner が screen なら canvas、plane なら plane のサイズ。
+   *
+   * シェーダー側の解像度は uniform 化していない。three/tsl の `screenSize` が
+   * 毎レンダー自動更新・初期ダミー値なしで同等以上を提供するため。ここに持つのは
+   * RenderTarget のサイズ指定など TSL では代替できない JS 側の実数のみ。
+   */
+  protected width = 1;
+  protected height = 1;
+
+  /** 経過秒。 */
+  protected readonly uTime = uniform(0);
+
+  /**
+   * マウス UV。左上原点（`EffectContext.uv` と同じ座標系で、owner 側が Y を反転して渡す）。
+   */
+  protected readonly uMouse = uniform(new Vector2(0.5, 0.5));
 
   private _enabled = true;
   get enabled(): boolean {
@@ -58,6 +78,21 @@ export abstract class BaseEffect {
   }
 
   _setRenderer?(_renderer: WebGPURenderer): void;
+
+  /**
+   * 共通の実行時状態の更新は owner 側から必ず呼ぶ内部 API にしている。
+   * サブクラスの `resize()` / `update()` のオーバーライドに任せると
+   * `super` の呼び忘れで静かに壊れるため。
+   */
+  _setSize(width: number, height: number): void {
+    this.width = width;
+    this.height = height;
+  }
+
+  _setFrameState(time: number, mouse?: Vector2): void {
+    this.uTime.value = time;
+    if (mouse) this.uMouse.value.copy(mouse);
+  }
 
   update(_time: number, _mouse?: Vector2): void {}
 

@@ -28,6 +28,19 @@ class TestEffect extends BaseEffect {
   }
 }
 
+// protected な共通実行時状態をアサートするためだけの公開窓口
+class StateEffect extends TestEffect {
+  get size(): { width: number; height: number } {
+    return { width: this.width, height: this.height };
+  }
+  get time(): number {
+    return this.uTime.value;
+  }
+  get mouse(): THREE.Vector2 {
+    return this.uMouse.value;
+  }
+}
+
 function makeGUI(folder?: Partial<GUI>): GUI {
   return { destroy: vi.fn(), ...folder } as unknown as GUI;
 }
@@ -363,6 +376,63 @@ describe('EffectManager', () => {
     ).internalComposer;
     expect(recreated).not.toBeNull();
     expect(recreated).not.toBe(composer);
+  });
+
+  it('addEffect: 追加時点のサイズが effect の width/height へ反映される', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new StateEffect();
+
+    manager.addEffect(effect, 100, 50);
+
+    expect(effect.size).toEqual({ width: 100, height: 50 });
+  });
+
+  it('resize: 登録済み effect の width/height が更新される', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new StateEffect();
+    manager.addEffect(effect, 100, 50);
+
+    manager.resize(800, 600);
+
+    expect(effect.size).toEqual({ width: 800, height: 600 });
+  });
+
+  it('update: effect の uTime/uMouse が更新される（マウスは Y 反転済み）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new StateEffect();
+    manager.addEffect(effect, 100, 100);
+
+    manager.update(1.5, new THREE.Vector2(0.25, 0.75));
+
+    expect(effect.time).toBe(1.5);
+    expect(effect.mouse.x).toBeCloseTo(0.25);
+    expect(effect.mouse.y).toBeCloseTo(0.25);
+  });
+
+  it('update: 内部の変換バッファを共有していても effect ごとに値がコピーされる', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new StateEffect();
+    manager.addEffect(effect, 100, 100);
+
+    manager.update(1, new THREE.Vector2(0.25, 0.75));
+    const captured = effect.mouse;
+    manager.update(2, new THREE.Vector2(0.6, 0.6));
+
+    // 使い回しの Vector2 が effect に参照ごと渡っていないこと
+    expect(effect.mouse).toBe(captured);
+    expect(effect.mouse.x).toBeCloseTo(0.6);
+    expect(effect.mouse.y).toBeCloseTo(0.4);
+  });
+
+  it('update: enabled=false の effect には uTime/uMouse も配られない', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new StateEffect();
+    manager.addEffect(effect, 100, 100);
+    effect.enabled = false;
+
+    manager.update(1.5, new THREE.Vector2(0.25, 0.75));
+
+    expect(effect.time).toBe(0);
   });
 
   it('effectSamples は internalComposer の sceneTarget へ配線される（CR-17）', () => {

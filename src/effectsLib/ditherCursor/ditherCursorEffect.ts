@@ -34,8 +34,6 @@ export class DitherCursorEffect extends BaseEffect {
   private readonly uPrev: TextureNode;
   private readonly tSimulation: TextureNode;
   private readonly uResolution = uniform(new THREE.Vector2(1, 1));
-  private readonly uTime = uniform(0);
-  private readonly uMouse = uniform(new THREE.Vector2(0.5, 0.5));
   private readonly uSpeed = uniform(0);
   private readonly uRadius: UniformNode<number>;
   private readonly uDecay: UniformNode<number>;
@@ -169,7 +167,7 @@ export class DitherCursorEffect extends BaseEffect {
     };
   }
 
-  update(time: number, mouse?: THREE.Vector2): void {
+  update(_time: number, mouse?: THREE.Vector2): void {
     const m = mouse ?? this._prevMouse;
     let delta = this._hasPrevMouse ? m.distanceTo(this._prevMouse) : 0;
     if (delta > this._maxDelta) delta = 0;
@@ -194,8 +192,6 @@ export class DitherCursorEffect extends BaseEffect {
     }
 
     this.uPrev.value = this.read.texture;
-    this.uTime.value = time;
-    this.uMouse.value.copy(m);
     this.uSpeed.value = this._speed;
     this.uRadius.value = this.radius;
     this.uDecay.value = this.decay;

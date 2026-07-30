@@ -61,6 +61,7 @@ export class EffectManager {
 
     effect._setRenderer?.(this.renderer);
     effect._register(this.internalComposer);
+    effect._setSize(width, height);
     effect.resize?.(width, height);
 
     if (this.gui && effect.setupGUI) {
@@ -162,6 +163,7 @@ export class EffectManager {
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
       if (!effect.enabled) continue;
+      effect._setFrameState(elapsed, this._effectMouse);
       effect.update(elapsed, this._effectMouse);
     }
   }
@@ -189,6 +191,7 @@ export class EffectManager {
     this.postEffect?.resize(width, height);
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
+      effects[i]._setSize(width, height);
       effects[i].resize?.(width, height);
     }
   }
