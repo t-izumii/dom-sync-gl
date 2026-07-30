@@ -1,10 +1,3 @@
-/**
- * マウス追従の波紋ポストエフェクト（TSL）。HalfFloat の自前 ping-pong で波動方程式を
- * 解き、勾配で inputTexture を屈折＋鏡面する。sim は R=h^n / G=h^{n-1} を生格納する
- * ため FeedbackBuffer（8bit RT・固定正方サイズ）は使わず、RenderTarget +
- * MeshBasicNodeMaterial(colorNode) + QuadMesh で自前管理する。
- * feedback 版は {@link rippleTexture}。
- */
 import * as THREE from 'three/webgpu';
 import {
   clamp,
@@ -28,22 +21,14 @@ import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../../index';
 
 export interface RipplePostEffectOptions {
-  /** シミュレーショングリッドの横セル数。縦は画面アスペクトから決まる。大きいほど精細だが GPU 負荷増。 */
   resolution?: number;
-  /** 波源を生成し始めるマウス移動量のしきい値（UV 距離）。 */
   moveThreshold?: number;
 
-  // --- シミュレーション ---
-  /** 波速²（leapfrog の安定条件より 0〜0.5）。 */
   speed?: number;
-  /** 毎ステップの減衰（1 に近いほど長く残る）。 */
   damping?: number;
-  /** 波源の半径（セル数）。 */
   splatRadius?: number;
-  /** 波源の強さ。 */
   splatStrength?: number;
 
-  // --- 描画 ---
   distortion?: number;
   normalScale?: number;
   specularPower?: number;
@@ -51,8 +36,6 @@ export interface RipplePostEffectOptions {
   lightDir?: THREE.Vector3;
 }
 
-// texture() ノードは有効な Texture を要求するため、RT 構築前の初期値に使う
-// 1x1 透明テクスチャ（モジュール内共有）。
 const placeholderTexture = new THREE.DataTexture(
   new Uint8Array([0, 0, 0, 0]),
   1,
@@ -60,41 +43,28 @@ const placeholderTexture = new THREE.DataTexture(
 );
 placeholderTexture.needsUpdate = true;
 
-/**
- * マウス追従の波紋ポストエフェクト（HalfFloat ping-pong で波動方程式を解き、勾配で
- * inputTexture を屈折＋鏡面）。feedback 版は {@link rippleTexture}。
- */
 export class RipplePostEffect extends BaseEffect {
-  // シミュレーション
   public speed: number;
   public damping: number;
   public splatRadius: number;
   public splatStrength: number;
 
-  // 描画
   public distortion: number;
   public normalScale: number;
   public specularPower: number;
   public specularIntensity: number;
   private readonly lightDir: THREE.Vector3;
 
-  /** シミュレーショングリッドの横セル数。GUI で変更すると再構築される。 */
   public resolution: number;
   private readonly moveThreshold: number;
 
-  // GPU ping-pong リソース
   private renderer: THREE.WebGPURenderer | null = null;
   private read: THREE.RenderTarget | null = null;
   private write: THREE.RenderTarget | null = null;
   private readonly simMaterial: THREE.MeshBasicNodeMaterial;
-  // fullscreen 描画は QuadMesh に任せる（clip 空間 z の WebGL/WebGPU 差の吸収。
-  // Why の詳細は EffectComposer の quad 宣言部を参照）。
   private readonly quad: THREE.QuadMesh;
-  // renderer.init() 完了前に GPU コマンドを発行できないため、RT の初期クリアは
-  // buildTargets() ではなく次の update()（render ループ内 = init 完了後）まで遅延する。
   private cleared = false;
 
-  // sim / post のノード。構築後はグラフを組み替えず `.value` 差し替えのみで更新する。
   private readonly simNodes: {
     uPrev: TextureNode;
     uGridSize: UniformNode<THREE.Vector2>;
@@ -150,7 +120,6 @@ export class RipplePostEffect extends BaseEffect {
       uTexelSize: uniform(new THREE.Vector2(1, 1)),
       uDistortion: uniform(this.distortion),
       uNormalScale: uniform(this.normalScale),
-      // 旧実装同様、caller の Vector3 参照を保持する（外から mutate すると追従する）
       uLightDir: uniform(this.lightDir),
       uSpecularPower: uniform(this.specularPower),
       uSpecularIntensity: uniform(this.specularIntensity),
@@ -160,12 +129,10 @@ export class RipplePostEffect extends BaseEffect {
     this.simMaterial.colorNode = this.buildSimNode();
     this.simMaterial.depthTest = false;
     this.simMaterial.depthWrite = false;
-    // sim は前フレームの丸ごと置き換え。blend が掛かると HalfFloat の生値が壊れる。
     this.simMaterial.blending = THREE.NoBlending;
     this.quad = new THREE.QuadMesh(this.simMaterial);
   }
 
-  /** 旧 ripplePostSim.frag.glsl の TSL 版（R=h^n / G=h^{n-1} の leapfrog 1 ステップ）。 */
   private buildSimNode(): Node {
     const { uPrev, uGridSize, uSplatPos, uSplatAmount, uSplatRadius, uSpeed, uDamping } =
       this.simNodes;
@@ -184,12 +151,10 @@ export class RipplePostEffect extends BaseEffect {
 
     let hNext: Node = h.mul(2.0).sub(hPrev).add(uSpeed.mul(lap)).mul(uDamping);
 
-    // 動いたフレームだけ波源（セル空間ガウシアン＝画面上で円形）
     const df = uvN.sub(uSplatPos).mul(uGridSize);
     const r2 = max(uSplatRadius.mul(uSplatRadius), 1e-4);
     hNext = hNext.add(uSplatAmount.mul(exp(dot(df, df).div(r2).mul(-1.0))));
 
-    // 端を吸収して反射を抑える境界
     const m = 0.04;
     const edge = smoothstep(0.0, m, uvN.x)
       .mul(smoothstep(0.0, m, float(1.0).sub(uvN.x)))
@@ -200,7 +165,6 @@ export class RipplePostEffect extends BaseEffect {
     return vec4(hNext, h, 0.0, 1.0);
   }
 
-  /** HalfFloat の ping-pong RT を作る。 */
   private makeTarget(w: number, h: number): THREE.RenderTarget {
     return new THREE.RenderTarget(w, h, {
       type: THREE.HalfFloatType,
@@ -214,7 +178,6 @@ export class RipplePostEffect extends BaseEffect {
     });
   }
 
-  /** 画面アスペクトに合わせてグリッド（RT 2 枚）を作り直す。クリアは次の update() まで遅延。 */
   private buildTargets(aspect: number): void {
     if (!this.renderer) return;
 
@@ -225,7 +188,6 @@ export class RipplePostEffect extends BaseEffect {
     this.write?.dispose();
     this.read = this.makeTarget(this._gridW, this._gridH);
     this.write = this.makeTarget(this._gridW, this._gridH);
-    // first frame のゴミ防止の 0 クリアは init 完了後（update 内）に行う
     this.cleared = false;
 
     this.simNodes.uGridSize.value.set(this._gridW, this._gridH);
@@ -234,12 +196,10 @@ export class RipplePostEffect extends BaseEffect {
     this.postNodes.uTexelSize.value.set(1 / this._gridW, 1 / this._gridH);
   }
 
-  /** ping-pong RT を (0,0,0,0) でクリアする（renderer の状態は復元）。 */
   private clearTargets(): void {
     const r = this.renderer;
     if (!r || !this.read || !this.write) return;
     const prevTarget = r.getRenderTarget();
-    // Color4 型の扱いは FeedbackBuffer.clearTargets() と同じ理由で Color を流用する。
     const prevColor = r.getClearColor(
       new THREE.Color() as unknown as Parameters<
         THREE.WebGPURenderer['getClearColor']
@@ -265,7 +225,6 @@ export class RipplePostEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
     const n = this.postNodes;
     return {
-      // 旧 ripplePost.frag.glsl の TSL 版（高さ場の近傍差分 → 屈折＋鏡面）
       outputNode: (ctx) => {
         const uvN = ctx.uv;
         const hL = n.uRippleTex.sample(uvN.sub(vec2(n.uTexelSize.x, 0.0))).r;
@@ -314,7 +273,6 @@ export class RipplePostEffect extends BaseEffect {
 
     const sn = this.simNodes;
 
-    // マウスが動いたフレームだけ波源を落とす
     const m = mouse ?? this._prevMouse;
     const moved =
       this._hasPrevMouse && m.distanceTo(this._prevMouse) > this.moveThreshold;
@@ -350,9 +308,6 @@ export class RipplePostEffect extends BaseEffect {
     folder.add(this, 'enabled').name('有効');
 
     const sim = folder.addFolder('シミュレーション');
-    // 解像度はスライダーではなく離散セレクター（splashCursor の sim/dye 解像度と同じ流儀）。
-    // 値を変えるたびに RT を作り直すため、連続値でドラッグ中に無数の中間解像度を
-    // 試させる意味がなく、段階を絞ったほうが負荷の比較もしやすい。
     sim
       .add(this, 'resolution', [64, 128, 256, 320, 512])
       .name('解像度')
@@ -373,14 +328,12 @@ export class RipplePostEffect extends BaseEffect {
 
   resize(width: number, height: number): void {
     this._aspect = width / height || 1;
-    // uTexelSize は buildTargets() が更新する
     this.buildTargets(this._aspect);
   }
 
   dispose(): void {
     this.read?.dispose();
     this.write?.dispose();
-    // QuadMesh の geometry は全インスタンス共有のため dispose してはいけない。
     this.simMaterial.dispose();
     this.read = null;
     this.write = null;

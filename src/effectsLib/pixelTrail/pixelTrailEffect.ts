@@ -6,23 +6,15 @@ import { BaseEffect, type BaseEffectConfig } from '../../index';
 import { TrailTexture } from './TrailTexture';
 
 export interface PixelTrailEffectOptions {
-  /** グリッドの分割数（短辺基準）。大きいほどセルが細かい。 */
   gridSize?: number;
-  /** トレイルの半径（トレイルテクスチャ一辺に対する比率）。 */
   trailSize?: number;
-  /** 打点が消えるまでの時間（ms）。 */
   maxAge?: number;
-  /** 高速移動時の補間打点の細かさ。0 で無効。 */
   interpolate?: number;
-  /** 点灯セルの色。 */
   color?: string;
-  /** トレイルテクスチャの一辺 px。 */
   textureSize?: number;
 }
 export class PixelTrailEffect extends BaseEffect {
-  /** グリッドの分割数。 */
   public gridSize: number;
-  /** 点灯セルの色（lil-gui addColor 対応）。 */
   public readonly color: THREE.Color;
 
   private readonly trail: TrailTexture;

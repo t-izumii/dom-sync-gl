@@ -1,26 +1,14 @@
 import * as THREE from 'three/webgpu';
 
 export interface TrailTextureOptions {
-  /** Canvas 一辺の px。大きいほど精細だが CPU 描画コスト増。 */
   size?: number;
-  /** 打点が消えるまでの時間（ms）。 */
   maxAge?: number;
-  /** 打点の半径（Canvas 一辺に対する比率 0..1）。 */
   radius?: number;
-  /** 1 打点あたりのグラデーション不透明度（screen 合成で重なると加算的に明るくなる）。 */
   intensity?: number;
-  /**
-   * 移動距離の補間打点の細かさ。0 で無効。大きいほど高速移動時に細かく打点され
-   * 軌跡が途切れない（drei useTrailTexture と同じ意味論）。
-   */
   interpolate?: number;
-  /** 移動速度から算出する force の下限。 */
   minForce?: number;
-  /** Canvas の合成モード。 */
   blend?: GlobalCompositeOperation;
-  /** force の平滑係数（0 で平滑なし＝最新値をそのまま使う）。 */
   smoothing?: number;
-  /** age → 強度カーブ（0..1 → 0..1）。既定は easeCircleOut。 */
   ease?: (t: number) => number;
 }
 
