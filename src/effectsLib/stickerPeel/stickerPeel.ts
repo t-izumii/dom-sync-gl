@@ -22,6 +22,7 @@ import {
   vec3,
   vec4,
 } from "three/tsl";
+import type GUI from "lil-gui";
 import type { CreatePlaneOptions, DomPlane, PlaneNodeContext } from "../../index";
 
 const TWO_PI = 6.28318530718;
@@ -170,8 +171,18 @@ export class StickerPeel {
       segments: this.segments,
       colorNode: this.colorNode,
       positionNode: this.positionNode,
+      setupGUI: this.setupGUI,
     };
   }
+
+  readonly setupGUI = (gui: GUI): GUI => {
+    const folder = gui.addFolder('ステッカー剥がし (Sticker peel)');
+    folder.add(this, 'progress', 0, 1, 0.001).name('剥がし進行度');
+    folder.add(this, 'direction', 0, 360, 1).name('剥がし方向（度）');
+    folder.add(this, 'curlRadius', 0.005, 0.5, 0.005).name('巻き半径');
+    folder.add(this, 'thickness', 0, 0.1, 0.001).name('紙の厚み');
+    return folder;
+  };
 
   applyTo(plane: DomPlane): void {
     plane.material.side = THREE.DoubleSide;

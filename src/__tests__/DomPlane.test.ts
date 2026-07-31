@@ -181,6 +181,69 @@ describe('DomPlane', () => {
       expect(folder.destroy).toHaveBeenCalledTimes(1);
     });
 
+    it('gui を渡すと createPlane の setupGUI(gui, plane) が 1 回だけ呼ばれる', () => {
+      const gui = makeGUI();
+      const app = new DomSyncGL(container, { gui });
+      const setupGUI = vi.fn();
+
+      const plane = app.createPlane(null, { setupGUI }) as DomPlane;
+
+      expect(setupGUI).toHaveBeenCalledTimes(1);
+      expect(setupGUI).toHaveBeenCalledWith(gui, plane);
+      app.destroy();
+    });
+
+    it('gui を渡さない場合、createPlane の setupGUI は呼ばれない', () => {
+      const app = new DomSyncGL(container);
+      const setupGUI = vi.fn();
+
+      app.createPlane(null, { setupGUI });
+
+      expect(setupGUI).not.toHaveBeenCalled();
+      app.destroy();
+    });
+
+    it('_setGui() を再度呼んでも createPlane の setupGUI は再実行されない（冪等性）', () => {
+      const gui = makeGUI();
+      const app = new DomSyncGL(container, { gui });
+      const setupGUI = vi.fn(() => makeGUI());
+
+      const plane = app.createPlane(null, { setupGUI }) as DomPlane;
+      plane._setGui(gui);
+
+      expect(setupGUI).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it('destroy() は createPlane の setupGUI が返したフォルダを破棄する', () => {
+      const gui = makeGUI();
+      const app = new DomSyncGL(container, { gui });
+      const folder = makeGUI();
+      const plane = app.createPlane(null, {
+        setupGUI: () => folder,
+      }) as DomPlane;
+
+      plane.destroy();
+
+      expect(folder.destroy).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it('destroy() 済み plane への _setGui() はフォルダを作らない', () => {
+      const gui = makeGUI();
+      const app = new DomSyncGL(container);
+      const folder = makeGUI();
+      const setupGUI = vi.fn(() => folder);
+      const plane = app.createPlane(null, { setupGUI }) as DomPlane;
+
+      plane.destroy();
+      plane._setGui(gui);
+
+      expect(setupGUI).not.toHaveBeenCalled();
+      expect(folder.destroy).not.toHaveBeenCalled();
+      app.destroy();
+    });
+
     it('removeEffect: 未登録の effect には false を返す', () => {
       const app = new DomSyncGL(container);
       const plane = app.createPlane(null) as DomPlane;

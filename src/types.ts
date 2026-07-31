@@ -101,6 +101,11 @@ export interface CreatePlaneOptions {
   inViewRepeat?: boolean;
   crossOrigin?: string;
   /**
+   * plane 用の GUI を組み立てるフック。`new DomSyncGL(..., { gui })` で gui を
+   * 渡したときのみ呼ばれる。返したフォルダの破棄は plane の destroy() が行う。
+   */
+  setupGUI?: (gui: GUI, plane: import('./DomPlane').DomPlane) => GUI | void;
+  /**
    * data-texture で読み込むテクスチャの色空間。
    * 既定は `SRGBColorSpace`: サンプル時に linear へデコードされ、画面出力時に
    * sRGB へ再エンコードされるため DOM の画像と表示が一致する（NodeMaterial は

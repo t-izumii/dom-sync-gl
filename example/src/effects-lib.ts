@@ -98,10 +98,6 @@ interface EffectDef {
   setup: (app: DomSyncGL) => void;
 }
 
-/** 0 ↔ 1 をサイン波で往復する progress（speed は rad/秒）。 */
-const pingPong = (speed: number): number =>
-  0.5 - 0.5 * Math.cos((performance.now() / 1000) * speed);
-
 const EFFECTS: Record<string, EffectDef> = {
   pixelTrail: {
     hint: "マウスを動かすと軌跡のセルが点灯する",
@@ -169,34 +165,25 @@ const EFFECTS: Record<string, EffectDef> = {
     },
   },
   liquidSwap: {
-    hint: "PREV ↔ NEXT が液体ガラス風の円形リビールで往復する",
+    hint: "GUI の「遷移進行度」で PREV ↔ NEXT を液体ガラス風にリビールする",
     needsDemoImage: true,
     setup: (app) => {
       const swap = new LiquidSwap();
-      app.createPlane(".js-demo-image", { colorNode: swap.colorNode });
-      // loadLiquidSwapTexture は URL 前提のため、オフラインで完結する
-      // CanvasTexture を直接 setTextures に渡す（所有権はこのページ側）。
+      app.createPlane(".js-demo-image", swap.planeOptions());
       swap.setTextures(
         makeGradientTexture("#5a2a6e", "#e08a4a", "PREV"),
         makeGradientTexture("#1c4d8f", "#7fd4c1", "NEXT"),
       );
-      app.addUpdateCallback(() => {
-        swap.progress = pingPong(0.6);
-      });
     },
   },
   stickerPeel: {
-    hint: "ステッカーの剥がし（curl）が自動で往復する",
+    hint: "GUI の「剥がし進行度」でステッカーの curl を操作する",
     needsDemoImage: true,
     setup: (app) => {
       const peel = new StickerPeel();
       const plane = app.createPlane(".js-demo-image", peel.planeOptions());
-      // 裏面（frontFacing = false）を描くため DoubleSide 設定が必須
       peel.applyTo(plane);
       peel.setTexture(makeGradientTexture("#b8452f", "#e8c95a", "PEEL"));
-      app.addUpdateCallback(() => {
-        peel.progress = pingPong(0.5);
-      });
     },
   },
 };
@@ -230,7 +217,7 @@ const demoImage = document.querySelector<HTMLElement>(".js-demo-image")!;
 if (def.needsDemoImage) demoImage.hidden = false;
 
 // dom-test.html と同じ attach:'dom' 構成（#gl は CSS で fixed 全画面）。
-// autoRaf は既定の true に任せ、毎フレーム処理は addUpdateCallback で行う。
+// autoRaf は既定の true に任せる。
 const gui = new GUI({ title: `Effects: ${effectName}` });
 const app = new DomSyncGL("#gl", {
   scrollSync: { attach: "dom" },

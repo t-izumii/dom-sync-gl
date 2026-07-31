@@ -23,7 +23,8 @@ import {
   vec4,
 } from "three/tsl";
 import type { Node } from "three/webgpu";
-import type { PlaneNodeContext } from "../../index";
+import type GUI from "lil-gui";
+import type { CreatePlaneOptions, PlaneNodeContext } from "../../index";
 
 const placeholderTexture = new THREE.DataTexture(
   new Uint8Array([0, 0, 0, 0]),
@@ -106,6 +107,27 @@ export class LiquidSwap {
       this.uCenter.value.set(options.center.x, options.center.y);
     }
   }
+
+  planeOptions(): CreatePlaneOptions {
+    return {
+      colorNode: this.colorNode,
+      setupGUI: this.setupGUI,
+    };
+  }
+
+  readonly setupGUI = (gui: GUI): GUI => {
+    const folder = gui.addFolder('液体スワップ (Liquid swap)');
+    folder.add(this, 'progress', 0, 1, 0.001).name('遷移進行度');
+    folder.add(this, 'refraction', 0, 3, 0.01).name('屈折の強さ');
+    folder.add(this, 'aberration', 0, 3, 0.01).name('色収差の強さ');
+    /* 上限 3 は clearZone (= clarity * 0.3) を 1.0 未満に保つため。
+     * 1.0 に達すると smoothstep の上下端が重なりクリア領域が
+     * 円全体に広がって効果が消える */
+    folder.add(this, 'clarity', 0, 3, 0.01).name('中心クリア領域の広さ');
+    folder.add(this, 'edgeGlow', 0, 3, 0.01).name('縁のグロー');
+    folder.add(this, 'flow', 0, 3, 0.01).name('流れの強さ');
+    return folder;
+  };
 
   readonly colorNode = (ctx: PlaneNodeContext): Node => {
     const uv = vec2(ctx.uv);

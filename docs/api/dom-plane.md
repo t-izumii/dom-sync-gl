@@ -15,6 +15,7 @@
 | `inViewRootMargin` | `string` | `'100%'` | IO の rootMargin |
 | `inViewRepeat` | `boolean` | `false` | `true` で出入りのたび発火 |
 | `crossOrigin` | `string` | `'anonymous'` | `data-texture` 読み込み時の CORS 属性 |
+| `setupGUI` | `(gui, plane) => GUI \| void` | — | plane 用の lil-gui を組み立てるフック。[後述](#setupgui) |
 | `textureColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | `data-texture` で読むテクスチャの色空間。[後述](#texturecolorspace) |
 
 `colorNode` / `positionNode` は plane 構築時に**一度だけ**呼ばれてノードグラフを返す。
@@ -125,6 +126,23 @@ app.createPlane('.card', {
 
 要素に `data-texture` 属性があると、自動で `THREE.TextureLoader` で読み込んで
 `uTexture` ノードに流し込む。別 UV で読みたい場合は `uTexture.sample(customUv)`。
+
+## setupGUI
+
+plane 単位の lil-gui コントロールを組み立てるフック。`new DomSyncGL(el, { gui })` で
+gui インスタンスを渡したときのみ呼ばれる（渡していなければ呼ばれず、指定しても無害）。
+`addEffect` / `addFeedback` の `setupGUI` と同じ形で、第 2 引数に対象（ここでは plane）が渡る。
+
+返した `GUI` フォルダは **plane が所有し、`destroy()` で自動的に破棄される**
+（`BaseEffect` / `FeedbackBuffer` が自分のフォルダを持つのに対し、plane の `setupGUI` には
+対応するオブジェクトが無いため plane 自身が面倒を見る）。呼び出し側で destroy する必要はない。
+
+```ts
+const sticker = new StickerPeel();
+const plane = app.createPlane('.sticker', {
+  ...sticker.planeOptions(), // planeOptions() が setupGUI を含んで返す
+});
+```
 
 ## textureColorSpace
 

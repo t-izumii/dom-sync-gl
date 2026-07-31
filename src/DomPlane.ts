@@ -59,6 +59,10 @@ export class DomPlane {
   private readonly _feedbackMouseUV: THREE.Vector2 = new THREE.Vector2();
   private readonly _effectMouseUV: THREE.Vector2 = new THREE.Vector2();
   private gui: GUI | null = null;
+  // BaseEffect / FeedbackBuffer は _attachGUI() で自分のフォルダを持てるが、
+  // plane の setupGUI には対応するオブジェクトが無いため plane 自身が所有する。
+  private setupGUIHook: CreatePlaneOptions["setupGUI"];
+  private _guiFolder: GUI | null = null;
   private ownsTexture: boolean = false;
   private crossOrigin: string | undefined;
   private textureColorSpace: THREE.ColorSpace;
@@ -115,6 +119,8 @@ export class DomPlane {
     this.destroyed = false;
     this.updateRectEveryFrame = options.updateRectEveryFrame || false;
     this.crossOrigin = options.crossOrigin;
+    // gui は生成元が構築後に _setGui() で注入するため、実行は _setGui() まで遅らせる。
+    this.setupGUIHook = options.setupGUI;
     // 既定 SRGBColorSpace の理由は types.ts の textureColorSpace JSDoc を参照。
     this.textureColorSpace = options.textureColorSpace ?? THREE.SRGBColorSpace;
     this.clock = sharedClock ?? new THREE.Clock();
@@ -550,6 +556,15 @@ export class DomPlane {
 
   public _setGui(gui: GUI | null): void {
     this.gui = gui;
+    const setupGUI = this.setupGUIHook;
+    if (!gui || !setupGUI) return;
+    // 二重呼び出しでフォルダが二重に生えないよう、実行後にフックを手放す。
+    this.setupGUIHook = undefined;
+    // destroy() 後は破棄する側が居ないので、そもそもフォルダを作らせない
+    // （BaseEffect._attachGUI() が dispose 済みフォルダを即 destroy するのと同じ意図）。
+    if (this.destroyed) return;
+    const folder = setupGUI(gui, this);
+    if (folder) this._guiFolder = folder;
   }
 
   public _setOnDestroy(cb: (() => void) | null): void {
@@ -574,6 +589,10 @@ export class DomPlane {
       f.buffer.dispose();
     }
     this.feedbacks = [];
+
+    this._guiFolder?.destroy();
+    this._guiFolder = null;
+    this.setupGUIHook = undefined;
 
     if (this.planeComposer) {
       this.planeComposer.dispose();
