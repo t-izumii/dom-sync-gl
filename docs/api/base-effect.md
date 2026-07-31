@@ -194,17 +194,20 @@ interface BaseEffectConfig {
 
 ### `update(time, mouse?)`
 
-毎フレーム呼ばれる。uniform の動的更新に使う。
+毎フレーム呼ばれる。uniform の動的更新に使う。時間とマウス位置は `uTime` / `uMouse` に
+反映済みなので、それ以外の状態（自前 RT の ping-pong、GUI で変わる値など）を更新する。
 
 ```ts
-update(time: number) {
-  this.setUniform('uTime', time);
+update() {
+  this.setUniform('uStrength', this.strength);
 }
 ```
 
 ### `resize?(width, height)`
 
-canvas サイズが変わるたびに呼ばれる。自前 RT を持つエフェクトはここでリサイズする。
+canvas サイズ（`DomPlane` に追加した場合は plane のサイズ）が変わるたびに呼ばれる。
+自前 RT を持つエフェクトはここでリサイズする。同じ値は `this.width` / `this.height` からも
+読めるので、`resize()` を override せずに他のメソッドから参照してもよい。
 
 ### `setupGUI?(gui)`
 

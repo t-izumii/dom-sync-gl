@@ -61,6 +61,13 @@ export interface PlaneNodeContext {
   uIsHovered: UniformNode<number>;
   /** plane ローカルの マウス UV（左下原点） */
   uMouseUV: UniformNode<Vector2>;
+  /**
+   * 前フレームの `uMouseUV`。座標系は `uMouseUV` と同じ（左下原点）。
+   * 初回は `uMouseUV` と同値なので、差分を取る側は前回値の有無を気にしなくてよい。
+   */
+  uPrevMouse: UniformNode<Vector2>;
+  /** マウス移動強度（0〜1）。静止で緩やかに 0 へ落ちる */
+  uMove: UniformNode<number>;
   /** options.uniforms で渡したユーザー uniform / texture ノード */
   uniforms: Record<string, UniformNode<unknown>>;
   uv: Node;
@@ -80,7 +87,8 @@ export interface CreatePlaneOptions {
    * colorNode / positionNode から ctx.uniforms 経由で参照できる。
    * 以下の予約名は DomPlane が内部で生成・毎フレーム更新するため渡せない
    * （渡すと throw する）:
-   * `uTexture` / `uAlpha` / `uResolution` / `uTime` / `uIsHovered` / `uMouseUV`。
+   * `uTexture` / `uAlpha` / `uResolution` / `uTime` / `uIsHovered` / `uMouseUV` /
+   * `uPrevMouse` / `uMove`。
    * addFeedback() を使う場合は outputUniform と同名の texture() ノードをここに
    * 渡しておく（FeedbackBuffer の出力がそのノードへ毎フレーム反映される）。
    */

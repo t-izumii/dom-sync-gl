@@ -39,7 +39,11 @@ export type {
 } from "./EffectComposer";
 export { PlaneComposer } from "./PlaneComposer";
 export { BaseEffect } from "./effects/BaseEffect";
-export type { BaseEffectConfig } from "./effects/BaseEffect";
+export type {
+  BaseEffectConfig,
+  FeedbackOptions,
+  FeedbackNodeContext,
+} from "./effects/BaseEffect";
 
 export { FeedbackBuffer } from "./FeedbackBuffer";
 export type {
@@ -48,6 +52,7 @@ export type {
   FeedbackContext,
 } from "./FeedbackBuffer";
 export type { AddFeedbackOptions } from "./DomPlane";
+export { MouseMotion } from "./MouseMotion";
 
 import * as THREE from "three/webgpu";
 export { THREE };

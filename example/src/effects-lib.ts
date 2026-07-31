@@ -15,6 +15,7 @@ import GUI from "lil-gui";
 import { PixelTrailEffect } from "../../src/effectsLib/pixelTrail";
 import { SmoothCursorEffect } from "../../src/effectsLib/smoothCursor";
 import { MouseFlowEffect } from "../../src/effectsLib/mouseFlow";
+import { MouseEffect } from "../../src/effectsLib/mouse";
 import { DitherCursorEffect } from "../../src/effectsLib/ditherCursor";
 import { SplashCursorEffect } from "../../src/effectsLib/splashCursor";
 import {
@@ -118,6 +119,12 @@ const EFFECTS: Record<string, EffectDef> = {
     hint: "マウスの軌跡に沿って画面が流体的に歪む",
     setup: (app) => {
       app.addEffect(new MouseFlowEffect());
+    },
+  },
+    mouse: {
+    hint: "マウスの軌跡に沿って画面が流体的に歪む",
+    setup: (app) => {
+      app.addEffect(new MouseEffect());
     },
   },
   ditherCursor: {

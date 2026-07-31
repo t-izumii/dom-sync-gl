@@ -1,26 +1,14 @@
 import * as THREE from 'three/webgpu';
 
 export interface TrailTextureOptions {
-  /** Canvas 一辺の px。大きいほど精細だが CPU 描画コスト増。 */
   size?: number;
-  /** 打点が消えるまでの時間（ms）。 */
   maxAge?: number;
-  /** 打点の半径（Canvas 一辺に対する比率 0..1）。 */
   radius?: number;
-  /** 1 打点あたりのグラデーション不透明度（screen 合成で重なると加算的に明るくなる）。 */
   intensity?: number;
-  /**
-   * 移動距離の補間打点の細かさ。0 で無効。大きいほど高速移動時に細かく打点され
-   * 軌跡が途切れない（drei useTrailTexture と同じ意味論）。
-   */
   interpolate?: number;
-  /** 移動速度から算出する force の下限。 */
   minForce?: number;
-  /** Canvas の合成モード。 */
   blend?: GlobalCompositeOperation;
-  /** force の平滑係数（0 で平滑なし＝最新値をそのまま使う）。 */
   smoothing?: number;
-  /** age → 強度カーブ（0..1 → 0..1）。既定は easeCircleOut。 */
   ease?: (t: number) => number;
 }
 
@@ -32,15 +20,6 @@ interface TrailPoint {
 }
 
 const easeCircleOut = (x: number): number => Math.sqrt(1 - Math.pow(x - 1, 2));
-
-/**
- * マウス軌跡の減衰テクスチャ（drei `useTrailTexture` の非 React 移植）。
- *
- * `{x, y, age, force}` の点リストを保持し、`addTouch()` で velocity から force を
- * 算出して打点、`update(dt)` で全点の age を進めて maxAge 超過を除去し、
- * Canvas 2D に radial gradient 円を再描画して `texture.needsUpdate` を立てる。
- * 8bit 量子化の消え残りが出る FeedbackBuffer とは別系統の CPU 実装。
- */
 export class TrailTexture {
   readonly texture: THREE.CanvasTexture;
   readonly size: number;
@@ -84,10 +63,6 @@ export class TrailTexture {
     this.texture = new THREE.CanvasTexture(this.canvas);
   }
 
-  /**
-   * y 上向きの UV（0..1）で打点する。前回打点との距離² から force を算出し、
-   * `interpolate` が有効なら間を補間打点する。
-   */
   addTouch(uv: THREE.Vector2): void {
     if (this._disposed) return;
 
@@ -98,7 +73,6 @@ export class TrailTexture {
       const dd = dx * dx + dy * dy;
 
       const force = Math.max(this.minForce, Math.min(dd * 10000, 1));
-      // 指数移動平均（smoothing=0 なら最新値そのまま）
       this.force = this.force * this.smoothing + force * (1 - this.smoothing);
 
       if (this.interpolate > 0) {
@@ -119,7 +93,6 @@ export class TrailTexture {
     this.trail.push({ x: uv.x, y: uv.y, age: 0, force: this.force });
   }
 
-  /** 全点を aging（dt は秒）→ maxAge 超過を除去 → Canvas を再描画する。 */
   update(dt: number): void {
     if (this._disposed) return;
 
@@ -140,7 +113,6 @@ export class TrailTexture {
     this.texture.needsUpdate = true;
   }
 
-  /** 打点を全消去して Canvas を黒に戻す。 */
   clear(): void {
     if (this._disposed) return;
     this.trail = [];
@@ -154,7 +126,6 @@ export class TrailTexture {
     this._disposed = true;
     this.trail = [];
     this.texture.dispose();
-    // Canvas は参照を切れば GC される（DOM に追加していない）
   }
 
   private clearCanvas(): void {
@@ -164,13 +135,11 @@ export class TrailTexture {
   }
 
   private drawTouch(point: TrailPoint): void {
-    // y 上向き UV → Canvas 座標（上原点）へ反転
     const pos = {
       x: point.x * this.size,
       y: (1 - point.y) * this.size,
     };
 
-    // フェードイン（寿命の前半 30%）→ フェードアウト（残り 70%）
     let intensity = 1;
     if (point.age < this.maxAge * 0.3) {
       intensity = this.ease(point.age / (this.maxAge * 0.3));
