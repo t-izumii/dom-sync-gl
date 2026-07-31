@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import { clamp, length, screenSize, mix, pow, uniform, vec2, vec3, vec4 } from 'three/tsl';
-import type { UniformNode } from 'three/webgpu';
+import type { Node, UniformNode } from 'three/webgpu';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../../index';
 
@@ -27,24 +27,25 @@ export class MouseEffect extends BaseEffect {
 
   protected getConfig(): BaseEffectConfig {
     return{
-      outputNode: ({inputTexture, uv}) => {
-
-        const aspect = screenSize.x.div(screenSize.y);
-        const p = uv.sub(this.uMouse);
-        const aspectP = p.mul(vec2(aspect, 1.0));
-        const l = length(aspectP);
-        const glow = clamp(l.div(this.uRadius), 0, 1).oneMinus();
-
-        const color = this.uColor.mul(glow)
-        const finalColor= inputTexture.rgb.add(color);
-
-        return vec4(finalColor, inputTexture.a);
-      },
+    feedback: {
+      node: ({ prev, uv }) =>
+        vec4(prev.rgb.mul(0.95).add(this.uColor.mul(this.glowAt(uv))), 1.0),
+    },
+    outputNode: ({ inputTexture }) =>
+      vec4(inputTexture.rgb.add(this.feedbackTexture.rgb), inputTexture.a),
     uniforms: {
       uRadius: this.uRadius,
       uColor: this.uColor
     }
     }
+  }
+
+  private glowAt(uvNode: Node): Node {
+    const aspect = screenSize.x.div(screenSize.y);
+    const p = uvNode.sub(this.uMouse);
+    const aspectP = p.mul(vec2(aspect, 1.0));
+    const l = length(aspectP);
+    return clamp(l.div(this.uRadius), 0, 1).oneMinus();
   }
 
   update(): void {

@@ -435,6 +435,50 @@ describe('EffectManager', () => {
     expect(effect.time).toBe(0);
   });
 
+  it('addEffect: _attachRenderer は _setRenderer より前に呼ばれる', () => {
+    const renderer = makeRenderer();
+    const manager = new EffectManager({ renderer, gui: null });
+    const effect = new TestEffect();
+    const attachSpy = vi.spyOn(effect, '_attachRenderer');
+    const setRendererSpy = vi.fn();
+    effect._setRenderer = setRendererSpy;
+
+    manager.addEffect(effect, 100, 100);
+
+    expect(attachSpy).toHaveBeenCalledWith(renderer);
+    expect(attachSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      setRendererSpy.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('update: _renderFeedback() は update() の後に呼ばれる（GUI 由来の uniform を反映させるため）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new TestEffect();
+    manager.addEffect(effect, 100, 100);
+    const updateSpy = vi.spyOn(effect, 'update');
+    const feedbackSpy = vi.spyOn(effect, '_renderFeedback');
+
+    manager.update(1.5, new THREE.Vector2(0.25, 0.75));
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(feedbackSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      feedbackSpy.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('update: enabled=false の effect では _renderFeedback() も呼ばれない', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new TestEffect();
+    manager.addEffect(effect, 100, 100);
+    effect.enabled = false;
+    const feedbackSpy = vi.spyOn(effect, '_renderFeedback');
+
+    manager.update(1.5, new THREE.Vector2(0.25, 0.75));
+
+    expect(feedbackSpy).not.toHaveBeenCalled();
+  });
+
   it('effectSamples は internalComposer の sceneTarget へ配線される（CR-17）', () => {
     const manager = new EffectManager({
       renderer: makeRenderer(4),

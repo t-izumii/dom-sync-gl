@@ -39,7 +39,11 @@ export type {
 } from "./EffectComposer";
 export { PlaneComposer } from "./PlaneComposer";
 export { BaseEffect } from "./effects/BaseEffect";
-export type { BaseEffectConfig } from "./effects/BaseEffect";
+export type {
+  BaseEffectConfig,
+  FeedbackOptions,
+  FeedbackNodeContext,
+} from "./effects/BaseEffect";
 
 export { FeedbackBuffer } from "./FeedbackBuffer";
 export type {

@@ -59,6 +59,7 @@ export class EffectManager {
     this.lastWidth = width;
     this.lastHeight = height;
 
+    effect._attachRenderer(this.renderer);
     effect._setRenderer?.(this.renderer);
     effect._register(this.internalComposer);
     effect._setSize(width, height);
@@ -165,6 +166,9 @@ export class EffectManager {
       if (!effect.enabled) continue;
       effect._setFrameState(elapsed, this._effectMouse);
       effect.update(elapsed, this._effectMouse);
+      // update() の後。サブクラスが update() で更新する uniform を
+      // 蓄積の計算に反映させるため。
+      effect._renderFeedback();
     }
   }
 

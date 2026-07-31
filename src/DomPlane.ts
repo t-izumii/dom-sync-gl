@@ -382,6 +382,9 @@ export class DomPlane {
       if (!effect.enabled) continue;
       effect._setFrameState(time, this._effectMouseUV);
       effect.update(time, this._effectMouseUV);
+      // update() の後。サブクラスが update() で更新する uniform を
+      // 蓄積の計算に反映させるため。
+      effect._renderFeedback();
     }
   }
 
@@ -415,6 +418,7 @@ export class DomPlane {
 
   public addEffect<T extends BaseEffect>(effect: T): T {
     const composer = this.enableEffects();
+    effect._attachRenderer(this.renderer);
     effect._setRenderer?.(this.renderer);
     effect._register(composer);
     const rect = this.positionCalculator?.rect ?? this.canvasRect;
