@@ -26,8 +26,6 @@ export class PixelTrailEffect extends BaseEffect {
 
   private _lastTime = 0;
   private _hasLastTime = false;
-  private readonly _prevMouse = new THREE.Vector2(0.5, 0.5);
-  private _hasPrevMouse = false;
   private readonly _touchUv = new THREE.Vector2();
   private readonly _maxDelta = 0.25;
 
@@ -110,28 +108,25 @@ export class PixelTrailEffect extends BaseEffect {
     this._lastTime = time;
     this._hasLastTime = true;
 
-    const m = mouse ?? this._prevMouse;
-    if (this._hasPrevMouse) {
-      const delta = m.distanceTo(this._prevMouse);
-      if (delta > 1e-6) {
-        this._touchUv
-          .copy(m)
-          .subScalar(0.5)
-          .multiply(this._coverScale)
-          .addScalar(0.5);
+    const delta = mouse
+      ? this.uMouse.value.distanceTo(this.mouseMotion.prev)
+      : 0;
+    if (delta > 1e-6) {
+      this._touchUv
+        .copy(this.uMouse.value)
+        .subScalar(0.5)
+        .multiply(this._coverScale)
+        .addScalar(0.5);
 
-        if (delta > this._maxDelta) {
-          const prevInterpolate = this.trail.interpolate;
-          this.trail.interpolate = 0;
-          this.trail.addTouch(this._touchUv);
-          this.trail.interpolate = prevInterpolate;
-        } else {
-          this.trail.addTouch(this._touchUv);
-        }
+      if (delta > this._maxDelta) {
+        const prevInterpolate = this.trail.interpolate;
+        this.trail.interpolate = 0;
+        this.trail.addTouch(this._touchUv);
+        this.trail.interpolate = prevInterpolate;
+      } else {
+        this.trail.addTouch(this._touchUv);
       }
     }
-    this._prevMouse.copy(m);
-    this._hasPrevMouse = true;
 
     this.trail.update(dt);
 

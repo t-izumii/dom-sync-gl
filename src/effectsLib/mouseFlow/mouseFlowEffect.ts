@@ -33,9 +33,7 @@ export class MouseFlowEffect extends BaseEffect {
   private readonly uFalloff: UniformNode<number>;
   private readonly uStrength: UniformNode<number>;
 
-  private readonly _prevMouse = new THREE.Vector2(0.5, 0.5);
   private readonly _delta = new THREE.Vector2();
-  private _hasPrevMouse = false;
   private readonly _maxDelta = 0.1;
 
   constructor(options: MouseFlowEffectOptions = {}) {
@@ -88,17 +86,14 @@ export class MouseFlowEffect extends BaseEffect {
   update(_time: number, mouse?: THREE.Vector2): void {
     if (!this.pass) return;
 
-    const m = mouse ?? this._prevMouse;
-    if (this._hasPrevMouse) {
-      this._delta.copy(m).sub(this._prevMouse);
+    if (mouse) {
+      this._delta.copy(this.uMouse.value).sub(this.mouseMotion.prev);
       if (this._delta.lengthSq() > this._maxDelta * this._maxDelta) {
         this._delta.set(0, 0);
       }
     } else {
       this._delta.set(0, 0);
     }
-    this._prevMouse.copy(m);
-    this._hasPrevMouse = true;
 
     this.uDeltaMouse.value.copy(this._delta);
     this.uDissipation.value = this.dissipation;

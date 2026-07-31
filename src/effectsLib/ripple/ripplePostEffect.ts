@@ -86,8 +86,6 @@ export class RipplePostEffect extends BaseEffect {
 
   private _gridW = 1;
   private _gridH = 1;
-  private readonly _prevMouse = new THREE.Vector2(0.5, 0.5);
-  private _hasPrevMouse = false;
 
   constructor(options: RipplePostEffectOptions = {}) {
     super();
@@ -271,13 +269,11 @@ export class RipplePostEffect extends BaseEffect {
 
     const sn = this.simNodes;
 
-    const m = mouse ?? this._prevMouse;
-    const moved =
-      this._hasPrevMouse && m.distanceTo(this._prevMouse) > this.moveThreshold;
-    sn.uSplatPos.value.copy(m);
+    const moved = mouse
+      ? this.uMouse.value.distanceTo(this.mouseMotion.prev) > this.moveThreshold
+      : false;
+    sn.uSplatPos.value.copy(this.uMouse.value);
     sn.uSplatAmount.value = moved ? this.splatStrength : 0.0;
-    this._prevMouse.copy(m);
-    this._hasPrevMouse = true;
 
     sn.uPrev.value = this.read.texture;
     sn.uSplatRadius.value = this.splatRadius;

@@ -30,8 +30,6 @@ export class DitherCursorEffect extends BaseEffect {
   private readonly uExponent: UniformNode<number>;
   private readonly uColor: UniformNode<THREE.Color>;
 
-  private readonly _prevMouse = new THREE.Vector2(0.5, 0.5);
-  private _hasPrevMouse = false;
   private _speed = 0;
   private readonly _maxDelta = 0.25;
 
@@ -89,12 +87,9 @@ export class DitherCursorEffect extends BaseEffect {
   }
 
   update(_time: number, mouse?: THREE.Vector2): void {
-    const m = mouse ?? this._prevMouse;
-    let delta = this._hasPrevMouse ? m.distanceTo(this._prevMouse) : 0;
+    let delta = mouse ? this.uMouse.value.distanceTo(this.mouseMotion.prev) : 0;
     if (delta > this._maxDelta) delta = 0;
     this._speed += (delta - this._speed) * 0.1;
-    this._prevMouse.copy(m);
-    this._hasPrevMouse = true;
 
     if (!this.pass) return;
 

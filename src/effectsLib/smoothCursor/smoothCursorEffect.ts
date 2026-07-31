@@ -51,8 +51,7 @@ export class SmoothCursorEffect extends BaseEffect {
 
   private _lastTime = 0;
   private _hasLastTime = false;
-  private readonly _prevMouse = new THREE.Vector2();
-  private _hasPrevMouse = false;
+  private _initialized = false;
 
   private _presence = 0;
   private _idleTime = Infinity;
@@ -111,15 +110,14 @@ export class SmoothCursorEffect extends BaseEffect {
 
     const f = Math.min(dt * 60, 2);
 
-    const m = mouse ?? this._prevMouse;
+    const m = this.uMouse.value;
 
-    if (!this._hasPrevMouse) {
+    if (!this._initialized) {
       this._resetPoints(m.x, m.y);
-      this._prevMouse.copy(m);
-      this._hasPrevMouse = true;
+      this._initialized = true;
     }
 
-    const delta = m.distanceTo(this._prevMouse);
+    const delta = mouse ? m.distanceTo(this.mouseMotion.prev) : 0;
     if (delta > this._maxDelta) {
       this._resetPoints(m.x, m.y);
     }
@@ -128,8 +126,6 @@ export class SmoothCursorEffect extends BaseEffect {
     else this._idleTime += dt;
     const presenceTarget = this._idleTime < this._idleFadeDelay ? 1 : 0;
     this._presence += (presenceTarget - this._presence) * (1 - Math.pow(0.85, f));
-
-    this._prevMouse.copy(m);
 
     const damp = Math.pow(
       Math.min(Math.max(this.dampening, 0.1), 0.99),
