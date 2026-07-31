@@ -7,6 +7,7 @@ import { DomPositionCalculator } from "./DomPositionCalculator";
 import { PlaneComposer } from "./PlaneComposer";
 import type { BaseEffect } from "./effects/BaseEffect";
 import { FeedbackBuffer, type FeedbackBufferOptions } from "./FeedbackBuffer";
+import { MouseMotion } from "./MouseMotion";
 
 export interface AddFeedbackOptions extends FeedbackBufferOptions {
   outputUniform: string;
@@ -24,6 +25,8 @@ const RESERVED_UNIFORM_NAMES: readonly string[] = [
   "uTime",
   "uIsHovered",
   "uMouseUV",
+  "uPrevMouse",
+  "uMove",
 ];
 
 // テクスチャ未設定でも texture() ノードは有効な Texture を要求するため、
@@ -76,7 +79,10 @@ export class DomPlane {
     uTime: UniformNode<number>;
     uIsHovered: UniformNode<number>;
     uMouseUV: UniformNode<THREE.Vector2>;
+    uPrevMouse: UniformNode<THREE.Vector2>;
+    uMove: UniformNode<number>;
   };
+  private readonly _mouseMotion = new MouseMotion();
   private readonly userUniforms: Record<string, UniformNode<unknown>>;
   // uIsHovered は shader 向けに float(0/1) で持つため、JS 向けの真偽値は別に持つ。
   private _isHovered = false;
@@ -155,7 +161,18 @@ export class DomPlane {
     const uTime = uniform(0);
     const uIsHovered = uniform(0);
     const uMouseUV = uniform(new THREE.Vector2(0, 0));
-    this.nodes = { uTexture, uAlpha, uResolution, uTime, uIsHovered, uMouseUV };
+    const uPrevMouse = uniform(new THREE.Vector2(0, 0));
+    const uMove = uniform(0);
+    this.nodes = {
+      uTexture,
+      uAlpha,
+      uResolution,
+      uTime,
+      uIsHovered,
+      uMouseUV,
+      uPrevMouse,
+      uMove,
+    };
     this.userUniforms = { ...options.uniforms };
 
     const ctx: PlaneNodeContext = {
@@ -165,6 +182,8 @@ export class DomPlane {
       uTime,
       uIsHovered,
       uMouseUV,
+      uPrevMouse,
+      uMove,
       uniforms: this.userUniforms,
       uv: uv(),
     };
@@ -196,9 +215,27 @@ export class DomPlane {
   public _tickApply(elapsedTime: number, scrollX: number, scrollY: number): void {
     if (!this.isVisible) return;
     this.nodes.uTime.value = elapsedTime;
+    this.updateMouseMotion();
     if (this.positionCalculator) {
       this.setPosition(scrollX, scrollY);
     }
+  }
+
+  /** plane の w/h 比。UV の横方向の引き伸ばしを移動量計算で戻すために使う。 */
+  private get rectAspect(): number {
+    const rect = this.positionCalculator?.rect ?? this.canvasRect;
+    return rect.height > 0 ? rect.width / rect.height : 1;
+  }
+
+  /**
+   * updateEffects() ではなく毎フレーム走る _tickApply() から呼ぶ。
+   * updateEffects() は effect が 0 件だと早期 return するため、effect を使わず
+   * colorNode だけで uMove / uPrevMouse を読む plane が更新から漏れる。
+   */
+  private updateMouseMotion(): void {
+    this._mouseMotion.update(this.nodes.uMouseUV.value, this.rectAspect);
+    this.nodes.uPrevMouse.value.copy(this._mouseMotion.prev);
+    this.nodes.uMove.value = this._mouseMotion.move;
   }
 
   public _tickRenderComposer(): void {
@@ -305,6 +342,7 @@ export class DomPlane {
       const rect = this.positionCalculator?.rect ?? this.canvasRect;
       this.planeComposer.resize(rect.width, rect.height);
       for (const effect of this.effects) {
+        effect._setSize(rect.width, rect.height);
         effect.resize?.(rect.width, rect.height);
       }
     }
@@ -379,7 +417,11 @@ export class DomPlane {
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
       if (!effect.enabled) continue;
+      effect._setFrameState(time, this._effectMouseUV);
       effect.update(time, this._effectMouseUV);
+      // update() の後。サブクラスが update() で更新する uniform を
+      // 蓄積の計算に反映させるため。
+      effect._renderFeedback();
     }
   }
 
@@ -413,9 +455,11 @@ export class DomPlane {
 
   public addEffect<T extends BaseEffect>(effect: T): T {
     const composer = this.enableEffects();
+    effect._attachRenderer(this.renderer);
     effect._setRenderer?.(this.renderer);
     effect._register(composer);
     const rect = this.positionCalculator?.rect ?? this.canvasRect;
+    effect._setSize(rect.width, rect.height);
     effect.resize?.(rect.width, rect.height);
     if (this.gui && effect.setupGUI) {
       const folder = effect.setupGUI(this.gui);
@@ -471,8 +515,7 @@ export class DomPlane {
 
   public _tickFeedback(elapsedTime: number): void {
     if (!this.isVisible || this.feedbacks.length === 0) return;
-    const rect = this.positionCalculator?.rect ?? this.canvasRect;
-    const aspect = rect.height > 0 ? rect.width / rect.height : 1;
+    const aspect = this.rectAspect;
     const hover = this._isHovered ? 1 : 0;
     this._feedbackMouseUV.copy(this.nodes.uMouseUV.value);
     for (let i = 0, n = this.feedbacks.length; i < n; i++) {

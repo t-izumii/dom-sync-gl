@@ -365,12 +365,96 @@ describe('DomPlane', () => {
     });
   });
 
+  describe('PlaneNodeContext のマウス移動情報', () => {
+    // colorNode / positionNode 側にも「前フレーム位置」と「移動強度」を配る。
+    const capture = (
+      app: DomSyncGL,
+    ): { plane: DomPlane; ctx: PlaneNodeContext } => {
+      let ctx: PlaneNodeContext | null = null;
+      const plane = app.createPlane(null, {
+        colorNode: (c) => {
+          ctx = c;
+          return c.uTexture;
+        },
+      }) as DomPlane;
+      return { plane, ctx: ctx! };
+    };
+
+    it('uPrevMouse は前フレームの uMouseUV を指す（初回は現在位置と同値）', () => {
+      const app = new DomSyncGL(container);
+      const { plane, ctx } = capture(app);
+
+      plane.setHoverInfo(true, new THREE.Vector2(0.2, 0.3));
+      plane._tickApply(0, 0, 0);
+      expect((ctx.uPrevMouse.value as THREE.Vector2).x).toBeCloseTo(0.2);
+      expect((ctx.uPrevMouse.value as THREE.Vector2).y).toBeCloseTo(0.3);
+
+      plane.setHoverInfo(true, new THREE.Vector2(0.8, 0.9));
+      plane._tickApply(1, 0, 0);
+
+      expect((ctx.uPrevMouse.value as THREE.Vector2).x).toBeCloseTo(0.2);
+      expect((ctx.uPrevMouse.value as THREE.Vector2).y).toBeCloseTo(0.3);
+      // uMouseUV は plane geometry の UV（左下原点）のまま。uPrevMouse も同じ座標系。
+      expect((ctx.uMouseUV.value as THREE.Vector2).x).toBeCloseTo(0.8);
+      app.destroy();
+    });
+
+    it('uMove は移動で立ち上がり、静止すると減衰する', () => {
+      const app = new DomSyncGL(container);
+      const { plane, ctx } = capture(app);
+
+      plane.setHoverInfo(true, new THREE.Vector2(0.5, 0.5));
+      plane._tickApply(0, 0, 0);
+      expect(ctx.uMove.value).toBe(0);
+
+      // canvas 800x600 → aspect 4/3。dx=0.003 * 4/3 = 0.004 → scale 0.01 で 0.4
+      plane.setHoverInfo(true, new THREE.Vector2(0.503, 0.5));
+      plane._tickApply(1, 0, 0);
+      const peak = ctx.uMove.value as number;
+      expect(peak).toBeCloseTo(0.4);
+
+      plane._tickApply(2, 0, 0);
+
+      expect(ctx.uMove.value).toBeCloseTo(peak * 0.85);
+      app.destroy();
+    });
+
+    it('effect が 0 件でも毎フレーム更新される（updateEffects の早期 return に依存しない）', () => {
+      const app = new DomSyncGL(container);
+      const { plane, ctx } = capture(app);
+
+      plane.setHoverInfo(true, new THREE.Vector2(0.5, 0.5));
+      plane.updateEffects(0, new THREE.Vector2(0.5, 0.5), 0, 0);
+      plane._tickApply(0, 0, 0);
+      plane.setHoverInfo(true, new THREE.Vector2(0.55, 0.5));
+      plane.updateEffects(1, new THREE.Vector2(0.55, 0.5), 0, 0);
+      plane._tickApply(1, 0, 0);
+
+      expect(ctx.uMove.value).toBe(1);
+      expect((ctx.uPrevMouse.value as THREE.Vector2).x).toBeCloseTo(0.5);
+      app.destroy();
+    });
+  });
+
   describe('予約 uniform の上書き防止（CR-11）', () => {
     it('予約名 uniform を渡すと throw する', () => {
       const app = new DomSyncGL(container);
       expect(() =>
         app.createPlane(null, { uniforms: { uResolution: uniform(0) } }),
       ).toThrow(/uResolution/);
+      app.destroy();
+    });
+
+    it('uPrevMouse / uMove も予約名として throw する', () => {
+      const app = new DomSyncGL(container);
+      expect(() =>
+        app.createPlane(null, {
+          uniforms: { uPrevMouse: uniform(new THREE.Vector2()) },
+        }),
+      ).toThrow(/uPrevMouse/);
+      expect(() =>
+        app.createPlane(null, { uniforms: { uMove: uniform(0) } }),
+      ).toThrow(/uMove/);
       app.destroy();
     });
 

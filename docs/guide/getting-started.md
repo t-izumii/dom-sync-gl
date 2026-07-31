@@ -84,6 +84,8 @@ const app = new DomSyncGL('#canvas', { forceWebGL: true });
 | `uTime` | `UniformNode<number>` | 経過秒 |
 | `uResolution` | `UniformNode<Vector2>` | plane の pixel 寸法 |
 | `uMouseUV` | `UniformNode<Vector2>` | hover 中の plane-local UV (0..1) |
+| `uPrevMouse` | `UniformNode<Vector2>` | 前フレームの `uMouseUV`（同じ座標系） |
+| `uMove` | `UniformNode<number>` | マウス移動強度 (0..1) |
 | `uIsHovered` | `UniformNode<number>` | raycast hit 中なら 1、そうでなければ 0 |
 | `uTexture` | `TextureNode` | `data-texture` 属性 or `setTexture()` で渡したテクスチャ |
 | `uAlpha` | `UniformNode<number>` | 透明度（既定 1.0） |

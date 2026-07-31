@@ -136,6 +136,111 @@ describe('FeedbackBuffer', () => {
     fb.dispose();
   });
 
+  // uMove / uPrevMouse の算出は MouseMotion へ切り出したが、BaseEffect 側の
+  // パリティテストは同じ MouseMotion を見ているため独立した検証にならない。
+  // ここに切り出し前の式をベタ書きしたリファレンス実装を置いて突き合わせる。
+  it('uMove / uPrevMouse が切り出し前のリファレンス実装と数値的に完全一致する', () => {
+    const r = new StubRenderer();
+    const fb = new FeedbackBuffer(asRenderer(r), { outputNode: passthrough });
+
+    const threshold = 0.0008;
+    const scale = 0.01;
+    const release = 0.85;
+    const refPrev = new THREE.Vector2();
+    let refHasPrev = false;
+    let refMove = 0;
+    const refPrevOut = new THREE.Vector2();
+
+    let seed = 12345;
+    const rnd = (): number => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+
+    const m = new THREE.Vector2(0.5, 0.5);
+    const aspect = 1920 / 1080;
+    for (let i = 0; i < 500; i++) {
+      // 静止・threshold 未満の微動・通常移動・テレポートを混ぜる
+      const q = rnd();
+      if (q < 0.5) {
+        const span = q < 0.25 ? 0 : 0.0004;
+        m.set(m.x + (rnd() - 0.5) * span, m.y + (rnd() - 0.5) * span);
+      } else if (q < 0.9) {
+        m.set(m.x + (rnd() - 0.5) * 0.02, m.y + (rnd() - 0.5) * 0.02);
+      } else {
+        m.set(rnd(), rnd());
+      }
+
+      let move = 0;
+      if (refHasPrev) {
+        const dx = (m.x - refPrev.x) * aspect;
+        const dy = m.y - refPrev.y;
+        const dist = Math.hypot(dx, dy);
+        move = dist > threshold ? Math.min(1, dist / scale) : 0;
+      }
+      refPrevOut.copy(refHasPrev ? refPrev : m);
+      refPrev.copy(m);
+      refHasPrev = true;
+      refMove = Math.max(move, refMove * release);
+
+      fb.step({ mouse: m, hover: 0, time: i / 60, aspect });
+
+      expect(fb.uniforms.uMove.value).toBe(refMove);
+      expect((fb.uniforms.uPrevMouse.value as THREE.Vector2).x).toBe(
+        refPrevOut.x,
+      );
+      expect((fb.uniforms.uPrevMouse.value as THREE.Vector2).y).toBe(
+        refPrevOut.y,
+      );
+    }
+
+    fb.dispose();
+  });
+
+  it('move 系オプションと getter / setter のクランプが維持される', () => {
+    const r = new StubRenderer();
+    const fb = new FeedbackBuffer(asRenderer(r), {
+      outputNode: passthrough,
+      moveThreshold: 0.002,
+      moveScale: 0.05,
+      moveRelease: 0.5,
+    });
+    expect(fb.moveThreshold).toBe(0.002);
+    expect(fb.moveScale).toBe(0.05);
+    expect(fb.moveRelease).toBe(0.5);
+
+    fb.moveThreshold = -1;
+    fb.moveScale = 0;
+    fb.moveRelease = 2;
+    expect(fb.moveThreshold).toBe(0);
+    expect(fb.moveScale).toBe(1e-6);
+    expect(fb.moveRelease).toBe(1);
+
+    fb.moveRelease = -1;
+    expect(fb.moveRelease).toBe(0);
+
+    // 既定値（オプション未指定）
+    const dflt = new FeedbackBuffer(asRenderer(r), { outputNode: passthrough });
+    expect(dflt.moveThreshold).toBe(0.0008);
+    expect(dflt.moveScale).toBe(0.01);
+    expect(dflt.moveRelease).toBe(0.85);
+
+    fb.dispose();
+    dflt.dispose();
+  });
+
+  it('setter で変えたノブが step() の uMove に反映される', () => {
+    const r = new StubRenderer();
+    const fb = new FeedbackBuffer(asRenderer(r), { outputNode: passthrough });
+    fb.moveScale = 0.02;
+
+    fb.step({ mouse: new THREE.Vector2(0.5, 0.5), hover: 0, time: 0, aspect: 1 });
+    fb.step({ mouse: new THREE.Vector2(0.51, 0.5), hover: 0, time: 1, aspect: 1 });
+
+    expect(fb.uniforms.uMove.value).toBeCloseTo(0.5);
+    fb.dispose();
+  });
+
   it('render の前後で renderTarget を元に戻す（呼び出し側の状態を壊さない）', () => {
     const r = new StubRenderer();
     const sentinel = new THREE.RenderTarget(8, 8);
