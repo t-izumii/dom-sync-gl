@@ -18,10 +18,10 @@ import {
   mix,
   pow,
   screenCoordinate,
+  screenSize,
   select,
   smoothstep,
   step,
-  uv,
   vec2,
   vec3,
   vec4,
@@ -82,7 +82,7 @@ const curlNoise = Fn(([p]: [Node]) => {
 
 export interface DitherSimNodes {
   uPrev: TextureNode;
-  uResolution: UniformNode<Vector2>;
+  uv: Node;
   uTime: UniformNode<number>;
   uMouse: UniformNode<Vector2>;
   uSpeed: UniformNode<number>;
@@ -92,8 +92,8 @@ export interface DitherSimNodes {
 }
 
 export const ditherSimNode = (n: DitherSimNodes): Node => {
-  const vUv = uv();
-  const texel = vec2(1).div(n.uResolution);
+  const vUv = n.uv;
+  const texel = vec2(1).div(screenSize);
 
   const velocity = curlNoise(vUv.mul(0.5).add(n.uTime.mul(0.1)));
   const advectedUv = vUv.sub(velocity.mul(0.001));
@@ -105,7 +105,7 @@ export const ditherSimNode = (n: DitherSimNodes): Node => {
   const r = n.uPrev.sample(advectedUv.add(vec2(texel.x, 0))).r;
   const diffused = c.add(t).add(b).add(l).add(r).div(5);
 
-  const aspect = n.uResolution.x.div(n.uResolution.y);
+  const aspect = screenSize.x.div(screenSize.y);
   const dist = length(vUv.sub(n.uMouse).mul(vec2(aspect, 1)));
   const brush = exp(pow(dist.div(n.uRadius), 2).negate())
     .mul(n.uIntensity)

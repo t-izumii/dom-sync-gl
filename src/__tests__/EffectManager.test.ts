@@ -39,6 +39,9 @@ class StateEffect extends TestEffect {
   get mouse(): THREE.Vector2 {
     return this.uMouse.value;
   }
+  get move(): number {
+    return this.uMove.value;
+  }
 }
 
 function makeGUI(folder?: Partial<GUI>): GUI {
@@ -407,6 +410,19 @@ describe('EffectManager', () => {
     expect(effect.time).toBe(1.5);
     expect(effect.mouse.x).toBeCloseTo(0.25);
     expect(effect.mouse.y).toBeCloseTo(0.25);
+  });
+
+  it('update: effect の uMove が更新される（初回は 0、移動後に立ち上がる）', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const effect = new StateEffect();
+    manager.addEffect(effect, 100, 100);
+
+    manager.update(0, new THREE.Vector2(0.5, 0.5));
+    expect(effect.move).toBe(0);
+
+    manager.update(1, new THREE.Vector2(0.505, 0.5));
+
+    expect(effect.move).toBeCloseTo(0.5);
   });
 
   it('update: 内部の変換バッファを共有していても effect ごとに値がコピーされる', () => {

@@ -52,6 +52,7 @@ export type {
   FeedbackContext,
 } from "./FeedbackBuffer";
 export type { AddFeedbackOptions } from "./DomPlane";
+export { MouseMotion } from "./MouseMotion";
 
 import * as THREE from "three/webgpu";
 export { THREE };

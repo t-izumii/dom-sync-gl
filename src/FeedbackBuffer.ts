@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { texture, uniform, uv } from 'three/tsl';
 import type { Node, TextureNode, UniformNode } from 'three/webgpu';
 import type GUI from 'lil-gui';
+import { MouseMotion } from './MouseMotion';
 
 /**
  * outputNode ファクトリに渡されるコンテキスト。
@@ -97,11 +98,7 @@ export class FeedbackBuffer {
   };
   private readonly userUniforms: Record<string, UniformNode<unknown>>;
 
-  private readonly _prevMouse = new THREE.Vector2();
-  private _hasPrevMouse = false;
-  private _moveThreshold: number;
-  private _moveScale: number;
-  private _moveRelease: number;
+  private readonly _motion = new MouseMotion();
   private _gui: GUI | null = null;
 
   constructor(renderer: THREE.WebGPURenderer, options: FeedbackBufferOptions) {
@@ -118,9 +115,11 @@ export class FeedbackBuffer {
 
     this.renderer = renderer;
     this._size = options.size ?? 256;
-    this._moveThreshold = options.moveThreshold ?? 0.0008;
-    this._moveScale = options.moveScale ?? 0.01;
-    this._moveRelease = options.moveRelease ?? 0.85;
+    if (options.moveThreshold !== undefined)
+      this._motion.threshold = options.moveThreshold;
+    if (options.moveScale !== undefined) this._motion.scale = options.moveScale;
+    if (options.moveRelease !== undefined)
+      this._motion.release = options.moveRelease;
 
     this.read = this.makeTarget();
     this.write = this.makeTarget();
@@ -217,24 +216,24 @@ export class FeedbackBuffer {
   }
 
   get moveThreshold(): number {
-    return this._moveThreshold;
+    return this._motion.threshold;
   }
   set moveThreshold(v: number) {
-    this._moveThreshold = Math.max(0, v);
+    this._motion.threshold = Math.max(0, v);
   }
 
   get moveScale(): number {
-    return this._moveScale;
+    return this._motion.scale;
   }
   set moveScale(v: number) {
-    this._moveScale = Math.max(1e-6, v);
+    this._motion.scale = Math.max(1e-6, v);
   }
 
   get moveRelease(): number {
-    return this._moveRelease;
+    return this._motion.release;
   }
   set moveRelease(v: number) {
-    this._moveRelease = Math.min(1, Math.max(0, v));
+    this._motion.release = Math.min(1, Math.max(0, v));
   }
 
   step(input: FeedbackInput): THREE.Texture {
@@ -252,20 +251,9 @@ export class FeedbackBuffer {
     n.uTime.value = input.time;
     n.uAspect.value = input.aspect;
 
-    let move = 0;
-    if (this._hasPrevMouse) {
-      const dx = (input.mouse.x - this._prevMouse.x) * input.aspect;
-      const dy = input.mouse.y - this._prevMouse.y;
-      const dist = Math.hypot(dx, dy);
-      move =
-        dist > this._moveThreshold ? Math.min(1, dist / this._moveScale) : 0;
-    }
-    n.uPrevMouse.value.copy(
-      this._hasPrevMouse ? this._prevMouse : input.mouse
-    );
-    this._prevMouse.copy(input.mouse);
-    this._hasPrevMouse = true;
-    n.uMove.value = Math.max(move, n.uMove.value * this._moveRelease);
+    this._motion.update(input.mouse, input.aspect);
+    n.uPrevMouse.value.copy(this._motion.prev);
+    n.uMove.value = this._motion.move;
 
     const r = this.renderer;
     const prevTarget = r.getRenderTarget();

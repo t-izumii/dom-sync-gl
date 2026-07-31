@@ -3,6 +3,7 @@ import * as THREE from 'three/webgpu';
 import { uniform, vec4 } from 'three/tsl';
 import type { TextureNode } from 'three/webgpu';
 import { EffectComposer } from '../EffectComposer';
+import { FeedbackBuffer } from '../FeedbackBuffer';
 import {
   BaseEffect,
   type BaseEffectConfig,
@@ -107,6 +108,19 @@ class StateEffect extends TestEffect {
   }
   get mouse(): THREE.Vector2 {
     return this.uMouse.value;
+  }
+  get move(): number {
+    return this.uMove.value;
+  }
+  get gate(): { threshold: number; scale: number; release: number } {
+    const { threshold, scale, release } = this.mouseMotion;
+    return { threshold, scale, release };
+  }
+  get prevMouse(): THREE.Vector2 {
+    return this.uPrevMouse.value;
+  }
+  get motionPrev(): THREE.Vector2 {
+    return this.mouseMotion.prev;
   }
   get fbTexture(): TextureNode {
     return this.feedbackTexture;
@@ -236,6 +250,193 @@ describe('BaseEffect._setSize() / _setFrameState()', () => {
     expect(effect.mouse).not.toBe(shared);
     expect(effect.mouse.x).toBeCloseTo(0.1);
     expect(effect.mouse.y).toBeCloseTo(0.9);
+  });
+});
+
+describe('BaseEffect uMove（マウス移動強度ゲート）', () => {
+  const at = (x: number, y = 0.5): THREE.Vector2 => new THREE.Vector2(x, y);
+
+  it('初期値は 0', () => {
+    const effect = new StateEffect();
+
+    expect(effect.move).toBe(0);
+  });
+
+  it('既定のノブは FeedbackBuffer と同じ', () => {
+    const effect = new StateEffect();
+
+    expect(effect.gate).toEqual({
+      threshold: 0.0008,
+      scale: 0.01,
+      release: 0.85,
+    });
+  });
+
+  it('前回位置が無い初回は 0 のまま', () => {
+    const effect = new StateEffect();
+
+    effect._setFrameState(0, at(0.5));
+
+    expect(effect.move).toBe(0);
+  });
+
+  it('threshold 以下の微小な移動では 0', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.5));
+
+    effect._setFrameState(1, at(0.5005));
+
+    expect(effect.move).toBe(0);
+  });
+
+  it('十分な移動で 0 より大きくなる', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.5));
+
+    effect._setFrameState(1, at(0.505));
+
+    expect(effect.move).toBeCloseTo(0.5);
+  });
+
+  it('テレポート相当の巨大な移動でも 1 で頭打ち', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.0, 0.0));
+
+    effect._setFrameState(1, at(1.0, 1.0));
+
+    expect(effect.move).toBe(1);
+    expect(effect.move).toBeLessThanOrEqual(1);
+  });
+
+  it('移動を止めると release 倍ずつ単調に減衰する', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.5));
+    effect._setFrameState(1, at(0.505));
+    const peak = effect.move;
+
+    const decayed: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      effect._setFrameState(2 + i, at(0.505));
+      decayed.push(effect.move);
+    }
+
+    expect(decayed[0]).toBeCloseTo(peak * 0.85);
+    expect(decayed[1]).toBeCloseTo(peak * 0.85 ** 2);
+    expect(decayed[2]).toBeCloseTo(peak * 0.85 ** 3);
+    expect(decayed[1]).toBeLessThan(decayed[0]);
+    expect(decayed[2]).toBeLessThan(decayed[1]);
+  });
+
+  it('動き出しは減衰を待たず即座に立ち上がる', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.5));
+    effect._setFrameState(1, at(0.501));
+    const small = effect.move;
+    expect(small).toBeCloseTo(0.1);
+
+    effect._setFrameState(2, at(0.506));
+
+    expect(effect.move).toBeCloseTo(0.5);
+    expect(effect.move).toBeGreaterThan(small * 0.85);
+  });
+
+  it('mouse 未指定でも減衰は進む', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.5));
+    effect._setFrameState(1, at(0.505));
+    const peak = effect.move;
+
+    effect._setFrameState(2);
+
+    expect(effect.move).toBeCloseTo(peak * 0.85);
+  });
+
+  // ロジックの正本は FeedbackBuffer 側。式を写経した独自実装ではなく実物と突き合わせ、
+  // 正本が変わったときに post effect 側の乖離が検出されるようにする。
+  it('FeedbackBuffer.step() の uMove と数値的に完全一致する', () => {
+    const mock = makeFeedbackRenderer();
+    const buffer = new FeedbackBuffer(asRenderer(mock), {
+      outputNode: ({ uPrev }) => uPrev,
+    });
+    const effect = new StateEffect();
+    effect._setSize(1920, 1080);
+    const aspect = 1920 / 1080;
+
+    let seed = 12345;
+    const rnd = (): number => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+
+    const m = new THREE.Vector2(0.5, 0.5);
+    for (let i = 0; i < 500; i++) {
+      // 静止・threshold 未満の微動・通常移動・テレポートを混ぜる
+      const r = rnd();
+      if (r < 0.5) {
+        const span = r < 0.25 ? 0 : 0.0004;
+        m.set(m.x + (rnd() - 0.5) * span, m.y + (rnd() - 0.5) * span);
+      } else if (r < 0.9) {
+        m.set(m.x + (rnd() - 0.5) * 0.02, m.y + (rnd() - 0.5) * 0.02);
+      } else {
+        m.set(rnd(), rnd());
+      }
+
+      effect._setFrameState(i / 60, m);
+      buffer.step({ mouse: m, hover: 0, time: i / 60, aspect });
+
+      expect(effect.move).toBe(buffer.uniforms.uMove.value);
+    }
+
+    buffer.dispose();
+  });
+
+  it('uPrevMouse は前フレームのマウス位置を指す', () => {
+    const effect = new StateEffect();
+
+    effect._setFrameState(0, at(0.2, 0.3));
+    // 初回は現在位置と同値（差分が自然に 0 になる）
+    expect(effect.prevMouse.x).toBeCloseTo(0.2);
+    expect(effect.prevMouse.y).toBeCloseTo(0.3);
+
+    effect._setFrameState(1, at(0.8, 0.9));
+
+    expect(effect.prevMouse.x).toBeCloseTo(0.2);
+    expect(effect.prevMouse.y).toBeCloseTo(0.3);
+    expect(effect.mouse.x).toBeCloseTo(0.8);
+  });
+
+  it('mouse 未指定のフレームでは uPrevMouse を動かさない', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.2));
+    effect._setFrameState(1, at(0.8));
+
+    effect._setFrameState(2);
+
+    expect(effect.prevMouse.x).toBeCloseTo(0.2);
+  });
+
+  it('mouseMotion.prev から JS 側でも前フレーム位置を読める', () => {
+    const effect = new StateEffect();
+    effect._setFrameState(0, at(0.2));
+    effect._setFrameState(1, at(0.8));
+
+    expect(effect.motionPrev.x).toBeCloseTo(0.2);
+  });
+
+  it('アスペクト比が反映される（横長ほど同じ dx で move が大きい）', () => {
+    const square = new StateEffect();
+    square._setSize(100, 100);
+    square._setFrameState(0, at(0.5));
+    square._setFrameState(1, at(0.502));
+
+    const wide = new StateEffect();
+    wide._setSize(200, 100);
+    wide._setFrameState(0, at(0.5));
+    wide._setFrameState(1, at(0.502));
+
+    expect(square.move).toBeCloseTo(0.2);
+    expect(wide.move).toBeCloseTo(0.4);
+    expect(wide.move).toBeGreaterThan(square.move);
   });
 });
 

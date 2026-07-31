@@ -22,6 +22,7 @@ import type {
 } from "three/webgpu";
 import type GUI from "lil-gui";
 import type { EffectContext, EffectTarget, EffectPass } from "../EffectComposer";
+import { MouseMotion } from "../MouseMotion";
 
 /** feedback.node ファクトリに渡されるコンテキスト。 */
 export interface FeedbackNodeContext {
@@ -95,10 +96,30 @@ export abstract class BaseEffect {
   protected readonly uMouse = uniform(new Vector2(0.5, 0.5));
 
   /**
+   * 前フレームのマウス UV。座標系は `uMouse` と同じ（左上原点）。
+   * 初回は `uMouse` と同値なので、差分を取る側は前回値の有無を気にしなくてよい。
+   */
+  protected readonly uPrevMouse = uniform(new Vector2(0.5, 0.5));
+
+  /**
    * 蓄積バッファの最新結果を読む texture ノード。outputNode から参照する。
    * feedback を宣言していない effect では 1x1 の透明テクスチャを指す。
    */
   protected readonly feedbackTexture: TextureNode = texture(placeholderTexture);
+
+  /** マウス移動強度（0〜1）。静止で 0 へ緩やかに減衰する。 */
+  protected readonly uMove = uniform(0);
+
+  /**
+   * `uMove` / `uPrevMouse` の算出元。`threshold` / `scale` / `release` の
+   * 調整ノブに加え、`prev`（前フレーム位置）を JS 側から読める。
+   * サブクラスから書き換えてよい。
+   *
+   * `moveGate` ではなくこの名前なのは、ノブだけでなく状態も持つため。
+   * `_prevMouse` / `_hasPrevMouse` / `moveThreshold` といった名前を避けているのは、
+   * 同名の private を持つ既存サブクラスと衝突する（TS2415）ため。
+   */
+  protected readonly mouseMotion = new MouseMotion();
 
   /**
    * owner から注入される renderer。名前が `renderer` でないのは、サブクラスが
@@ -312,6 +333,24 @@ export abstract class BaseEffect {
   _setFrameState(time: number, mouse?: Vector2): void {
     this.uTime.value = time;
     if (mouse) this.uMouse.value.copy(mouse);
+    this._updateMove(mouse);
+  }
+
+  /**
+   * plane 側の `FeedbackContext.uMove` / `uPrevMouse`（`FeedbackBuffer.step()`）と
+   * 同じ `MouseMotion` を使う。post effect 側にも同じ手触りを配って非対称を埋めている。
+   */
+  private _updateMove(mouse?: Vector2): void {
+    if (mouse) {
+      // サイズ 0（リサイズ途中など）で Infinity / NaN にならないようガードする。
+      const aspect =
+        this.width > 0 && this.height > 0 ? this.width / this.height : 1;
+      this.mouseMotion.update(mouse, aspect);
+      this.uPrevMouse.value.copy(this.mouseMotion.prev);
+    } else {
+      this.mouseMotion.decay();
+    }
+    this.uMove.value = this.mouseMotion.move;
   }
 
   update(_time: number, _mouse?: Vector2): void {}

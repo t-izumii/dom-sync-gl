@@ -31,6 +31,8 @@
 | `uTexture` | `TextureNode` | `data-texture` 属性 or `setTexture()` で渡したテクスチャ |
 | `uAlpha` | `UniformNode<number>` | 透明度（既定 1.0） |
 | `uMouseUV` | `UniformNode<Vector2>` | hover 中の plane-local UV (0..1, 左下原点) |
+| `uPrevMouse` | `UniformNode<Vector2>` | 前フレームの `uMouseUV`（同じ左下原点）。初回は `uMouseUV` と同値 |
+| `uMove` | `UniformNode<number>` | マウス移動強度 (0..1)。静止すると緩やかに 0 へ落ちる |
 | `uIsHovered` | `UniformNode<number>` | raycast hit 中なら 1、そうでなければ 0（float） |
 | `uniforms` | `Record<string, UniformNode>` | `options.uniforms` で渡した自前のノード |
 | `uv` | `Node` | UV ノード |

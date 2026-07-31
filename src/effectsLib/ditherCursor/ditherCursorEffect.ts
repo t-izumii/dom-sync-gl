@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
-import { texture, uniform } from 'three/tsl';
-import type { TextureNode, UniformNode } from 'three/webgpu';
+import { uniform } from 'three/tsl';
+import type { UniformNode } from 'three/webgpu';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../../index';
 import { ditherDisplayNode, ditherSimNode } from './ditherCursorNodes';
@@ -22,18 +22,6 @@ export class DitherCursorEffect extends BaseEffect {
   public intensity: number;
   public readonly color: THREE.Color;
 
-  private renderer: THREE.WebGPURenderer | null = null;
-  private read: THREE.RenderTarget | null = null;
-  private write: THREE.RenderTarget | null = null;
-  private readonly simMaterial: THREE.MeshBasicNodeMaterial;
-  private readonly quad: THREE.QuadMesh;
-
-  private _rendererReady = false;
-  private _cleared = false;
-
-  private readonly uPrev: TextureNode;
-  private readonly tSimulation: TextureNode;
-  private readonly uResolution = uniform(new THREE.Vector2(1, 1));
   private readonly uSpeed = uniform(0);
   private readonly uRadius: UniformNode<number>;
   private readonly uDecay: UniformNode<number>;
@@ -65,96 +53,29 @@ export class DitherCursorEffect extends BaseEffect {
     this.uDitherSize = uniform(this.ditherSize);
     this.uExponent = uniform(this.exponent);
     this.uColor = uniform(this.color.clone().convertSRGBToLinear());
-
-    this.read = this.makeTarget(1, 1);
-    this.write = this.makeTarget(1, 1);
-    this.uPrev = texture(this.read.texture);
-    this.tSimulation = texture(this.read.texture);
-
-    this.simMaterial = new THREE.MeshBasicNodeMaterial();
-    this.simMaterial.colorNode = ditherSimNode({
-      uPrev: this.uPrev,
-      uResolution: this.uResolution,
-      uTime: this.uTime,
-      uMouse: this.uMouse,
-      uSpeed: this.uSpeed,
-      uRadius: this.uRadius,
-      uDecay: this.uDecay,
-      uIntensity: this.uIntensity,
-    });
-    this.simMaterial.depthTest = false;
-    this.simMaterial.depthWrite = false;
-    this.simMaterial.blending = THREE.NoBlending;
-    this.quad = new THREE.QuadMesh(this.simMaterial);
-  }
-
-  private makeTarget(w: number, h: number): THREE.RenderTarget {
-    return new THREE.RenderTarget(w, h, {
-      type: THREE.HalfFloatType,
-      format: THREE.RGBAFormat,
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-      wrapS: THREE.ClampToEdgeWrapping,
-      wrapT: THREE.ClampToEdgeWrapping,
-      depthBuffer: false,
-      stencilBuffer: false,
-    });
-  }
-
-  private buildTargets(): void {
-    const renderer = this.renderer;
-    if (!renderer) return;
-
-    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
-    const w = Math.max(1, Math.round(size.x));
-    const h = Math.max(1, Math.round(size.y));
-
-    this.read?.dispose();
-    this.write?.dispose();
-    this.read = this.makeTarget(w, h);
-    this.write = this.makeTarget(w, h);
-    this._cleared = false;
-
-    this.uResolution.value.set(w, h);
-    this.uPrev.value = this.read.texture;
-    this.tSimulation.value = this.read.texture;
-  }
-
-  private clearTargets(): void {
-    const r = this.renderer;
-    if (!r || !this.read || !this.write) return;
-    const prevTarget = r.getRenderTarget();
-    const prevColor = r.getClearColor(
-      new THREE.Color() as unknown as Parameters<
-        THREE.WebGPURenderer['getClearColor']
-      >[0],
-    );
-    const prevAlpha = r.getClearAlpha();
-    r.setClearColor(0x000000, 0);
-    r.setRenderTarget(this.read);
-    r.clear();
-    r.setRenderTarget(this.write);
-    r.clear();
-    r.setRenderTarget(prevTarget);
-    r.setClearColor(prevColor, prevAlpha);
-  }
-
-  _setRenderer(renderer: THREE.WebGPURenderer): void {
-    this.renderer = renderer;
-    renderer
-      .init()
-      .then(() => {
-        this._rendererReady = true;
-      })
-      .catch(() => {});
-    this.buildTargets();
   }
 
   protected getConfig(): BaseEffectConfig {
     return {
+      feedback: {
+        node: ({ prev, uv }) =>
+          ditherSimNode({
+            uPrev: prev,
+            uv,
+            uTime: this.uTime,
+            uMouse: this.uMouse,
+            uSpeed: this.uSpeed,
+            uRadius: this.uRadius,
+            uDecay: this.uDecay,
+            uIntensity: this.uIntensity,
+          }),
+        size: 'screen',
+        type: THREE.HalfFloatType,
+        filter: THREE.NearestFilter,
+      },
       outputNode: (ctx) =>
         ditherDisplayNode(ctx, {
-          tSimulation: this.tSimulation,
+          tSimulation: this.feedbackTexture,
           uDitherSize: this.uDitherSize,
           uExponent: this.uExponent,
           uColor: this.uColor,
@@ -175,45 +96,16 @@ export class DitherCursorEffect extends BaseEffect {
     this._prevMouse.copy(m);
     this._hasPrevMouse = true;
 
-    const renderer = this.renderer;
-    if (
-      !this.pass ||
-      !renderer ||
-      !this._rendererReady ||
-      !this.read ||
-      !this.write
-    ) {
-      return;
-    }
+    if (!this.pass) return;
 
-    if (!this._cleared) {
-      this.clearTargets();
-      this._cleared = true;
-    }
-
-    this.uPrev.value = this.read.texture;
     this.uSpeed.value = this._speed;
     this.uRadius.value = this.radius;
     this.uDecay.value = this.decay;
     this.uIntensity.value = this.intensity;
 
-    const prevTarget = renderer.getRenderTarget();
-    renderer.setRenderTarget(this.write);
-    this.quad.render(renderer);
-    renderer.setRenderTarget(prevTarget);
-
-    const tmp = this.read;
-    this.read = this.write;
-    this.write = tmp;
-
-    this.tSimulation.value = this.read.texture;
     this.setUniform('uDitherSize', this.ditherSize);
     this.setUniform('uExponent', this.exponent);
     this.uColor.value.copy(this.color).convertSRGBToLinear();
-  }
-
-  resize(): void {
-    this.buildTargets();
   }
 
   setupGUI(gui: GUI): GUI {
@@ -229,12 +121,6 @@ export class DitherCursorEffect extends BaseEffect {
   }
 
   dispose(): void {
-    this.read?.dispose();
-    this.write?.dispose();
-    this.simMaterial.dispose();
-    this.read = null;
-    this.write = null;
-    this.renderer = null;
     this.pass = null;
   }
 }
