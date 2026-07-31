@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { clamp, length, mix, pow, uniform, vec2, vec3, vec4 } from 'three/tsl';
+import { clamp, length, screenSize, mix, pow, uniform, vec2, vec3, vec4 } from 'three/tsl';
 import type { UniformNode } from 'three/webgpu';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../../index';
@@ -12,10 +12,8 @@ export interface MouseEffectOptions {
 export class MouseEffect extends BaseEffect {
   public radius: number;
   private readonly uRadius: UniformNode<number>;
-   public readonly color: THREE.Color;
+  public readonly color: THREE.Color;
   private readonly uColor: UniformNode<THREE.Color>;
-  private readonly uMouse: UniformNode<THREE.Vector2>;
-  private readonly uResolution = uniform(new THREE.Vector2(1, 1));
 
   constructor(options: MouseEffectOptions = {}) {
     super();
@@ -25,15 +23,13 @@ export class MouseEffect extends BaseEffect {
 
     this.color = new THREE.Color(options.color ?? '#ff00ff');
     this.uColor = uniform(this.color);
-
-    this.uMouse = uniform(new THREE.Vector2(0.5,0.5));
   }
 
   protected getConfig(): BaseEffectConfig {
     return{
       outputNode: ({inputTexture, uv}) => {
 
-        const aspect = this.uResolution.x.div(this.uResolution.y);
+        const aspect = screenSize.x.div(screenSize.y);
         const p = uv.sub(this.uMouse);
         const aspectP = p.mul(vec2(aspect, 1.0));
         const l = length(aspectP);
@@ -46,19 +42,15 @@ export class MouseEffect extends BaseEffect {
       },
     uniforms: {
       uRadius: this.uRadius,
-      uResolution: this.uResolution,
       uColor: this.uColor
     }
     }
   }
 
-  update(_time: number, mouse?: THREE.Vector2): void {
-    if(!mouse) return
-    this.uMouse.value.copy(mouse);
+  update(): void {
   }
 
-  resize(width: number, height: number): void {
-    this.uResolution.value.set(width, height)
+  resize(): void {
   }
 
   setupGUI(gui: GUI): GUI {
