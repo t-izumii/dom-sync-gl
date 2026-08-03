@@ -217,6 +217,20 @@ export class ScrollSync {
     this._prevTime = now;
   }
 
+  /**
+   * スクロール速度計算の前回値を現在へ寄せ直す。update() を呼ばない区間を挟むと、
+   * その間の移動量がまるごと 1 フレームぶんの delta として計上され、strength が
+   * 一瞬 1 に張り付く。停止からの再開前に呼ぶ。
+   *
+   * @param scrollY 基準にするスクロール位置。省略時は実効 scrollY を実測する。
+   */
+  resetStrengthBaseline(
+    scrollY: number = ScrollSync.computeEffectiveScrollY(),
+  ): void {
+    this._prevScrollY = scrollY;
+    this._prevTime = performance.now() / 1000;
+  }
+
   get logicalRect(): DOMRect {
     return this._logicalRect;
   }

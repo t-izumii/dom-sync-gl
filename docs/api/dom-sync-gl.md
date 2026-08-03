@@ -29,6 +29,8 @@ renderer は `three/webgpu` の `WebGPURenderer`。WebGPU が使えない環境�
 |---|---|---|---|
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化。詳細は [Scroll](/api/scroll) |
 | `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` にすると自前の rAF から [`tick()`](#tick-time) で駆動する |
+| `pauseWhenOffscreen` | `boolean` | `false` | `scrollSync: { attach: 'dom' }` のとき、container が viewport の外にある間だけ描画ループを止める。詳細は [Scroll Sync](/guide/scroll-sync#オフスクリーンで描画を止める) |
+| `pauseRootMargin` | `string` | `'100%'` | `pauseWhenOffscreen` の判定に使う IntersectionObserver の `rootMargin` |
 | `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
 | `forceWebGL` | `boolean` | `false` | WebGPU が利用可能でも WebGL 2 バックエンドを強制する（フォールバック時の見た目・挙動の検証用） |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限（モバイルは `1.5` 推奨） |
@@ -119,6 +121,9 @@ const textPlane = app.createTextPlane('.headline', {
 
 1 フレーム分の更新・描画を実行する。`autoRaf: false` で初期化したときに、アプリ側の rAF
 ループから呼ぶ。Lenis と併用する場合は `lenis.raf(time)` の**後**に呼ぶ。
+
+`pauseWhenOffscreen` による停止中は `tick()` が no-op になる（`autoRaf: false` でも同じ）。
+停止の境界は `tick()` であり、`update()` / `render()` を直接呼んだ場合はガードされない。
 
 ```ts
 const app = new DomSyncGL('#canvas', { autoRaf: false });
@@ -230,6 +235,23 @@ off(); // unsubscribe
 
 pointer listener の動的 ON/OFF。重い UI を開いている間など、hover 判定を止めたいときに。
 `setMouseTrackingEnabled()` は別名として残っている。
+
+### `isPaused()`
+
+`pauseWhenOffscreen` によるオフスクリーン停止中かどうか。無効な場合は常に `false`。
+`autoRaf: false` で自前のループを持つ場合、停止中は `tick()` が no-op になる一方で
+アプリ側の rAF は回り続けるので、自前の毎フレーム処理もここで畳む。
+
+```ts
+const raf = (time: number) => {
+  lenis.raf(time);
+  app.tick(time);
+  if (!app.isPaused()) {
+    updateMyOwnStuff(time); // canvas が見えている間だけ
+  }
+  requestAnimationFrame(raf);
+};
+```
 
 ### Getters
 

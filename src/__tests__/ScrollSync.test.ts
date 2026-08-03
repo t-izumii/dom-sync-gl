@@ -194,6 +194,63 @@ describe('ScrollSync', () => {
     expect(sync.strength).toBe(0);
   });
 
+  it('update() を長時間挟まないと strength が 1 に張り付く（停止復帰のスパイク再現）', () => {
+    const sync = new ScrollSync(container, {
+      trackStrength: true,
+      strengthDecay: 10,
+    });
+
+    // 通常フレーム相当の小さいスクロール（この時点では飽和しない）
+    mockNow = 16;
+    sync.update(0, 10);
+    expect(sync.strength).toBeLessThan(1);
+
+    // 10 秒ぶん update() を呼ばず 5000px スクロールした状態で再開する
+    mockNow = 10_016;
+    sync.update(0, 5010);
+
+    expect(sync.strength).toBe(1);
+  });
+
+  it('resetStrengthBaseline() を挟めば復帰初回の strength が張り付かない', () => {
+    const sync = new ScrollSync(container, {
+      trackStrength: true,
+      strengthDecay: 10,
+    });
+
+    mockNow = 16;
+    sync.update(0, 10);
+
+    // 上と同じ停止区間。再開直前に前回値を継ぎ直す
+    mockNow = 10_016;
+    sync.resetStrengthBaseline(5010);
+
+    mockNow = 10_032;
+    sync.update(0, 5020);
+
+    expect(sync.strength).toBeLessThan(1);
+  });
+
+  it('resetStrengthBaseline() は省略時に実効 scrollY を基準にする', () => {
+    const sync = new ScrollSync(container, {
+      trackStrength: true,
+      strengthDecay: 10,
+    });
+
+    mockNow = 16;
+    sync.update(0, 10);
+
+    // documentElement.getBoundingClientRect の mock 経由で実効 scrollY = 5010 になる
+    (window as unknown as { scrollY: number }).scrollY = 5010;
+    mockNow = 10_016;
+    sync.resetStrengthBaseline();
+
+    mockNow = 10_032;
+    sync.update(0, 5020);
+
+    expect(sync.strength).toBeLessThan(1);
+  });
+
   it('strength: trackStrength=false なら常に 0', () => {
     const sync = new ScrollSync(container, { trackStrength: false });
     mockNow = 16;

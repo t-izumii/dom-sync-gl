@@ -29,6 +29,21 @@ export interface DomSyncGLOptions {
    */
   autoRaf?: boolean;
   /**
+   * scrollSync の `attach: 'dom'` 時に、container が viewport の外にある間だけ
+   * 描画ループを止めるか。既定 false（従来どおり常に回す）。
+   * 復帰時は時間軸・スクロール速度・ポインタの前フレーム値を継ぎ直す。
+   * `attach: 'translate'` と scrollSync 無しでは無視される（前者は container を
+   * 毎 tick viewport へ貼り直す構造上オフスクリーンにならないため）。DEV では warn を出す。
+   */
+  pauseWhenOffscreen?: boolean;
+  /**
+   * pauseWhenOffscreen の判定に使う IntersectionObserver の rootMargin。
+   * 既定 '100%'（DomPlane の inViewRootMargin と同値）。
+   * IntersectionObserver の通知は rAF callback より後に配送されるため復帰は最短でも
+   * 1 フレーム遅れる。0 まで詰めると復帰直後の 1 フレームが未描画で露出する。
+   */
+  pauseRootMargin?: string;
+  /**
    * WebGPU が利用可能でも WebGL 2 バックエンドを強制する（デバッグ用）。
    * フォールバック時の見た目・挙動の検証に使う。既定: false（自動選択）。
    */

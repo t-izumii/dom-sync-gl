@@ -39,6 +39,11 @@ export class DomSyncGL {
   private rafId: number = 0;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private offscreenObserver: IntersectionObserver | null = null;
+  private _paused: boolean = false;
+  // animate() は自己再帰で rAF を張り直すため、二重に start するとループが 2 本走る。
+  // start 済みかをここで持ち、再入を startLoop() で一括して弾く。
+  private _rafRunning: boolean = false;
   private eventAbort: AbortController = new AbortController();
   private pointer!: PointerController;
   private effectManager!: EffectManager;
@@ -133,9 +138,7 @@ export class DomSyncGL {
     this.init();
 
     this.setupEventListeners();
-    if (this.options.autoRaf !== false) {
-      this.animate();
-    }
+    this.startLoop();
   }
 
   private init() {
@@ -196,6 +199,15 @@ export class DomSyncGL {
 
   isPointerActive(): boolean {
     return this.pointer.isPointerActive();
+  }
+
+  /**
+   * オフスクリーン停止中か。pauseWhenOffscreen が無効なら常に false。
+   * `autoRaf: false` のアプリ側ループから、自前の毎フレーム処理をまとめて
+   * 飛ばしたい時に読む。
+   */
+  isPaused(): boolean {
+    return this._paused;
   }
 
   getPointerType(): PointerType {
@@ -468,9 +480,73 @@ export class DomSyncGL {
         passive: true,
       });
     }
+    this.setupOffscreenPause();
     if (this.options.enablePointerTracking) {
       this.setPointerTrackingEnabled(true);
     }
+  }
+
+  /**
+   * attach: 'dom' の container がオフスクリーンの間だけ描画ループを止める監視。
+   * translate モードは container を毎 tick viewport へ貼り直す構造上オフスクリーンに
+   * ならないため対象外。IntersectionObserver 未対応環境では監視を張らず、
+   * 従来どおり回り続ける（ResizeObserver と同じ degrade 方針）。
+   */
+  private setupOffscreenPause(): void {
+    if (this.options.pauseWhenOffscreen !== true) return;
+
+    if (this.scrollSync?.attach !== 'dom') {
+      if (import.meta.env?.DEV) {
+        console.warn(
+          '[DomSyncGL] pauseWhenOffscreen は scrollSync: { attach: "dom" } の時のみ有効です。',
+        );
+      }
+      return;
+    }
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    this.offscreenObserver = new IntersectionObserver(
+      (entries) => {
+        if (this.destroyed) return;
+        // 1 回の callback に同一 target の観測が複数積まれうるため、DomPlane の
+        // entries[0] ではなく最新の 1 件で判定する。取りこぼすと停止状態が反転したまま固まる。
+        this.setPaused(!entries[entries.length - 1].isIntersecting);
+      },
+      { rootMargin: this.options.pauseRootMargin ?? '100%' },
+    );
+    this.offscreenObserver.observe(this.container);
+  }
+
+  private setPaused(paused: boolean): void {
+    if (this.destroyed || this._paused === paused) return;
+    this._paused = paused;
+
+    if (paused) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = 0;
+      this._rafRunning = false;
+      return;
+    }
+    this.resyncFrameState();
+    this.startLoop();
+  }
+
+  /**
+   * 停止区間を挟んだせいで壊れる「前フレームとの差分」を、まとめて現在へ寄せ直す。
+   * これを飛ばすと再開初回だけ elapsed が停止時間ぶん飛び、strength が 1 に張り付き、
+   * pointer の delta が停止中の移動量まるごととして計上される。
+   */
+  private resyncFrameState(): void {
+    // THREE.Clock は getDelta() を呼ばない限り進まないので elapsedTime は停止前のまま。
+    // oldTime だけ現在時刻へ寄せれば、再開初回の delta が ~0 になり時間が連続する。
+    // stop()/start() を使わないのは start() が elapsedTime を 0 に戻すため。
+    this.clock.oldTime = performance.now();
+    this.scrollSync?.resetStrengthBaseline();
+    // 停止中に container はスクロールで動いているので canvas rect のキャッシュを捨てる。
+    this.pointer.invalidateRect();
+    // prevMouse を現在値へ寄せ、再開初回の getMouseDelta() を 0 から始める。
+    this.pointer.endFrame();
+    this.refreshScrollCache();
   }
 
   setPointerTrackingEnabled(enabled: boolean): void {
@@ -545,6 +621,9 @@ export class DomSyncGL {
     if (this.resizeTimer) clearTimeout(this.resizeTimer);
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this._rafRunning = false;
+    this.offscreenObserver?.disconnect();
+    this.offscreenObserver = null;
     this.eventAbort.abort();
     this.pointer.destroy();
 
@@ -569,8 +648,21 @@ export class DomSyncGL {
     this.canvas.remove();
   }
 
+  // animate() の唯一の起点。二重起動・停止中・destroy 済み・autoRaf: false を
+  // ここで一括して弾く（animate() は自己再帰なので、素で 2 回呼ぶと rAF が 2 本走る）。
+  private startLoop(): void {
+    if (this.destroyed || this._paused) return;
+    if (this.options.autoRaf === false) return;
+    if (this._rafRunning) return;
+    this._rafRunning = true;
+    this.animate();
+  }
+
   private animate = () => {
-    if (this.destroyed) return;
+    if (this.destroyed || this._paused) {
+      this._rafRunning = false;
+      return;
+    }
     this.rafId = requestAnimationFrame(this.animate);
     this.tick();
   };
@@ -672,6 +764,9 @@ export class DomSyncGL {
    */
   tick = (_time?: number) => {
     if (this.destroyed) return;
+    // オフスクリーン停止中は、autoRaf: false のアプリ側ループから呼ばれても描画しない。
+    // beginStats() より手前で返し、stats の begin/end 不整合を作らない。
+    if (this._paused) return;
     // 計測は tick 全体のみで開閉し、update()/render() 単独呼び出しでは
     // begin/end の不整合が起きないようにする。
     this.devTools.beginStats();

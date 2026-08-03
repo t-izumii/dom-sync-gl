@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>pauseWhenOffscreen — オフスクリーンで描画を止める</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: system-ui, sans-serif;
+        color: #fff;
+        background-color: #0b0d12;
+        line-height: 1.5;
+      }
+
+      /* 固定ヘッダの操作説明。スクロールしても読めるようにする。 */
+      .guide {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        z-index: 2;
+        max-width: 620px;
+        font-size: 13px;
+        font-family: ui-monospace, monospace;
+        background-color: rgba(0, 0, 0, 0.72);
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+      .guide ol { margin-block-start: 6px; padding-inline-start: 1.4em; }
+
+      main { position: relative; z-index: 1; }
+
+      .filler {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(1.2rem, 5vw, 3rem);
+        color: rgba(255, 255, 255, 0.28);
+      }
+
+      .stage {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 24px 16px;
+      }
+      .panels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        justify-content: center;
+      }
+      .panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      /* attach:'dom' の対象。通常フローの block なので、スクロールで実際に画面外へ出る。
+         ライブラリは position/サイズを上書きしないため、この box のサイズで canvas が出る。 */
+      .panel__canvas {
+        inline-size: min(360px, 84vw);
+        block-size: 360px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+      }
+      .panel__canvas canvas { display: block; }
+
+      .panel__title {
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .panel__title[data-on="true"] { color: #ffb066; }
+      .panel__title[data-on="false"] { color: #6fd0f0; }
+
+      .readout {
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2px 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 8px 10px;
+        border-radius: 6px;
+      }
+      .readout dt { color: rgba(255, 255, 255, 0.55); }
+      .readout dd { text-align: end; font-variant-numeric: tabular-nums; }
+      .readout dd[data-paused="true"] { color: #ff7b7b; font-weight: 700; }
+      .readout dd[data-paused="false"] { color: #7bff9e; }
+    </style>
+  </head>
+  <body>
+    <div class="guide">
+      <strong>pauseWhenOffscreen の動作確認</strong>
+      <ol>
+        <li>下の 2 枚の canvas までスクロールする（両方とも掃引線が回る）</li>
+        <li>そのまま <strong>2 画面ぶん以上</strong>スクロールして離れる（rootMargin が 100% のため）</li>
+        <li>数秒待ってから戻る</li>
+      </ol>
+      期待: 左(ON) は frames / uTime が止まったまま、右(OFF) は進み続ける。<br />
+      復帰後、左の uTime は<strong>飛ばずに続きから</strong>進む。
+    </div>
+
+    <main>
+      <div class="filler">↓ scroll</div>
+
+      <div class="stage">
+        <div class="panels">
+          <div class="panel">
+            <p class="panel__title" data-on="true">pauseWhenOffscreen: true</p>
+            <div class="panel__canvas" id="on"></div>
+            <dl class="readout">
+              <dt>state</dt><dd id="on-state">–</dd>
+              <dt>frames</dt><dd id="on-frames">0</dd>
+              <dt>uTime</dt><dd id="on-time">0.00</dd>
+              <dt>pauses</dt><dd id="on-pauses">0</dd>
+            </dl>
+          </div>
+
+          <div class="panel">
+            <p class="panel__title" data-on="false">pauseWhenOffscreen: 無指定（既定）</p>
+            <div class="panel__canvas" id="off"></div>
+            <dl class="readout">
+              <dt>state</dt><dd id="off-state">–</dd>
+              <dt>frames</dt><dd id="off-frames">0</dd>
+              <dt>uTime</dt><dd id="off-time">0.00</dd>
+              <dt>pauses</dt><dd id="off-pauses">0</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="filler">02 — まだ戻らない</div>
+      <div class="filler">03 — ここまで来れば ON 側は停止済み</div>
+      <div class="filler">04 — 数秒待ってから ↑ 戻る</div>
+      <div class="filler">05 — 最下部</div>
+    </main>
+
+    <script type="module" src="/src/pause-offscreen.ts"></script>
+  </body>
+</html>

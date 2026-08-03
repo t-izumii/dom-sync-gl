@@ -128,6 +128,10 @@ const raf = (time: number) => {
 requestAnimationFrame(raf);
 ```
 
+[`pauseWhenOffscreen`](/guide/scroll-sync#オフスクリーンで描画を止める) と併用する場合、停止中は
+`tick()` が no-op になるがアプリ側の rAF は回り続ける。自前の重い処理も畳みたいなら
+`app.isPaused()` で分岐する。
+
 ## 次に
 
 - [Demos](/demos/) — 動くサンプル + コピペ可能なコード

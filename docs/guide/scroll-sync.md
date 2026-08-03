@@ -63,6 +63,55 @@ container 自身の CSS 配置をそのまま尊重する。canvas は container
 
 `'dom'` モードでは `overscan` は無視される。
 
+## オフスクリーンで描画を止める
+
+`attach: 'dom'` の canvas は container の CSS 配置をそのまま尊重するため、スクロールすると
+**実際に viewport の外へ出る**。`pauseWhenOffscreen: true` を渡すと、その間だけ rAF ループを
+解除して描画・DOM 読み取り・エフェクト計算をまとめて止める。
+
+```ts
+new DomSyncGL('#canvas', {
+  scrollSync: { attach: 'dom' },
+  pauseWhenOffscreen: true,
+});
+```
+
+既定の `'translate'` では無視される（DEV では warn が出る）。translate モードは container を
+毎 tick viewport へ貼り直す構造上そもそもオフスクリーンにならず、逆に**ループこそが container を
+viewport に貼り付けている**ので止められない。scrollSync 無しの場合も対象外。
+
+判定は container を見る IntersectionObserver で、`rootMargin` の既定は `'100%'`（viewport 1 枚ぶん
+手前から回し始める）。`pauseRootMargin` で変えられるが、IntersectionObserver の通知は rAF callback
+より**後**に配送される仕様上、復帰は最短でも 1 フレーム遅れる。`'0px'` まで詰めると復帰直後の
+1 フレームが未描画で露出するので、余裕を持たせた既定のままを推奨する。
+
+復帰時には「停止区間を挟んだせいで壊れる前フレームとの差分」を継ぎ直す:
+
+- **時間軸** — `uTime` が停止時間ぶん飛ばず、止まったところから続く
+- **スクロール速度** — `strength` が復帰初回に 1 へ張り付いてフラッシュするのを防ぐ
+- **ポインタ** — `getMouseDelta()` が停止中の移動量をまとめて返さないようにする
+
+`autoRaf: false` と併用した場合、停止中は `tick()` が no-op になる。アプリ側の rAF 自体は
+止まらないので、自前の毎フレーム処理も畳みたいなら [`isPaused()`](/api/dom-sync-gl#ispaused)
+を見る。
+
+その他の挙動:
+
+- サイズ 0 / `display: none` の container も「交差していない」と判定されるので停止する
+- 構築直後は IntersectionObserver の初回通知が届くまで 0〜1 フレーム回る（初回描画がシェーダ
+  コンパイルを温めるので、復帰時のヒッチが減る）
+- 停止中もリサイズは適用されるが、再描画は復帰まで走らない
+- 停止中は OrbitControls の damping / autoRotate も止まる
+- IntersectionObserver 非対応環境では監視を張らず、従来どおり回り続ける
+- タブ非表示（`document.hidden`）は扱わない。オフスクリーン判定のみ
+
+::: warning 通常フローの container では canvasRect のドリフトとセットで効く
+`pauseWhenOffscreen` が意味を持つのは「オフスクリーンになりうる container」、つまり
+`position: fixed` **ではない** container だが、これは
+[canvasRect のドリフト](/api/scroll#attach)が起きる条件でもある。停止の有無で挙動は変わらない
+（ドリフトは最後に計測した時点に依存するため）が、併用時は両方を意識しておく。
+:::
+
 ## スクロール速度を演出に使う
 
 `trackStrength: true` にすると `strength`（0〜1）が読めるようになる。速く動かすほど 1 に近づき、

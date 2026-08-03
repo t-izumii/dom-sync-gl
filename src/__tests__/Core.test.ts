@@ -739,4 +739,220 @@ describe('DomSyncGL', () => {
       await expect(app.ready).resolves.toBeUndefined();
     });
   });
+
+  describe("オフスクリーン停止（pauseWhenOffscreen / attach: 'dom'）", () => {
+    let ioCallback: IntersectionObserverCallback | null;
+    let ioOptions: IntersectionObserverInit | undefined;
+    let ioObserve: ReturnType<typeof vi.fn>;
+    let ioDisconnect: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      ioCallback = null;
+      ioOptions = undefined;
+      ioObserve = vi.fn();
+      ioDisconnect = vi.fn();
+      // jsdom は IntersectionObserver 未実装のため、コールバックを捕捉するモックを注入する。
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(
+            cb: IntersectionObserverCallback,
+            opts?: IntersectionObserverInit
+          ) {
+            ioCallback = cb;
+            ioOptions = opts;
+          }
+          observe = ioObserve;
+          unobserve() {}
+          disconnect = ioDisconnect;
+        }
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    // isIntersecting だけ見る最小 entry（実装は他のフィールドを読まない）
+    const fire = (isIntersecting: boolean) =>
+      ioCallback!(
+        [{ isIntersecting } as IntersectionObserverEntry],
+        {} as IntersectionObserver
+      );
+
+    const domApp = (opts: Record<string, unknown> = {}) =>
+      new DomSyncGL(container, {
+        scrollSync: { attach: 'dom' },
+        pauseWhenOffscreen: true,
+        ...opts,
+      });
+
+    const rafCount = () =>
+      vi.mocked(window.requestAnimationFrame).mock.calls.length;
+
+    it('dom モード + opt-in で container を rootMargin 100% で監視する', () => {
+      const app = domApp();
+      expect(ioObserve).toHaveBeenCalledWith(container);
+      expect(ioOptions?.rootMargin).toBe('100%');
+      app.destroy();
+    });
+
+    it('pauseRootMargin を渡すとその値が rootMargin に使われる', () => {
+      const app = domApp({ pauseRootMargin: '0px' });
+      expect(ioOptions?.rootMargin).toBe('0px');
+      app.destroy();
+    });
+
+    it('pauseWhenOffscreen 未指定なら observer を生成しない（既存挙動不変）', () => {
+      const app = new DomSyncGL(container, { scrollSync: { attach: 'dom' } });
+      expect(ioCallback).toBeNull();
+      expect(app.isPaused()).toBe(false);
+      app.destroy();
+    });
+
+    it("attach: 'translate' で opt-in しても監視せず DEV warn を出す", () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const app = new DomSyncGL(container, {
+        scrollSync: { attach: 'translate' },
+        pauseWhenOffscreen: true,
+      });
+
+      expect(ioCallback).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it('scrollSync 無しで opt-in しても監視しない', () => {
+      const app = new DomSyncGL(container, { pauseWhenOffscreen: true });
+      expect(ioCallback).toBeNull();
+      app.destroy();
+    });
+
+    it('オフスクリーンで rAF を解除し、以後 tick() が update/render を呼ばない', () => {
+      const app = domApp();
+      const updateSpy = vi.spyOn(app, 'update');
+      const renderSpy = vi.spyOn(app, 'render');
+
+      fire(false);
+
+      expect(app.isPaused()).toBe(true);
+      expect(window.cancelAnimationFrame).toHaveBeenCalled();
+
+      app.tick();
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(renderSpy).not.toHaveBeenCalled();
+
+      app.destroy();
+    });
+
+    it('画面内に戻ると停止が解除されループが再開する', () => {
+      const app = domApp();
+      fire(false);
+      const before = rafCount();
+
+      fire(true);
+
+      expect(app.isPaused()).toBe(false);
+      expect(rafCount()).toBe(before + 1);
+      app.destroy();
+    });
+
+    it('復帰通知が連続しても rAF ループは 1 本しか走らない', () => {
+      const app = domApp();
+      fire(false);
+      const before = rafCount();
+
+      fire(true);
+      fire(true);
+
+      expect(rafCount()).toBe(before + 1);
+      app.destroy();
+    });
+
+    it('復帰時に elapsed が停止時間ぶん飛ばない', () => {
+      let mockNow = 1000;
+      vi.spyOn(performance, 'now').mockImplementation(() => mockNow);
+
+      const app = domApp();
+      // 構築時の tick で clock が start 済み。ここを基準にする。
+      const elapsedBefore = app.clock.getElapsedTime();
+
+      fire(false);
+      mockNow += 10_000;
+      fire(true);
+
+      // 復帰の startLoop() で 1 フレーム回っている
+      expect(app.clock.getElapsedTime() - elapsedBefore).toBeLessThan(0.001);
+      app.destroy();
+    });
+
+    it('復帰時に strength / pointer の前フレーム値を継ぎ直す', () => {
+      const app = domApp();
+      const sync = app.getScrollSync()!;
+      const pointer = app as unknown as {
+        pointer: { invalidateRect: () => void; endFrame: () => void };
+      };
+      const resetSpy = vi.spyOn(sync, 'resetStrengthBaseline');
+      const invalidateSpy = vi.spyOn(pointer.pointer, 'invalidateRect');
+      const endFrameSpy = vi.spyOn(pointer.pointer, 'endFrame');
+
+      fire(false);
+      fire(true);
+
+      expect(resetSpy).toHaveBeenCalledTimes(1);
+      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+      expect(endFrameSpy).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it('autoRaf: false でも停止中の tick() は stats を開かず描画しない', () => {
+      const app = domApp({ autoRaf: false });
+      const updateSpy = vi.spyOn(app, 'update');
+      const devTools = app as unknown as {
+        devTools: { beginStats: () => void };
+      };
+      const statsSpy = vi.spyOn(devTools.devTools, 'beginStats');
+
+      fire(false);
+      app.tick(0);
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(statsSpy).not.toHaveBeenCalled();
+
+      // 復帰後は自前ループからの tick() が通る
+      fire(true);
+      app.tick(0);
+      expect(updateSpy).toHaveBeenCalled();
+
+      app.destroy();
+    });
+
+    it('停止中に destroy() しても例外にならず observer を切る', () => {
+      const app = domApp();
+      fire(false);
+
+      expect(() => app.destroy()).not.toThrow();
+      expect(ioDisconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it('destroy() 後の通知はループを再開させない', () => {
+      const app = domApp();
+      fire(false);
+      app.destroy();
+      const before = rafCount();
+
+      expect(() => fire(true)).not.toThrow();
+      expect(rafCount()).toBe(before);
+      expect(app.isPaused()).toBe(true);
+    });
+
+    it('IntersectionObserver 非対応環境では停止せず従来どおり回る', () => {
+      vi.stubGlobal('IntersectionObserver', undefined);
+
+      const app = domApp();
+      expect(app.isPaused()).toBe(false);
+      expect(() => app.tick()).not.toThrow();
+      app.destroy();
+    });
+  });
 });

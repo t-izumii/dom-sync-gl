@@ -1,12 +1,12 @@
 # Graph Report - dom-sync-gl  (2026-08-03)
 
 ## Corpus Check
-- 115 files · ~70,424 words
+- 114 files · ~69,557 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1078 nodes · 1753 edges · 72 communities (49 shown, 23 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.84)
+- 1071 nodes · 1742 edges · 79 communities (55 shown, 24 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 63 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -15,20 +15,20 @@
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- ripple/index.ts
+- RipplePostEffect
 - BaseEffect
 - main.ts
 - graphify build pipeline (Steps 0-9)
 - FluidSim
 - PointerController
 - DomSyncGL
-- DomPlane
-- RipplePostEffect
+- StubRenderer
+- DomTextPlane.ts
 - LiquidSwap
 - DomTextPlane.test.ts
 - src/index.ts
 - compilerOptions
-- StateEffect
+- DomPositionCalculator
 - ditherCursorNodes.ts
 - PixelTrailEffect
 - compilerOptions
@@ -42,14 +42,15 @@
 - Dom3DObject
 - ScrollSync
 - FeedbackBuffer
-- PlaneComposer
-- EffectManager.test.ts
+- EffectComposer.ts
+- BaseEffect.ts
 - SmoothCursorEffect
+- constants.ts
 - EffectManager
 - MockWebGPURenderer
 - package.json
 - scripts
-- pause-offscreen.ts
+- PlaneComposer
 - DomPlane.test.ts
 - ScrollSync
 - example/tsconfig.json
@@ -59,7 +60,7 @@
 - DOM-locked Plane Demo
 - BaseEffect (post effect authoring)
 - FeedbackBuffer (texture generator)
-- effects-lib.ts
+- Camera
 - ScrollSync layer
 - Single rAF loop (Lenis integration)
 - CreatePlaneOptions
@@ -67,22 +68,29 @@
 - getComputedStyle rasterization pipeline
 - dom-test.ts
 - DevTools
-- MouseFlowEffect
+- effects-lib.ts
 - Demos Catalog
+- FeedbackBuffer.ts
 - effectsLib test page
 - peerDependenciesMeta
 - PlaneComposer (per-plane FBO chain)
+- DomTextPlane
 - BaseEffectConfig
 - FalkorDB export
 - Token reduction benchmark
+- EffectTarget
 - MouseEffect
+- FontLoader.ts
+- ditherCursorEffect.ts
 - gui
 - MockWebGPURenderer
 - EffectComposer
 - v0.3 to v0.4 Breaking Changes
+- shaders.ts
+- FilmEffect
 
 ## God Nodes (most connected - your core abstractions)
-1. `DomSyncGL` - 71 edges
+1. `DomSyncGL` - 69 edges
 2. `BaseEffect` - 58 edges
 3. `DomPlane` - 49 edges
 4. `PointerController` - 29 edges
@@ -116,15 +124,19 @@
 - **Single-rAF scroll alignment flow (Lenis then app.tick)** — docs_guide_scroll_sync_lenis_integration, docs_demos_scroll_sync_lenis_single_raf, example_readme_lenis_raf_order, docs_guide_getting_started_auto_raf, docs_guide_scroll_sync_effective_scroll_y [INFERRED 0.85]
 - **Ping-pong render-target effect pipeline (post sink + feedback generator)** — docs_guide_post_effects_base_effect, docs_guide_post_effects_plane_composer, docs_guide_post_effects_feedback_buffer, docs_guide_post_effects_post_vs_generator, docs_demos_post_effect_chain_order [INFERRED 0.85]
 
-## Communities (72 total, 23 thin omitted)
+## Communities (79 total, 24 thin omitted)
 
-### Community 0 - "ripple/index.ts"
-Cohesion: 0.32
-Nodes (8): packState, unpackH, unpackHPrev, rippleApplyNode(), RippleApplyOptions, placeholderTexture, RipplePostEffectOptions, rippleTexture()
+### Community 0 - "RipplePostEffect"
+Cohesion: 0.16
+Nodes (9): packState, unpackH, unpackHPrev, rippleApplyNode(), RippleApplyOptions, placeholderTexture, RipplePostEffect, RipplePostEffectOptions (+1 more)
+
+### Community 1 - "BaseEffect"
+Cohesion: 0.06
+Nodes (3): DomPlane, BaseEffect, FeedbackOptions
 
 ### Community 2 - "main.ts"
-Cohesion: 0.06
-Nodes (33): FilmEffect, TextHoverEffect, app, counter, cursor, demoSpaceMonoReady, film, fontFaceDemoEl (+25 more)
+Cohesion: 0.10
+Nodes (16): app, counter, cursor, demoSpaceMonoReady, film, fontFaceDemoEl, heroPlane, heroStrength (+8 more)
 
 ### Community 3 - "graphify build pipeline (Steps 0-9)"
 Cohesion: 0.07
@@ -135,24 +147,32 @@ Cohesion: 0.10
 Nodes (6): DoubleFBO, FluidSim, FluidStepParams, hsvToRGB(), SplashCursorEffect, SplashCursorEffectOptions
 
 ### Community 5 - "PointerController"
-Cohesion: 0.06
-Nodes (19): Camera, AMBIENT_LIGHT_COLOR, AMBIENT_LIGHT_INTENSITY, CAMERA_FAR, CAMERA_FOV, CAMERA_NEAR, DEFAULT_OFFSET, DEFAULT_SCALE (+11 more)
+Cohesion: 0.10
+Nodes (7): PointerController, Harness, makeCanvas(), makeHarness(), makePlaneMock(), makeRaycastHarness(), RaycastHarness
+
+### Community 8 - "DomTextPlane.ts"
+Cohesion: 0.22
+Nodes (8): MockCtx, buildFontSpec(), layoutLines(), num(), rasterizeText(), ResolvedTextStyle, resolveTextStyle(), TextStyleOverrides
 
 ### Community 9 - "LiquidSwap"
 Cohesion: 0.11
 Nodes (9): coverUv, hash21, imageSizeOf(), LiquidSwap, LiquidSwapOptions, loadLiquidSwapTexture(), placeholderTexture, sharedLoader (+1 more)
 
 ### Community 11 - "src/index.ts"
-Cohesion: 0.05
-Nodes (31): AddFeedbackOptions, placeholderTexture, RESERVED_UNIFORM_NAMES, sharedTextureLoader, DomPositionCalculator, DomTextPlane, FeedbackBufferOptions, FeedbackContext (+23 more)
+Cohesion: 0.20
+Nodes (16): AddFeedbackOptions, placeholderTexture, RESERVED_UNIFORM_NAMES, sharedTextureLoader, FeedbackBufferOptions, Light, PointerType, ScrollSyncOptions (+8 more)
 
 ### Community 12 - "compilerOptions"
 Cohesion: 0.08
 Nodes (23): DOM, DOM.Iterable, ES2020, compilerOptions, allowImportingTsExtensions, forceConsistentCasingInFileNames, isolatedModules, lib (+15 more)
 
+### Community 13 - "DomPositionCalculator"
+Cohesion: 0.11
+Nodes (4): DEFAULT_OFFSET, DEFAULT_SCALE, DomPositionCalculator, WithInternals
+
 ### Community 14 - "ditherCursorNodes.ts"
-Cohesion: 0.15
-Nodes (12): DitherCursorEffect, DitherCursorEffectOptions, bayer2(), bayer8(), curlNoise, ditherDisplayNode(), DitherDisplayNodes, ditherSimNode() (+4 more)
+Cohesion: 0.24
+Nodes (10): bayer2(), bayer8(), curlNoise, ditherDisplayNode(), DitherDisplayNodes, ditherSimNode(), DitherSimNodes, mod289() (+2 more)
 
 ### Community 15 - "PixelTrailEffect"
 Cohesion: 0.11
@@ -182,13 +202,21 @@ Nodes (17): BaseEffect, Built-in runtime state (uTime / uMouse / width / height)
 Cohesion: 0.15
 Nodes (16): Scroll Sync Demo, updateRectEveryFrame option, createPlane(null) fullscreen background plane, Style read from getComputedStyle (clamp() resolves), Pitfall: DOM opacity does not affect the GL text plane, DOM text preserved (color: transparent, a11y intact), DomTextPlane (createTextPlane), loadFont() separated from DomTextPlane (+8 more)
 
-### Community 27 - "PlaneComposer"
-Cohesion: 0.12
-Nodes (4): EffectContext, EffectOptions, EffectPass, PlaneComposer
+### Community 26 - "FeedbackBuffer"
+Cohesion: 0.06
+Nodes (6): FeedbackBuffer, FeedbackEffect, FeedbackInternals, RendererMock, StateEffect, TestEffect
+
+### Community 28 - "BaseEffect.ts"
+Cohesion: 0.15
+Nodes (5): FeedbackNodeContext, placeholderTexture, _sizeScratch, StateEffect, TestEffect
 
 ### Community 29 - "SmoothCursorEffect"
 Cohesion: 0.20
 Nodes (5): SmoothCursorEffect, SmoothCursorEffectOptions, segDist, smoothCursorNode(), SmoothCursorNodeUniforms
+
+### Community 30 - "constants.ts"
+Cohesion: 0.32
+Nodes (8): AMBIENT_LIGHT_COLOR, AMBIENT_LIGHT_INTENSITY, CAMERA_FAR, CAMERA_FOV, CAMERA_NEAR, DIRECTIONAL_LIGHT_COLOR, DIRECTIONAL_LIGHT_INTENSITY, DIRECTIONAL_LIGHT_POSITION
 
 ### Community 33 - "package.json"
 Cohesion: 0.15
@@ -197,10 +225,6 @@ Nodes (12): description, exports, files, license, main, module, name, sideEffect
 ### Community 34 - "scripts"
 Cohesion: 0.15
 Nodes (13): scripts, build, build:watch, dev, docs:build, docs:dev, docs:preview, example (+5 more)
-
-### Community 35 - "pause-offscreen.ts"
-Cohesion: 0.33
-Nodes (4): fmt(), hud(), Panel, panels
 
 ### Community 37 - "ScrollSync"
 Cohesion: 0.25
@@ -234,10 +258,6 @@ Nodes (9): Effect chain order = addEffect order (ping-pong RT), enabled = false 
 Cohesion: 0.22
 Nodes (8): forceWebGL debug option, app.ready Promise (async init), WebGPU default with WebGL 2 auto-fallback, Initialization became async (ready), FeedbackBuffer (texture generator), Feedback outputNode ctx nodes (uPrev / uMouse / uHover ...), Ping-pong RenderTarget only, no compute shader, post (sink) vs generator (source) distinction
 
-### Community 46 - "effects-lib.ts"
-Cohesion: 0.33
-Nodes (4): app, EffectDef, EFFECTS, requested
-
 ### Community 47 - "ScrollSync layer"
 Cohesion: 0.29
 Nodes (8): Lenis + Core unified into one rAF (demo), scrollSync: true for window scroll, autoRaf: false + tick() self-driven loop, Effective scrollY from documentElement rect top, ScrollSync layer, Lenis integration in a single rAF loop, trackStrength / scroll strength, lenis.raf(time) then app.tick(time) ordering in example
@@ -262,9 +282,17 @@ Nodes (7): color: transparent text hiding, getComputedStyle rasterization pipeli
 Cohesion: 0.29
 Nodes (4): app, inlineApp, inlineSync, sync
 
+### Community 54 - "effects-lib.ts"
+Cohesion: 0.16
+Nodes (6): app, EffectDef, EFFECTS, requested, MouseFlowEffect, MouseFlowEffectOptions
+
 ### Community 55 - "Demos Catalog"
 Cohesion: 0.40
 Nodes (6): Demo Page Reading Order (Demo / Code / Points), Demos Catalog, Install (dom-sync-gl + three >= 0.178.0), three peerDependency raised to >=0.178.0, domSyncGL (project home page), Feature list (DOM-locked plane / fallback / scroll sync / text planes / post effects)
+
+### Community 56 - "FeedbackBuffer.ts"
+Cohesion: 0.18
+Nodes (4): FeedbackContext, FeedbackInput, RESERVED_UNIFORM_NAMES, MouseMotion
 
 ### Community 57 - "effectsLib test page"
 Cohesion: 0.40
@@ -279,32 +307,40 @@ Cohesion: 0.67
 Nodes (4): Do not reuse one effect instance across targets, Per-plane effect chain (plane.addEffect), 1 effect = 1 plane / app (double registration throws), PlaneComposer (per-plane FBO chain)
 
 ### Community 61 - "BaseEffectConfig"
-Cohesion: 0.11
-Nodes (8): BaseEffectConfig, FeedbackNodeContext, placeholderTexture, _sizeScratch, FeedbackEffect, FeedbackInternals, RendererMock, TestEffect
+Cohesion: 0.24
+Nodes (5): TextHoverEffect, filmNode(), textHoverNode(), BaseEffectConfig, TestEffect
+
+### Community 71 - "FontLoader.ts"
+Cohesion: 0.29
+Nodes (7): fontCacheKey(), FontFaceSource, fontLoadCache, loadFont(), loadSingleFontFace(), __resetFontLoadCacheForTests(), MockFontFace
 
 ### Community 76 - "v0.3 to v0.4 Breaking Changes"
 Cohesion: 0.47
 Nodes (6): Node graph built once, updated via .value swap, PlaneNodeContext builtin node table, addFeedback migration: pre-declare texture() node, v0.3 to v0.4 Breaking Changes, createPlane shader migration (fragmentShader to colorNode), textureColorSpace default changed to SRGBColorSpace
 
+### Community 77 - "shaders.ts"
+Cohesion: 0.47
+Nodes (5): fbm, hash, heroColorNode(), vnoise, workColorNode()
+
 ## Knowledge Gaps
-- **169 isolated node(s):** `stage`, `grainOn`, `card`, `scroller`, `inner` (+164 more)
+- **168 isolated node(s):** `stage`, `grainOn`, `card`, `scroller`, `inner` (+163 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DomSyncGL` connect `DomSyncGL` to `BaseEffect`, `main.ts`, `pause-offscreen.ts`, `DomPlane.test.ts`, `PointerController`, `DomPlane`, `.constructor`, `DomTextPlane.test.ts`, `src/index.ts`, `effects-lib.ts`, `Core.test.ts`, `scroll-wiring.test.ts`, `dom-test.ts`, `DevTools`, `Dom3DObject`, `ScrollSync`, `EffectManager`?**
-  _High betweenness centrality (0.125) - this node is a cross-community bridge._
-- **Why does `BaseEffect` connect `BaseEffect` to `ripple/index.ts`, `main.ts`, `FluidSim`, `DomPlane`, `RipplePostEffect`, `src/index.ts`, `ditherCursorNodes.ts`, `PixelTrailEffect`, `Core.test.ts`, `PlaneComposer`, `EffectManager.test.ts`, `SmoothCursorEffect`, `.addEffect`, `EffectManager`, `DomPlane.test.ts`, `MouseFlowEffect`, `BaseEffectConfig`, `MouseEffect`, `EffectComposer`?**
-  _High betweenness centrality (0.108) - this node is a cross-community bridge._
-- **Why does `DomPlane` connect `DomPlane` to `BaseEffect`, `DomPlane.test.ts`, `PointerController`, `DomSyncGL`, `src/index.ts`, `scroll-wiring.test.ts`, `StickerPeel`, `FeedbackBuffer`, `PlaneComposer`, `.addEffect`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `DomSyncGL` connect `DomSyncGL` to `BaseEffect`, `main.ts`, `DomPlane.test.ts`, `PointerController`, `.constructor`, `DomTextPlane.test.ts`, `src/index.ts`, `Camera`, `Core.test.ts`, `scroll-wiring.test.ts`, `dom-test.ts`, `DevTools`, `effects-lib.ts`, `Dom3DObject`, `ScrollSync`, `EffectManager`?**
+  _High betweenness centrality (0.126) - this node is a cross-community bridge._
+- **Why does `BaseEffect` connect `BaseEffect` to `RipplePostEffect`, `PlaneComposer`, `FluidSim`, `EffectTarget`, `MouseEffect`, `DomPlane.test.ts`, `ditherCursorEffect.ts`, `src/index.ts`, `FilmEffect`, `PixelTrailEffect`, `Core.test.ts`, `SmoothCursorEffect`, `effects-lib.ts`, `FeedbackBuffer`, `BaseEffect.ts`, `BaseEffectConfig`, `EffectManager`?**
+  _High betweenness centrality (0.087) - this node is a cross-community bridge._
+- **Why does `DomPlane` connect `BaseEffect` to `PlaneComposer`, `DomPlane.test.ts`, `PointerController`, `DomSyncGL`, `DomTextPlane.ts`, `src/index.ts`, `DomPositionCalculator`, `Camera`, `scroll-wiring.test.ts`, `StickerPeel`, `FeedbackBuffer`, `DomTextPlane`?**
+  _High betweenness centrality (0.049) - this node is a cross-community bridge._
 - **What connects `stage`, `grainOn`, `card` to the rest of the system?**
-  _169 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _168 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `BaseEffect` be split into smaller, more focused modules?**
-  _Cohesion score 0.13405797101449277 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06397306397306397 - nodes in this community are weakly interconnected._
 - **Should `main.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05585106382978723 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
 - **Should `graphify build pipeline (Steps 0-9)` be split into smaller, more focused modules?**
   _Cohesion score 0.07317073170731707 - nodes in this community are weakly interconnected._

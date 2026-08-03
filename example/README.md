@@ -42,6 +42,26 @@ npm run example:build    # example/dist へ静的ビルド
 `dom-sync-gl` は `example/vite.config.ts` の alias でリポジトリ直下の `../src` を
 直接参照している。ライブラリのソースを編集すれば即サンプルに反映される。
 
+## 検証ページ
+
+`index.html`（OBSCURA サイト）のほかに、個別機能の動作確認ページがある。
+いずれも `vite.config.ts` の `rollupOptions.input` に入口として登録済み。
+
+| パス | 何を確認するか |
+|---|---|
+| `/dom-test.html` | `attach: 'dom'` が container の CSS 配置を上書きしないこと（fixed 全画面 / 通常フローの 2 ケース） |
+| `/pause-offscreen.html` | `pauseWhenOffscreen` が画面外で描画ループごと止め、復帰時に時間軸を継ぎ直すこと |
+| `/effects-lib.html` | 同梱エフェクトのカタログ |
+
+`/pause-offscreen.html` は同じ shader の canvas を 2 枚並べ、左だけ `pauseWhenOffscreen: true`
+にしてある。2 画面ぶん以上スクロールして離れ、数秒待ってから戻ると、左の `frames` / `uTime` が
+止まったままなのに対し右は進み続ける。復帰後も左の `uTime` は**停止時間ぶん遅れたまま**
+連続して進む（時間が飛んでいない＝ clock の再シードが効いている）ことが確認できる。
+
+> HUD の時刻は `clock.getElapsedTime()` ではなく `clock.elapsedTime` を読んでいる。
+> 前者は内部で `getDelta()` を呼んで時計を進めてしまうため、停止中に呼ぶと
+> 「止まっているはずの時計」が動いてしまう。
+
 ## 構成
 
 ```

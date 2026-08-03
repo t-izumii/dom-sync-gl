@@ -14,6 +14,7 @@ DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、
 - `BaseEffect` を継承して TSL の `outputNode` を返すだけでポストエフェクトを ping-pong で連結
 - iOS Safari の動的アドレスバーに canvas 高を追従させる（`overscan`）
 - rAF を自前で持てる（`autoRaf: false` + `tick()`）ので、Lenis 等と 1 本のループに統合できる
+- canvas が画面外にある間は描画ループごと止められる（`pauseWhenOffscreen`）
 - lil-gui / stats.js は optional（使うときだけ install）
 
 ## Install
@@ -241,6 +242,8 @@ v0.3 の GLSL API（`fragmentShader` / `tDiffuse` / `IUniform`）からの移行
 |---|---|---|---|
 | `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
 | `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` なら自前の rAF から `tick()` で駆動 |
+| `pauseWhenOffscreen` | `boolean` | `false` | `scrollSync: { attach: 'dom' }` のとき、canvas が画面外にある間だけ描画ループを止める |
+| `pauseRootMargin` | `string` | `'100%'` | `pauseWhenOffscreen` の判定に使う IntersectionObserver の `rootMargin` |
 | `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
 | `forceWebGL` | `boolean` | `false` | WebGPU が使えても WebGL 2 バックエンドを強制（デバッグ用） |
 | `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限 (モバイルは `1.5` 推奨) |
