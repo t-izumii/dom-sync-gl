@@ -20,6 +20,7 @@ export default defineConfig({
         "dom-test": resolve(__dirname, "dom-test.html"),
         "pause-offscreen": resolve(__dirname, "pause-offscreen.html"),
         "effects-lib": resolve(__dirname, "effects-lib.html"),
+        "text-padding": resolve(__dirname, "text-padding.html"),
       },
     },
   },
