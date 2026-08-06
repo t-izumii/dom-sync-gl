@@ -52,6 +52,7 @@ npm run example:build    # example/dist へ静的ビルド
 | `/dom-test.html` | `attach: 'dom'` が container の CSS 配置を上書きしないこと（fixed 全画面 / 通常フローの 2 ケース） |
 | `/pause-offscreen.html` | `pauseWhenOffscreen` が画面外で描画ループごと止め、復帰時に時間軸を継ぎ直すこと |
 | `/effects-lib.html` | 同梱エフェクトのカタログ |
+| `/text-padding.html` | `DomTextPlane` が対象 DOM の `padding` を余白として引き継ぐこと、`verticalAlign` の 3 モード、溢れ時にクリップしないこと |
 
 `/pause-offscreen.html` は同じ shader の canvas を 2 枚並べ、左だけ `pauseWhenOffscreen: true`
 にしてある。2 画面ぶん以上スクロールして離れ、数秒待ってから戻ると、左の `frames` / `uTime` が
@@ -61,6 +62,17 @@ npm run example:build    # example/dist へ静的ビルド
 > HUD の時刻は `clock.getElapsedTime()` ではなく `clock.elapsedTime` を読んでいる。
 > 前者は内部で `getDelta()` を呼んで時計を進めてしまうため、停止中に呼ぶと
 > 「止まっているはずの時計」が動いてしまう。
+
+`/text-padding.html` は板の縁を shader で枠線として描き、DOM 側は `background-clip: content-box`
+でコンテンツ領域（padding の内側）だけを塗ってある。枠と塗りの差がそのまま padding として
+見えるので、文字が塗りの内側に収まっていれば引き継ぎが効いていると判断できる。
+スライダーは CSS 変数を書き換えて `refreshStyle()` で板へ反映する。
+
+> 改行位置はブラウザ自身に決めさせている（`layoutLinesDom()`）ので DOM と一致する。
+> カード 06 は `hideElementText: false` で DOM の白文字と GL の赤文字を重ね、
+> 折り返しを伴う長文でも行ごとに一致することを確認するためのもの。
+> 行の縦位置だけは canvas の `textBaseline: middle` 基準なので、DOM の
+> half-leading とわずかにずれる。
 
 ## 構成
 

@@ -16,9 +16,10 @@ const plane = app.createTextPlane('.headline', {
 
 1. `getComputedStyle(element)` から font-size / font-family / color / line-height /
    letter-spacing / text-align / padding を読み取る
-2. その値で `element.textContent` を canvas 2D に描画する
-3. canvas を `CanvasTexture` として plane に貼る
-4. 元の DOM テキストを `color: transparent` にして視覚的にだけ隠す
+2. 非表示のミラー要素にテキストを流し込み、**改行位置をブラウザ自身に決めさせる**
+3. その値で `element.textContent` を canvas 2D に描画する
+4. canvas を `CanvasTexture` として plane に貼る
+5. 元の DOM テキストを `color: transparent` にして視覚的にだけ隠す
 
 ::: tip なぜ display: none にしないのか
 `visibility` / `display` / `opacity` は使わず `color: transparent` にしている。レイアウト・
@@ -50,13 +51,61 @@ const plane = app.createTextPlane('.headline', {
 ### `TextStyleOverrides`
 
 `fontSize` / `fontFamily` / `fontWeight` / `fontStyle` / `color` / `lineHeight` /
-`letterSpacing` / `textAlign` を個別に上書きできる。指定しなかったものは CSS 由来のまま。
+`letterSpacing` / `textAlign` / `padding` / `paddingTop` / `paddingRight` /
+`paddingBottom` / `paddingLeft` / `verticalAlign` を個別に上書きできる。
+指定しなかったものは CSS 由来のまま。
 
 ```ts
 app.createTextPlane('.headline', {
   style: { color: '#ff0000', letterSpacing: 2 },
 });
 ```
+
+## 余白（padding）
+
+要素の `padding` は `getComputedStyle` から読み取られ、そのままテキストの余白として
+引き継がれる。板そのものは `getBoundingClientRect()` 由来なので padding を含んだ
+border-box 全体を覆い、その内側にコンテンツ領域が確保される形になる。
+
+| padding | 効き方 |
+|---|---|
+| `padding-left` / `padding-right` | 折り返し幅（コンテンツ幅）と、`text-align` に応じた描画開始 x に反映される |
+| `padding-top` | テキストブロックの上端の基準になる |
+| `padding-bottom` | コンテンツ領域の下端を決める。`verticalAlign` が `top` 以外のときに効く |
+
+JS 側から上書きしたい場合は `style` を使う。`padding` は 4 辺一括で、
+個別指定と併用した場合は CSS と同じく個別指定が勝つ。
+
+```ts
+// CSS の padding を無視して板の全面に描く
+app.createTextPlane('.headline', { style: { padding: 0 } });
+
+// 左だけ広げる（上下右は CSS 由来のまま）
+app.createTextPlane('.headline', { style: { paddingLeft: 80 } });
+```
+
+### `verticalAlign`
+
+コンテンツ領域（要素高さから `padding-top` / `padding-bottom` を引いた範囲）に対する
+テキストブロックの縦揃え。CSS 側の対応物は `align-content` で、`center` なら
+`center`、`end` / `flex-end` なら `bottom`、それ以外（`normal` や未対応環境）は
+`top` に解決される。`style.verticalAlign` で明示的に上書きできる。
+
+```ts
+app.createTextPlane('.button-label', { style: { verticalAlign: 'center' } });
+```
+
+::: warning 溢れてもクリップしない
+テキストがコンテンツ領域に収まらない場合でも位置はクランプされず、そのまま描画される
+（CSS の `overflow: visible` 相当）。`padding-bottom` を大きく取ったうえで行数が増えると
+余白を突き抜けるので、収めたい場合は要素側の高さか `line-height` で調整する。
+:::
+
+::: tip なぜ vertical-align ではなく align-content なのか
+`vertical-align` はインラインボックス内の揃えを決めるプロパティで、ブロックの
+縦方向の配置には効かない。ブロックコンテナに対して縦揃えを指定できる現行の CSS は
+`align-content` なので、そちらを参照している。
+:::
 
 ## Instance members
 
@@ -75,8 +124,34 @@ app.createTextPlane('.headline', {
 
 - `\n` は段落区切りとして尊重される
 - 各段落の中の連続空白は 1 つのスペースに正規化され、前後は trim される
-- 空白で単語に分割して、要素の幅（padding を除いた領域）で折り返す
+- 各段落は要素の幅（padding を除いた領域）で折り返される。**改行位置はブラウザが決める**（下記）
 - canvas の辺長は 4096px でクランプされる（巨大要素 × 高 DPR で VRAM が溢れないように）
+
+### 改行位置は DOM と一致する
+
+canvas 2D には行分割の API が無い。自前で「空白で区切って幅で折る」実装をすると、
+日本語のように空白の無い言語では文字単位の均等分割になり、禁則処理（`。` や `、` が
+行頭に来ない、など）も効かないため、DOM の見た目とずれる。
+
+そこで、画面外に置いた非表示のミラー要素へ同じ字送りでテキストを流し込み、
+`Range.getClientRects()` で**ブラウザが実際に決めた行ボックス**を読み取って、
+その通りに描画している。UAX #14 の分割規則も禁則処理も英単語の非分割も、
+すべてブラウザの実装がそのまま反映される。
+
+要素の `word-break` / `overflow-wrap` / `line-break` も computed style から
+ミラーへ写すので、CSS で折り返し方を制御すれば板側も同じように追従する。
+
+::: tip レイアウトが無い環境
+SSR や jsdom のように行ボックスを持たない環境では矩形が取れないので、
+空白区切り + 文字単位フォールバックの自前実装（`layoutLines()`）に自動で切り替わる。
+ブラウザでの表示には影響しない。
+:::
+
+::: warning 行の縦位置はわずかにずれる
+改行位置は一致するが、行の縦位置は canvas の `textBaseline: middle` 基準で決めているため、
+DOM の half-leading（行ボックス内での文字の配置）とは厳密には一致しない。
+DOM テキストと GL テキストを重ねて表示する場合はこの差が見える。
+:::
 
 ::: warning HTML の改行が段落になる
 `textContent` をそのまま使うので、HTML のインデント由来の改行も段落区切りとして扱われる。

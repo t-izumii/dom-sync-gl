@@ -30,23 +30,29 @@ const plane = app.createTextPlane('.headline', {
 
 ## スタイルは CSS が決める
 
-font-size / font-family / color / line-height / letter-spacing / text-align / padding は
-すべて `getComputedStyle` から読む。つまり **`clamp()` のような fluid な指定もそのまま解決される**。
+font-size / font-family / color / line-height / letter-spacing / text-align / padding /
+align-content はすべて `getComputedStyle` から読む。つまり **`clamp()` のような fluid な
+指定もそのまま解決される**。
 
 ```css
 .headline {
   font-family: "Zen Old Mincho", serif;
   font-size: clamp(1.4rem, 3.4vw, 2.6rem);  /* そのまま板に反映される */
   line-height: 1.6;
+  padding: 2rem 3rem;                       /* 余白も板に引き継がれる */
 }
 ```
+
+`padding` は板の内側の余白として引き継がれる。左右は折り返し幅と描画開始位置に、
+上下はテキストブロックの配置基準になる（詳細は
+[DomTextPlane の余白](/api/dom-text-plane#余白-padding)）。
 
 JS 側にブレークポイントを書き写す必要はないし、板の見た目を変えたいときに触るのは CSS。
 個別に上書きしたい場合だけ `style` オプションを使う。
 
 ```ts
 app.createTextPlane('.headline', {
-  style: { color: '#ff0000' },
+  style: { color: '#ff0000', padding: 0 },
 });
 ```
 
@@ -102,6 +108,16 @@ app.addUpdateCallback(() => {
   hover.setHover(v);
 });
 ```
+
+## 改行位置もブラウザが決める
+
+折り返しは自前で計算していない。画面外の非表示要素にテキストを流し込み、
+`Range.getClientRects()` でブラウザが実際に決めた行ボックスを読み取って、その通りに描く。
+
+日本語のように空白の無い言語では、自前実装だと文字単位の均等分割になって禁則処理も
+効かない（`。` が行頭に落ちる等）。ブラウザに委ねることで、UAX #14 の分割規則も禁則も
+英単語の非分割も、CSS の `word-break` / `overflow-wrap` / `line-break` の指定も、
+そのまま板に反映される。詳細は [DomTextPlane](/api/dom-text-plane#改行位置は-dom-と一致する)。
 
 ## 落とし穴
 

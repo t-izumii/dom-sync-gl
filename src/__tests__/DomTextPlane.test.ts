@@ -412,6 +412,43 @@ describe("DomTextPlane", () => {
       app.destroy();
     });
 
+    it("canvas の実ピクセルサイズが変わったら texture を dispose する（引き伸ばし回帰）", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl("text", new DOMRect(0, 0, 200, 100));
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+
+      const texture = (plane as unknown as { textTexture: { dispose: () => void } })
+        .textTexture;
+      const disposeSpy = vi.spyOn(texture, "dispose");
+
+      vi.spyOn(el, "getBoundingClientRect").mockReturnValue(
+        new DOMRect(0, 0, 300, 150),
+      );
+      plane.resize();
+
+      expect(disposeSpy).toHaveBeenCalled();
+      app.destroy();
+    });
+
+    it("同サイズの再ラスタライズでは texture を dispose しない", async () => {
+      const app = new DomSyncGL(container);
+      const el = makeTextEl("text", new DOMRect(0, 0, 200, 100));
+      const plane = app.createTextPlane(el) as DomTextPlane;
+      await flush();
+
+      const texture = (plane as unknown as { textTexture: { dispose: () => void } })
+        .textTexture;
+      const disposeSpy = vi.spyOn(texture, "dispose");
+
+      // サイズは据え置きで内容だけ変える。GPU 側の確保はそのまま使い回せる。
+      plane.setText("another text");
+
+      expect(ctx.fillText).toHaveBeenCalled();
+      expect(disposeSpy).not.toHaveBeenCalled();
+      app.destroy();
+    });
+
     it("rect 0×0（display:none 想定）ではラスタライズをスキップし、クラッシュしない。復帰後の resize() で描画される", async () => {
       const app = new DomSyncGL(container);
       const el = makeTextEl("text", new DOMRect(0, 0, 0, 0));

@@ -140,6 +140,18 @@ export interface TextStyleOverrides {
   lineHeight?: number;
   letterSpacing?: number;
   textAlign?: "left" | "center" | "right";
+  /** 4 辺一括の余白(px)。個別指定と併用した場合は個別指定が勝つ */
+  padding?: number;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  /**
+   * コンテンツ領域(要素高さから paddingTop/Bottom を引いた範囲)に対する
+   * テキストブロックの縦揃え。既定は CSS の `align-content` 由来で、
+   * 未指定・非対応時は `top`。
+   */
+  verticalAlign?: "top" | "center" | "bottom";
 }
 
 export interface CreateTextPlaneOptions extends CreatePlaneOptions {

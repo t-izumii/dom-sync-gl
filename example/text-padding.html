@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>DomTextPlane — padding の引き継ぎと verticalAlign</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      :root {
+        /* スライダーから書き換える。CSS 側の値を変えるだけで板に反映されることの確認用 */
+        --pad-block: 32px;
+        --pad-inline: 48px;
+
+        --color-bg: #0b0d12;
+        --color-text: #fff;
+        --color-plane-edge: #74f2ff;
+        --color-content-box: rgba(116, 242, 255, 0.1);
+      }
+
+      body {
+        font-family: system-ui, sans-serif;
+        color: var(--color-text);
+        background-color: var(--color-bg);
+        line-height: 1.5;
+      }
+
+      /* WebGPU canvas mount。テキストは DOM 側に残るので canvas は装飾扱い */
+      #gl { position: relative; z-index: 1; }
+
+      main {
+        position: relative;
+        z-index: 0;
+        max-inline-size: 1180px;
+        margin-inline: auto;
+        padding: 24px 16px 120px;
+      }
+
+      /* ==----------------------------------------------------
+       * 操作パネル
+       * ---------------------------------------------------- */
+      .controls {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 24px;
+        margin-block-end: 32px;
+        padding: 12px 16px;
+        font-family: ui-monospace, monospace;
+        font-size: 13px;
+        background-color: rgba(11, 13, 18, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        backdrop-filter: blur(6px);
+      }
+      .controls__field { display: flex; align-items: center; gap: 8px; }
+      .controls__field output { min-inline-size: 4ch; text-align: end; font-variant-numeric: tabular-nums; }
+      .controls input[type="range"] { inline-size: min(180px, 40vw); }
+
+      .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        inline-size: 12px;
+        block-size: 12px;
+        margin-inline-end: 6px;
+        vertical-align: -2px;
+      }
+      .legend .legend--edge::before { border: 1px solid var(--color-plane-edge); }
+      .legend .legend--content::before { background-color: var(--color-content-box); }
+
+      /* ==----------------------------------------------------
+       * カード
+       * ---------------------------------------------------- */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+        gap: 28px;
+      }
+
+      .card__title { font-size: 1rem; font-weight: 700; }
+      .card__note {
+        margin-block: 4px 10px;
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.58);
+      }
+      .card__note code { color: #ffcf8a; }
+
+      /*
+       * 板の対象要素。background-clip: content-box なので、この塗りは
+       * padding の内側（コンテンツ領域）だけに乗る。板側が描く枠線は border-box の
+       * 縁なので、両者の差がそのまま padding として目に見える。
+       */
+      .card__text {
+        min-block-size: 240px;
+        padding: var(--pad-block) var(--pad-inline);
+        font-size: 1.25rem;
+        line-height: 1.6;
+        background-color: var(--color-content-box);
+        background-clip: content-box;
+      }
+
+      /* CSS 由来の縦揃え。align-content は block コンテナにも効く */
+      .card__text--center { align-content: center; }
+
+      /*
+       * 溢れ検証用。min-block-size だと要素が行数に合わせて伸びてしまい、
+       * コンテンツ領域が常に足りる状態になって溢れが再現しない。
+       * ここは検証が目的なので、あえて高さを固定して行数を溢れさせる。
+       */
+      .card__text--overflow { block-size: 150px; min-block-size: 0; }
+
+      .card__text--overlay { color: rgba(255, 255, 255, 0.9); }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { transition-duration: 0s !important; animation-duration: 0s !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- テキストは DOM 側に残るため canvas は装飾。SR からは元の <p> が読める -->
+    <div id="gl" aria-hidden="true"></div>
+
+    <main>
+      <h1 class="card__title">DomTextPlane — padding の引き継ぎと verticalAlign</h1>
+      <p class="card__note">
+        水色の枠 = 板（＝要素の border-box）／水色の塗り = CSS のコンテンツ領域（padding の内側）。
+        文字が塗りの内側に収まっていれば padding が引き継げている。
+      </p>
+      <p class="card__note">
+        補足: 改行位置はブラウザ自身に決めさせているので DOM と一致する（カード06で確認できる）。
+        行の縦位置だけは canvas の <code>textBaseline: middle</code> 基準なので、
+        DOM の half-leading とわずかにずれる。
+      </p>
+
+      <div class="controls">
+        <div class="controls__field">
+          <label for="pad-block">padding 上下</label>
+          <input type="range" id="pad-block" min="0" max="80" step="4" value="32" />
+          <output id="pad-block-out">32px</output>
+        </div>
+        <div class="controls__field">
+          <label for="pad-inline">padding 左右</label>
+          <input type="range" id="pad-inline" min="0" max="140" step="4" value="48" />
+          <output id="pad-inline-out">48px</output>
+        </div>
+        <p class="legend">
+          <span class="legend--edge">板の縁</span>
+          <span class="legend--content">コンテンツ領域</span>
+        </p>
+      </div>
+
+      <div class="grid">
+        <!--
+          テキストは 1 行で書く。DomTextPlane は textContent をそのままラスタライズし、
+          改行を段落区切りとして扱うので、インデントの改行が空行になってしまう。
+        -->
+        <article class="card">
+          <h2 class="card__title">01 — CSS の padding をそのまま引き継ぐ</h2>
+          <p class="card__note">既定。<code>style</code> の指定なし</p>
+          <p class="card__text" id="t-inherit">padding は getComputedStyle から読み取られ、左右は折り返し幅と描画開始位置に、上下はテキストブロックの配置基準になります。</p>
+        </article>
+
+        <article class="card">
+          <h2 class="card__title">02 — padding を無視して全面に描く</h2>
+          <p class="card__note"><code>style: { padding: 0 }</code>（スライダーは効かない）</p>
+          <p class="card__text" id="t-nopad">padding は getComputedStyle から読み取られ、左右は折り返し幅と描画開始位置に、上下はテキストブロックの配置基準になります。</p>
+        </article>
+
+        <article class="card">
+          <h2 class="card__title">03 — 縦中央（CSS の align-content 由来）</h2>
+          <p class="card__note">CSS に <code>align-content: center</code>。JS 側の指定なし</p>
+          <p class="card__text card__text--center" id="t-center">padding-bottom はコンテンツ領域の下端を決めます。縦中央では上下の padding が対称に効きます。</p>
+        </article>
+
+        <article class="card">
+          <h2 class="card__title">04 — 下揃え（JS から上書き）</h2>
+          <p class="card__note"><code>style: { verticalAlign: 'bottom' }</code></p>
+          <p class="card__text" id="t-bottom">テキストブロックの下端が padding-bottom の内側に揃います。CSS の align-content より style の指定が優先されます。</p>
+        </article>
+
+        <article class="card">
+          <h2 class="card__title">05 — 溢れてもクリップしない</h2>
+          <p class="card__note"><code>verticalAlign: 'center'</code> + コンテンツ領域より多い行数</p>
+          <p class="card__text card__text--overflow" id="t-overflow">行数がコンテンツ領域に収まらない場合、位置はクランプされず上下へそのまま溢れます。CSS の overflow: visible と同じ考え方で、板の外まで文字が続きます。収めたい場合は要素の高さか line-height で調整します。</p>
+        </article>
+
+        <!--
+          DOM の文字を消さずに重ねる。改行位置は DOM に決めさせているので、
+          折り返しを伴う長文でも白（DOM）と赤（GL）が行ごとに一致するはず。
+          行の縦位置だけは canvas の textBaseline: middle 基準なので DOM の
+          half-leading とわずかにずれる。
+        -->
+        <article class="card">
+          <h2 class="card__title">06 — DOM と重ねて検証</h2>
+          <p class="card__note"><code>hideElementText: false</code>。GL 側だけ赤で描画</p>
+          <p class="card__text card__text--overlay" id="t-overlay">白い DOM のテキストと赤い WebGL のテキストが行ごとに重なれば、padding も折り返し位置も一致しています。</p>
+        </article>
+      </div>
+    </main>
+
+    <script type="module" src="/src/text-padding.ts"></script>
+  </body>
+</html>

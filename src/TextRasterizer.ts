@@ -9,10 +9,15 @@ export interface ResolvedTextStyle {
   lineHeight: number;
   letterSpacing: number;
   textAlign: "left" | "center" | "right";
+  verticalAlign: "top" | "center" | "bottom";
   paddingTop: number;
   paddingRight: number;
   paddingBottom: number;
   paddingLeft: number;
+  /* 行分割をブラウザに任せる際にミラー要素へ写す（layoutLinesDom を参照）。 */
+  wordBreak: string;
+  overflowWrap: string;
+  lineBreak: string;
 }
 
 // canvas 辺長の上限。巨大要素 × 高 DPR で VRAM が爆発しないようクランプする。
@@ -55,6 +60,17 @@ export function resolveTextStyle(
   const textAlign: "left" | "center" | "right" =
     rawAlign === "center" || rawAlign === "right" ? rawAlign : "left";
 
+  // 縦揃えの CSS 側の対応物は align-content（block コンテナでも有効）。
+  // vertical-align はインラインボックス用でブロックの縦揃えには使えないため採らない。
+  // normal / stretch / 未対応環境は top に丸める。
+  const rawVAlign = cs.alignContent;
+  const verticalAlign: "top" | "center" | "bottom" =
+    rawVAlign === "center"
+      ? "center"
+      : rawVAlign === "end" || rawVAlign === "flex-end"
+        ? "bottom"
+        : "top";
+
   const resolved: ResolvedTextStyle = {
     fontSize,
     fontFamily: cs.fontFamily || "sans-serif",
@@ -64,10 +80,14 @@ export function resolveTextStyle(
     lineHeight,
     letterSpacing,
     textAlign,
+    verticalAlign,
     paddingTop: num(cs.paddingTop),
     paddingRight: num(cs.paddingRight),
     paddingBottom: num(cs.paddingBottom),
     paddingLeft: num(cs.paddingLeft),
+    wordBreak: cs.wordBreak || "normal",
+    overflowWrap: cs.overflowWrap || "normal",
+    lineBreak: cs.lineBreak || "auto",
   };
 
   if (overrides) {
@@ -79,9 +99,122 @@ export function resolveTextStyle(
     if (overrides.lineHeight !== undefined) resolved.lineHeight = overrides.lineHeight;
     if (overrides.letterSpacing !== undefined) resolved.letterSpacing = overrides.letterSpacing;
     if (overrides.textAlign !== undefined) resolved.textAlign = overrides.textAlign;
+    if (overrides.verticalAlign !== undefined) resolved.verticalAlign = overrides.verticalAlign;
+    // 一括指定を先に当ててから個別指定で塗り替える（CSS の padding → padding-* と同じ優先順）。
+    if (overrides.padding !== undefined) {
+      resolved.paddingTop = overrides.padding;
+      resolved.paddingRight = overrides.padding;
+      resolved.paddingBottom = overrides.padding;
+      resolved.paddingLeft = overrides.padding;
+    }
+    if (overrides.paddingTop !== undefined) resolved.paddingTop = overrides.paddingTop;
+    if (overrides.paddingRight !== undefined) resolved.paddingRight = overrides.paddingRight;
+    if (overrides.paddingBottom !== undefined) resolved.paddingBottom = overrides.paddingBottom;
+    if (overrides.paddingLeft !== undefined) resolved.paddingLeft = overrides.paddingLeft;
   }
 
   return resolved;
+}
+
+/**
+ * ブラウザ自身に行分割させ、その結果を行の配列として読み取る。
+ *
+ * canvas 2D には行分割の API が無いため、自前実装（layoutLines）では UAX #14 の
+ * 分割規則も日本語の禁則処理も再現できず、DOM と改行位置がずれる。ここでは
+ * 非表示のミラー要素へ同じ字送りでテキストを流し込み、1 文字ずつ Range の矩形を
+ * 取って top が変わったところを行の切れ目とみなすことで、DOM と同じ改行位置を得る。
+ *
+ * ミラーは呼び出しごとに作って消す。使い回すと隠し要素がページに残り続けるうえ、
+ * 律速はレイアウト問い合わせ側なので使い回しても速くならない。
+ *
+ * @returns 行の配列。レイアウトを持たない環境（SSR / jsdom 等）では null を返し、
+ *   呼び出し側は layoutLines へフォールバックする
+ */
+export function layoutLinesDom(
+  text: string,
+  maxWidth: number,
+  style: ResolvedTextStyle,
+): string[] | null {
+  if (typeof document === "undefined" || !document.body) return null;
+  if (text === "") return [];
+  if (!(maxWidth > 0)) return null;
+
+  const mirror = document.createElement("div");
+  const s = mirror.style;
+  s.position = "absolute";
+  s.top = "0";
+  s.left = "-99999px";
+  // display: none だと行ボックスが生成されず矩形が取れない。visibility なら生成される。
+  s.visibility = "hidden";
+  s.pointerEvents = "none";
+  s.margin = "0";
+  s.padding = "0";
+  s.border = "0";
+  s.boxSizing = "border-box";
+  s.width = `${maxWidth}px`;
+  s.whiteSpace = "normal";
+  s.fontFamily = style.fontFamily;
+  s.fontSize = `${style.fontSize}px`;
+  s.fontWeight = style.fontWeight;
+  s.fontStyle = style.fontStyle;
+  s.lineHeight = `${style.lineHeight}px`;
+  s.letterSpacing = `${style.letterSpacing}px`;
+  s.wordBreak = style.wordBreak;
+  s.overflowWrap = style.overflowWrap;
+  s.lineBreak = style.lineBreak;
+  mirror.textContent = text;
+  document.body.appendChild(mirror);
+
+  try {
+    const node = mirror.firstChild;
+    if (!node) return null;
+
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    // レイアウトを持たない環境ではここが空になるので、そのまま呼び出し側へ返す。
+    if (range.getClientRects().length === 0) return null;
+
+    // 行が変わると top が lineHeight ぶん進む。同一行内でも
+    // フォントフォールバックで多少ぶれるため、半分を閾値にする。
+    const tolerance = Math.max(1, style.lineHeight * 0.5);
+    const lines: string[] = [];
+    let current = "";
+    let currentTop: number | null = null;
+    let offset = 0;
+
+    // サロゲートペアを割らないようコードポイント単位で進める。
+    for (const ch of text) {
+      const start = offset;
+      offset += ch.length;
+      range.setStart(node, start);
+      range.setEnd(node, offset);
+      const rects = range.getClientRects();
+      const rect = rects.length > 0 ? rects[rects.length - 1] : null;
+
+      // 折り返し位置で潰れた空白は矩形を持たない。行の判定には使わない。
+      if (rect === null) {
+        current += ch;
+        continue;
+      }
+      if (currentTop === null) {
+        currentTop = rect.top;
+      } else if (rect.top - currentTop > tolerance) {
+        lines.push(current);
+        current = "";
+        currentTop = rect.top;
+      }
+      current += ch;
+    }
+    lines.push(current);
+
+    // 折り返し位置の空白は DOM 側でも行末にぶら下がるだけで描画されない。
+    return lines.map((line) => line.trim());
+  } catch {
+    // Range API が未実装の環境。フォールバックさせる。
+    return null;
+  } finally {
+    mirror.remove();
+  }
 }
 
 export function layoutLines(
@@ -197,7 +330,10 @@ export function rasterizeText(
   const lines: string[] = [];
   for (const p of paragraphs) {
     const normalized = p.replace(/\s+/g, " ").trim();
-    const wrapped = layoutLines(normalized, contentWidth, measure);
+    // 改行位置は DOM に決めさせる。取れない環境だけ自前計測にフォールバックする。
+    const wrapped =
+      layoutLinesDom(normalized, contentWidth, style) ??
+      layoutLines(normalized, contentWidth, measure);
     if (wrapped.length === 0) {
       // 空段落も 1 行分の高さを占める。
       lines.push("");
@@ -215,10 +351,23 @@ export function rasterizeText(
     }
   };
 
+  // 縦揃えの基準はコンテンツ領域（要素高さから上下 padding を除いた範囲）。
+  // 収まらない場合もクランプせずそのまま描く（CSS の overflow: visible 相当）。
+  const contentHeight = cssHeight - style.paddingTop - style.paddingBottom;
+  const blockHeight = lines.length * style.lineHeight;
+  const slack = contentHeight - blockHeight;
+  const startY =
+    style.paddingTop +
+    (style.verticalAlign === "center"
+      ? slack / 2
+      : style.verticalAlign === "bottom"
+        ? slack
+        : 0);
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line === "") continue;
-    const lineY = style.paddingTop + style.lineHeight / 2 + i * style.lineHeight;
+    const lineY = startY + style.lineHeight / 2 + i * style.lineHeight;
     if (ls > 0 && !supportsLetterSpacing) {
       drawLetterSpaced(line, lineY);
     } else {

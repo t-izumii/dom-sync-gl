@@ -402,7 +402,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "example_src_effects_lib",
-      "community": 54,
+      "community": 61,
       "community_name": "effects-lib.ts",
       "norm_label": "effects-lib.ts"
     },
@@ -413,7 +413,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "example_src_effects_lib_makegradienttexture",
-      "community": 54,
+      "community": 61,
       "community_name": "effects-lib.ts",
       "norm_label": "makegradienttexture()"
     },
@@ -424,7 +424,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "example_src_effects_lib_effectdef",
-      "community": 54,
+      "community": 61,
       "community_name": "effects-lib.ts",
       "norm_label": "effectdef"
     },
@@ -435,7 +435,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "example_src_effects_lib_effects",
-      "community": 54,
+      "community": 61,
       "community_name": "effects-lib.ts",
       "norm_label": "effects"
     },
@@ -446,7 +446,7 @@
       "source_location": "L197",
       "_origin": "ast",
       "id": "example_src_effects_lib_requested",
-      "community": 54,
+      "community": 61,
       "community_name": "effects-lib.ts",
       "norm_label": "requested"
     },
@@ -468,7 +468,7 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "example_src_effects_lib_app",
-      "community": 54,
+      "community": 61,
       "community_name": "effects-lib.ts",
       "norm_label": "app"
     },
@@ -1997,8 +1997,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_camera_camera",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": "camera"
     },
     {
@@ -2008,8 +2008,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_camera_camera_constructor",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": ".constructor()"
     },
     {
@@ -2019,8 +2019,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_camera_camera_resize",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": ".resize()"
     },
     {
@@ -3218,8 +3218,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": "dompositioncalculator"
     },
     {
@@ -3229,8 +3229,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_constructor",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".constructor()"
     },
     {
@@ -3240,8 +3240,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_updatepositioninfo",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".updatepositioninfo()"
     },
     {
@@ -3251,8 +3251,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_refreshpositiontype",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".refreshpositiontype()"
     },
     {
@@ -3262,8 +3262,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_calculatewebglposition",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".calculatewebglposition()"
     },
     {
@@ -3273,8 +3273,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_setcanvasrect",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".setcanvasrect()"
     },
     {
@@ -3284,8 +3284,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_isfixed",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".isfixed()"
     },
     {
@@ -3295,8 +3295,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_issticky",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".issticky()"
     },
     {
@@ -3306,8 +3306,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_pagetop",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".pagetop()"
     },
     {
@@ -3317,8 +3317,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_pageleft",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".pageleft()"
     },
     {
@@ -3449,8 +3449,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectcomposer",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "effectcomposer.ts"
     },
     {
@@ -3504,8 +3504,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_effectcomposer_effectcontext",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "effectcontext"
     },
     {
@@ -3515,8 +3515,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_effectcomposer_effectoptions",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "effectoptions"
     },
     {
@@ -3526,8 +3526,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_effectcomposer_effecttarget",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "effecttarget"
     },
     {
@@ -3537,8 +3537,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_effectcomposer_effecttarget_addeffect",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": ".addeffect()"
     },
     {
@@ -3548,8 +3548,8 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "src_effectcomposer_effecttarget_removeeffect",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": ".removeeffect()"
     },
     {
@@ -3560,7 +3560,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectpass",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "effectpass"
     },
     {
@@ -3571,7 +3571,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectpass_constructor",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -3582,7 +3582,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectpass_setuniform",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".setuniform()"
     },
     {
@@ -3593,7 +3593,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectpass_getuniform",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".getuniform()"
     },
     {
@@ -3604,7 +3604,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer",
       "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community_name": "EffectComposer",
       "norm_label": "effectcomposer"
     },
     {
@@ -3615,7 +3615,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_constructor",
       "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community_name": "EffectComposer",
       "norm_label": ".constructor()"
     },
     {
@@ -3625,8 +3625,8 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_addeffect",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": ".addeffect()"
     },
     {
@@ -3637,7 +3637,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_removeeffect",
       "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community_name": "EffectComposer",
       "norm_label": ".removeeffect()"
     },
     {
@@ -3648,7 +3648,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_render",
       "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community_name": "EffectComposer",
       "norm_label": ".render()"
     },
     {
@@ -3659,7 +3659,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_resize",
       "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community_name": "EffectComposer",
       "norm_label": ".resize()"
     },
     {
@@ -3670,7 +3670,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_dispose",
       "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community_name": "EffectComposer",
       "norm_label": ".dispose()"
     },
     {
@@ -3680,8 +3680,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectmanager",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.ts",
       "norm_label": "effectmanager.ts"
     },
     {
@@ -3812,8 +3812,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_feedbackbuffer",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "feedbackbuffer.ts"
     },
     {
@@ -3823,8 +3823,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackcontext",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "feedbackcontext"
     },
     {
@@ -3845,8 +3845,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackinput",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "feedbackinput"
     },
     {
@@ -3856,8 +3856,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_feedbackbuffer_reserved_uniform_names",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "reserved_uniform_names"
     },
     {
@@ -4098,8 +4098,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_light_light",
-      "community": 11,
-      "community_name": "src/index.ts",
+      "community": 1,
+      "community_name": "constants.ts",
       "norm_label": "light"
     },
     {
@@ -4109,8 +4109,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_light_light_constructor",
-      "community": 11,
-      "community_name": "src/index.ts",
+      "community": 1,
+      "community_name": "constants.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -4120,8 +4120,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_mousemotion",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "mousemotion.ts"
     },
     {
@@ -4131,8 +4131,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "mousemotion"
     },
     {
@@ -4142,8 +4142,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion_move",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": ".move()"
     },
     {
@@ -4153,8 +4153,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion_update",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": ".update()"
     },
     {
@@ -4164,8 +4164,8 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion_decay",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": ".decay()"
     },
     {
@@ -4175,8 +4175,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_planecomposer",
-      "community": 11,
-      "community_name": "src/index.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "planecomposer.ts"
     },
     {
@@ -4187,7 +4187,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "planecomposer"
     },
     {
@@ -4198,7 +4198,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_constructor",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -4209,7 +4209,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_addeffect",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".addeffect()"
     },
     {
@@ -4220,7 +4220,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_removeeffect",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".removeeffect()"
     },
     {
@@ -4231,7 +4231,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_render",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".render()"
     },
     {
@@ -4242,7 +4242,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_syncdisplaymaterialstate",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".syncdisplaymaterialstate()"
     },
     {
@@ -4253,7 +4253,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_resize",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".resize()"
     },
     {
@@ -4264,7 +4264,7 @@
       "_origin": "ast",
       "id": "src_planecomposer_planecomposer_dispose",
       "community": 27,
-      "community_name": "PlaneComposer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".dispose()"
     },
     {
@@ -4755,7 +4755,7 @@
       "label": "num()",
       "file_type": "code",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L26",
+      "source_location": "L22",
       "_origin": "ast",
       "id": "src_textrasterizer_num",
       "community": 8,
@@ -4766,7 +4766,7 @@
       "label": "buildFontSpec()",
       "file_type": "code",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L35",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "src_textrasterizer_buildfontspec",
       "community": 8,
@@ -4777,7 +4777,7 @@
       "label": "resolveTextStyle()",
       "file_type": "code",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L39",
+      "source_location": "L35",
       "_origin": "ast",
       "id": "src_textrasterizer_resolvetextstyle",
       "community": 8,
@@ -4785,21 +4785,10 @@
       "norm_label": "resolvetextstyle()"
     },
     {
-      "label": "layoutLinesDom()",
-      "file_type": "code",
-      "source_file": "src/TextRasterizer.ts",
-      "source_location": "L133",
-      "_origin": "ast",
-      "id": "src_textrasterizer_layoutlinesdom",
-      "community": 8,
-      "community_name": "DomTextPlane.ts",
-      "norm_label": "layoutlinesdom()"
-    },
-    {
       "label": "layoutLines()",
       "file_type": "code",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L220",
+      "source_location": "L112",
       "_origin": "ast",
       "id": "src_textrasterizer_layoutlines",
       "community": 8,
@@ -4810,7 +4799,7 @@
       "label": "rasterizeText()",
       "file_type": "code",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L273",
+      "source_location": "L165",
       "_origin": "ast",
       "id": "src_textrasterizer_rasterizetext",
       "community": 8,
@@ -4824,8 +4813,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "baseeffect.test.ts"
     },
     {
@@ -4835,8 +4824,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_makerenderer",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "makerenderer()"
     },
     {
@@ -4846,8 +4835,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_makefeedbackrenderer",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "makefeedbackrenderer()"
     },
     {
@@ -4857,8 +4846,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_renderermock",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "renderermock"
     },
     {
@@ -4868,8 +4857,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_asrenderer",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "asrenderer()"
     },
     {
@@ -4879,8 +4868,8 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_flush",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "flush()"
     },
     {
@@ -4890,8 +4879,8 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackinternals",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "feedbackinternals"
     },
     {
@@ -4901,8 +4890,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_internals",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "internals()"
     },
     {
@@ -4912,8 +4901,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "feedbackeffect"
     },
     {
@@ -4923,8 +4912,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect_constructor",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".constructor()"
     },
     {
@@ -4934,8 +4923,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect_fbtexture",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".fbtexture()"
     },
     {
@@ -4945,8 +4934,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect_getconfig",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".getconfig()"
     },
     {
@@ -4956,8 +4945,8 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_testeffect",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "testeffect"
     },
     {
@@ -4967,8 +4956,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_testeffect_getconfig",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".getconfig()"
     },
     {
@@ -4978,8 +4967,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_makegui",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "makegui()"
     },
     {
@@ -4989,8 +4978,8 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": "stateeffect"
     },
     {
@@ -5000,8 +4989,8 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_size",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".size()"
     },
     {
@@ -5011,8 +5000,8 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_time",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".time()"
     },
     {
@@ -5022,8 +5011,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_mouse",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".mouse()"
     },
     {
@@ -5033,8 +5022,8 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_move",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".move()"
     },
     {
@@ -5044,8 +5033,8 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_gate",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".gate()"
     },
     {
@@ -5055,8 +5044,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_prevmouse",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".prevmouse()"
     },
     {
@@ -5066,8 +5055,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_motionprev",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".motionprev()"
     },
     {
@@ -5077,8 +5066,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_stateeffect_fbtexture",
-      "community": 60,
-      "community_name": "StateEffect",
+      "community": 26,
+      "community_name": "FeedbackBuffer",
       "norm_label": ".fbtexture()"
     },
     {
@@ -5429,7 +5418,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_domplane_test",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "domplane.test.ts"
     },
@@ -5441,7 +5430,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": "mockwebgpurenderer"
     },
     {
@@ -5452,7 +5441,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_constructor",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".constructor()"
     },
     {
@@ -5463,7 +5452,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_init",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".init()"
     },
     {
@@ -5474,7 +5463,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setsize",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setsize()"
     },
     {
@@ -5485,7 +5474,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setpixelratio",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setpixelratio()"
     },
     {
@@ -5496,7 +5485,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getpixelratio",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getpixelratio()"
     },
     {
@@ -5507,7 +5496,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setrendertarget",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setrendertarget()"
     },
     {
@@ -5518,7 +5507,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getrendertarget",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getrendertarget()"
     },
     {
@@ -5529,7 +5518,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getclearcolor",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getclearcolor()"
     },
     {
@@ -5540,7 +5529,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getclearalpha",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getclearalpha()"
     },
     {
@@ -5551,7 +5540,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setclearcolor",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setclearcolor()"
     },
     {
@@ -5562,7 +5551,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_clear",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".clear()"
     },
     {
@@ -5573,7 +5562,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_render",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".render()"
     },
     {
@@ -5584,7 +5573,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_dispose",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".dispose()"
     },
     {
@@ -5594,7 +5583,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_tests_domplane_test_update",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "update()"
     },
@@ -5605,7 +5594,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_tests_domplane_test_dispose",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "dispose()"
     },
@@ -5616,8 +5605,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_tests_domplane_test_testeffect",
-      "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community": 29,
+      "community_name": "BaseEffectConfig",
       "norm_label": "testeffect"
     },
     {
@@ -5627,8 +5616,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_tests_domplane_test_testeffect_getconfig",
-      "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community": 29,
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -5638,7 +5627,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_tests_domplane_test_makegui",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "makegui()"
     },
@@ -5649,7 +5638,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_tests_domplane_test_flush",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "flush()"
     },
@@ -5660,7 +5649,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_tests_domplane_test_constructor",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "constructor()"
     },
@@ -5671,7 +5660,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_tests_domplane_test_observe",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "observe()"
     },
@@ -5682,7 +5671,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "src_tests_domplane_test_unobserve",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "unobserve()"
     },
@@ -5693,7 +5682,7 @@
       "source_location": "L621",
       "_origin": "ast",
       "id": "src_tests_domplane_test_withcomposer",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "withcomposer"
     },
@@ -5704,7 +5693,7 @@
       "source_location": "L673",
       "_origin": "ast",
       "id": "src_tests_domplane_test_maketexel",
-      "community": 32,
+      "community": 36,
       "community_name": "DomPlane.test.ts",
       "norm_label": "maketexel()"
     },
@@ -5715,8 +5704,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_dompositioncalculator_test",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": "dompositioncalculator.test.ts"
     },
     {
@@ -5726,8 +5715,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_tests_dompositioncalculator_test_makeelement",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": "makeelement()"
     },
     {
@@ -6023,8 +6012,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_effectcomposer_test",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "effectcomposer.test.ts"
     },
     {
@@ -6034,8 +6023,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_tests_effectcomposer_test_makerenderer",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "makerenderer()"
     },
     {
@@ -6045,8 +6034,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_tests_effectcomposer_test_passthrough",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "passthrough()"
     },
     {
@@ -6056,8 +6045,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_tests_effectcomposer_test_makepass",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "makepass()"
     },
     {
@@ -6067,8 +6056,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_effectmanager_test",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.ts",
       "norm_label": "effectmanager.test.ts"
     },
     {
@@ -6078,8 +6067,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_makerenderer",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.ts",
       "norm_label": "makerenderer()"
     },
     {
@@ -6090,7 +6079,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_testeffect",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": "testeffect"
     },
     {
@@ -6101,7 +6090,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_testeffect_getconfig",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": ".getconfig()"
     },
     {
@@ -6112,7 +6101,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": "stateeffect"
     },
     {
@@ -6123,7 +6112,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_size",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": ".size()"
     },
     {
@@ -6134,7 +6123,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_time",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": ".time()"
     },
     {
@@ -6145,7 +6134,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_mouse",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": ".mouse()"
     },
     {
@@ -6156,7 +6145,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_move",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.ts",
       "norm_label": ".move()"
     },
     {
@@ -6166,8 +6155,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_makegui",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.ts",
       "norm_label": "makegui()"
     },
     {
@@ -6177,8 +6166,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "feedbackbuffer.test.ts"
     },
     {
@@ -6188,8 +6177,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": "stubrenderer"
     },
     {
@@ -6199,8 +6188,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_getrendertarget",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".getrendertarget()"
     },
     {
@@ -6210,8 +6199,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_setrendertarget",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".setrendertarget()"
     },
     {
@@ -6221,8 +6210,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_getclearcolor",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".getclearcolor()"
     },
     {
@@ -6232,8 +6221,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_getclearalpha",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".getclearalpha()"
     },
     {
@@ -6243,8 +6232,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_setclearcolor",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".setclearcolor()"
     },
     {
@@ -6254,8 +6243,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_clear",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".clear()"
     },
     {
@@ -6265,8 +6254,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_render",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".render()"
     },
     {
@@ -6276,8 +6265,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_passthrough",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "passthrough()"
     },
     {
@@ -6287,8 +6276,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_asrenderer",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "asrenderer()"
     },
     {
@@ -6331,8 +6320,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_mousemotion_test",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "mousemotion.test.ts"
     },
     {
@@ -6342,8 +6331,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_tests_mousemotion_test_at",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 13,
+      "community_name": "FeedbackBuffer.ts",
       "norm_label": "at()"
     },
     {
@@ -6353,8 +6342,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "planecomposer.test.ts"
     },
     {
@@ -6364,8 +6353,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_makerenderer",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "makerenderer()"
     },
     {
@@ -6375,8 +6364,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_makesourcemesh",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "makesourcemesh()"
     },
     {
@@ -6386,8 +6375,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_passthrough",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "passthrough()"
     },
     {
@@ -6397,8 +6386,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_getdisplaymaterial",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "getdisplaymaterial()"
     },
     {
@@ -6515,7 +6504,7 @@
       "label": "measure10()",
       "file_type": "code",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L11",
+      "source_location": "L10",
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_measure10",
       "community": 8,
@@ -6526,7 +6515,7 @@
       "label": "makeStyle()",
       "file_type": "code",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L13",
+      "source_location": "L12",
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_makestyle",
       "community": 8,
@@ -6537,7 +6526,7 @@
       "label": "MockCtx",
       "file_type": "code",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L35",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_mockctx",
       "community": 8,
@@ -6548,7 +6537,7 @@
       "label": "makeCtx()",
       "file_type": "code",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L47",
+      "source_location": "L43",
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_makectx",
       "community": 8,
@@ -6559,7 +6548,7 @@
       "label": "spyCtx()",
       "file_type": "code",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L62",
+      "source_location": "L58",
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_spyctx",
       "community": 8,
@@ -6570,7 +6559,7 @@
       "label": "stubComputed()",
       "file_type": "code",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L102",
+      "source_location": "L98",
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_stubcomputed",
       "community": 8,
@@ -6969,8 +6958,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effects_baseeffect",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "baseeffect.ts"
     },
     {
@@ -6980,8 +6969,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_effects_baseeffect_feedbacknodecontext",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbacknodecontext"
     },
     {
@@ -6991,8 +6980,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_effects_baseeffect_feedbackoptions",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbackoptions"
     },
     {
@@ -7002,7 +6991,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffectconfig",
-      "community": 13,
+      "community": 29,
       "community_name": "BaseEffectConfig",
       "norm_label": "baseeffectconfig"
     },
@@ -7013,8 +7002,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_effects_baseeffect_placeholdertexture",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "placeholdertexture"
     },
     {
@@ -7024,8 +7013,8 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_effects_baseeffect_sizescratch",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "_sizescratch"
     },
     {
@@ -7057,8 +7046,8 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_register",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "._register()"
     },
     {
@@ -7101,8 +7090,8 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setupfeedback",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 27,
+      "community_name": "BaseEffect.ts",
       "norm_label": "._setupfeedback()"
     },
     {
@@ -7927,7 +7916,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_index",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mouseflow/index.ts"
     },
     {
@@ -7938,7 +7927,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mousefloweffect.ts"
     },
     {
@@ -7949,7 +7938,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffectoptions",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mousefloweffectoptions"
     },
     {
@@ -7960,7 +7949,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mousefloweffect"
     },
     {
@@ -7971,7 +7960,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_constructor",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".constructor()"
     },
     {
@@ -7981,8 +7970,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_getconfig",
-      "community": 54,
-      "community_name": "effects-lib.ts",
+      "community": 29,
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -7993,7 +7982,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_update",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".update()"
     },
     {
@@ -8004,7 +7993,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_setupgui",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".setupgui()"
     },
     {
@@ -8015,7 +8004,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_dispose",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".dispose()"
     },
     {
@@ -8301,7 +8290,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_index",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "ripple/index.ts"
     },
     {
@@ -8312,7 +8301,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "packing.ts"
     },
     {
@@ -8323,7 +8312,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing_packstate",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "packstate"
     },
     {
@@ -8334,7 +8323,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing_unpackh",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "unpackh"
     },
     {
@@ -8345,7 +8334,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing_unpackhprev",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "unpackhprev"
     },
     {
@@ -8356,7 +8345,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleapply",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippleapply.ts"
     },
     {
@@ -8367,7 +8356,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleapply_rippleapplyoptions",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippleapplyoptions"
     },
     {
@@ -8378,7 +8367,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleapply_rippleapplynode",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippleapplynode()"
     },
     {
@@ -8389,7 +8378,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippleposteffect.ts"
     },
     {
@@ -8400,7 +8389,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffectoptions",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippleposteffectoptions"
     },
     {
@@ -8411,7 +8400,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_placeholdertexture",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "placeholdertexture"
     },
     {
@@ -8421,7 +8410,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": "rippleposteffect"
     },
@@ -8432,7 +8421,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_constructor",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".constructor()"
     },
@@ -8443,7 +8432,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_buildsimnode",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".buildsimnode()"
     },
@@ -8454,7 +8443,7 @@
       "source_location": "L165",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_maketarget",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".maketarget()"
     },
@@ -8465,7 +8454,7 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_buildtargets",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".buildtargets()"
     },
@@ -8476,7 +8465,7 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_cleartargets",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".cleartargets()"
     },
@@ -8487,7 +8476,7 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_setrenderer",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": "._setrenderer()"
     },
@@ -8498,8 +8487,8 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_getconfig",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -8509,7 +8498,7 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_update",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".update()"
     },
@@ -8520,7 +8509,7 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_setupgui",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".setupgui()"
     },
@@ -8531,7 +8520,7 @@
       "source_location": "L323",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_resize",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".resize()"
     },
@@ -8542,7 +8531,7 @@
       "source_location": "L327",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_dispose",
-      "community": 56,
+      "community": 0,
       "community_name": "RipplePostEffect",
       "norm_label": ".dispose()"
     },
@@ -8554,7 +8543,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippletexture",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippletexture.ts"
     },
     {
@@ -8565,7 +8554,7 @@
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippletexture_rippletexture",
       "community": 0,
-      "community_name": "ripple/index.ts",
+      "community_name": "RipplePostEffect",
       "norm_label": "rippletexture()"
     },
     {
@@ -8576,7 +8565,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_index",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "smoothcursor/index.ts"
     },
     {
@@ -8587,7 +8576,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "smoothcursoreffect.ts"
     },
     {
@@ -8598,7 +8587,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffectoptions",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "smoothcursoreffectoptions"
     },
     {
@@ -8608,7 +8597,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": "smoothcursoreffect"
     },
@@ -8619,7 +8608,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_constructor",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": ".constructor()"
     },
@@ -8631,7 +8620,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_getconfig",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -8641,7 +8630,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_update",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": ".update()"
     },
@@ -8652,7 +8641,7 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_writeuniforms",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": "._writeuniforms()"
     },
@@ -8663,7 +8652,7 @@
       "source_location": "L189",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_resetpoints",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": "._resetpoints()"
     },
@@ -8674,7 +8663,7 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_resize",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": ".resize()"
     },
@@ -8696,7 +8685,7 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_dispose",
-      "community": 29,
+      "community": 60,
       "community_name": "SmoothCursorEffect",
       "norm_label": ".dispose()"
     },
@@ -8708,7 +8697,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "smoothcursornode.ts"
     },
     {
@@ -8719,7 +8708,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode_smoothcursornodeuniforms",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "smoothcursornodeuniforms"
     },
     {
@@ -8730,7 +8719,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode_segdist",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "segdist"
     },
     {
@@ -8741,7 +8730,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode_smoothcursornode",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "BaseEffectConfig",
       "norm_label": "smoothcursornode()"
     },
     {
@@ -9356,8 +9345,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_scenes_basescene",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": "basescene.ts"
     },
     {
@@ -9367,8 +9356,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_scenes_basescene_basescene",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": "basescene"
     },
     {
@@ -9378,8 +9367,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_scenes_basescene_basescene_constructor",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": ".constructor()"
     },
     {
@@ -9389,8 +9378,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_scenes_basescene_basescene_resize",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": ".resize()"
     },
     {
@@ -9400,8 +9389,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_scenes_basescene_basescene_dispose",
-      "community": 61,
-      "community_name": "Camera",
+      "community": 5,
+      "community_name": "PointerController",
       "norm_label": ".dispose()"
     },
     {
@@ -9444,8 +9433,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_types_planenodecontext",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 11,
+      "community_name": "src/index.ts",
       "norm_label": "planenodecontext"
     },
     {
@@ -11986,9 +11975,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 72,
+      "community": 43,
       "norm_label": "planenodecontext builtin node table",
-      "community_name": "v0.3 to v0.4 Breaking Changes",
+      "community_name": "DOM-locked Plane Demo",
       "id": "docs_guide_getting_started_plane_node_context"
     },
     {
@@ -12000,9 +11989,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 72,
+      "community": 43,
       "norm_label": "node graph built once, updated via .value swap",
-      "community_name": "v0.3 to v0.4 Breaking Changes",
+      "community_name": "DOM-locked Plane Demo",
       "id": "docs_guide_getting_started_node_graph_built_once"
     },
     {
@@ -12042,9 +12031,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 72,
+      "community": 43,
       "norm_label": "v0.3 to v0.4 breaking changes",
-      "community_name": "v0.3 to v0.4 Breaking Changes",
+      "community_name": "DOM-locked Plane Demo",
       "id": "docs_guide_migration_v0_4_breaking_changes"
     },
     {
@@ -12070,9 +12059,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 72,
+      "community": 43,
       "norm_label": "createplane shader migration (fragmentshader to colornode)",
-      "community_name": "v0.3 to v0.4 Breaking Changes",
+      "community_name": "DOM-locked Plane Demo",
       "id": "docs_guide_migration_v0_4_color_node_migration"
     },
     {
@@ -12098,9 +12087,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 72,
+      "community": 43,
       "norm_label": "addfeedback migration: pre-declare texture() node",
-      "community_name": "v0.3 to v0.4 Breaking Changes",
+      "community_name": "DOM-locked Plane Demo",
       "id": "docs_guide_migration_v0_4_add_feedback_migration"
     },
     {
@@ -12126,9 +12115,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 72,
+      "community": 43,
       "norm_label": "texturecolorspace default changed to srgbcolorspace",
-      "community_name": "v0.3 to v0.4 Breaking Changes",
+      "community_name": "DOM-locked Plane Demo",
       "id": "docs_guide_migration_v0_4_texture_color_space"
     },
     {
@@ -22693,7 +22682,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L35",
+      "source_location": "L31",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer",
@@ -22704,7 +22693,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L220",
+      "source_location": "L112",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer",
@@ -22715,18 +22704,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L133",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_textrasterizer",
-      "target": "src_textrasterizer_layoutlinesdom",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/TextRasterizer.ts",
-      "source_location": "L26",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer",
@@ -22737,7 +22715,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L273",
+      "source_location": "L165",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer",
@@ -22759,7 +22737,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L39",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer",
@@ -22819,7 +22797,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L45",
+      "source_location": "L41",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer_resolvetextstyle",
@@ -22831,7 +22809,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L297",
+      "source_location": "L189",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer_rasterizetext",
@@ -22863,30 +22841,6 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_tests_textrasterizer_test",
-      "target": "src_textrasterizer_layoutlinesdom",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "src/TextRasterizer.ts",
-      "source_location": "L335",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "src_textrasterizer_rasterizetext",
-      "target": "src_textrasterizer_layoutlinesdom",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "re_exports",
       "context": "re-export",
       "confidence": "EXTRACTED",
@@ -22915,7 +22869,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/TextRasterizer.ts",
-      "source_location": "L336",
+      "source_location": "L225",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_textrasterizer_rasterizetext",
@@ -24841,7 +24795,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L47",
+      "source_location": "L43",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_tests_textrasterizer_test",
@@ -24852,7 +24806,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L13",
+      "source_location": "L12",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_tests_textrasterizer_test",
@@ -24863,7 +24817,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L11",
+      "source_location": "L10",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_tests_textrasterizer_test",
@@ -24874,7 +24828,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L35",
+      "source_location": "L31",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_tests_textrasterizer_test",
@@ -24885,7 +24839,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L62",
+      "source_location": "L58",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_tests_textrasterizer_test",
@@ -24896,7 +24850,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/__tests__/TextRasterizer.test.ts",
-      "source_location": "L102",
+      "source_location": "L98",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_tests_textrasterizer_test",

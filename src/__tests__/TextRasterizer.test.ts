@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   resolveTextStyle,
   layoutLines,
+  layoutLinesDom,
   rasterizeText,
   type ResolvedTextStyle,
 } from "../TextRasterizer";
@@ -19,10 +20,14 @@ function makeStyle(overrides: Partial<ResolvedTextStyle> = {}): ResolvedTextStyl
     lineHeight: 20,
     letterSpacing: 0,
     textAlign: "left",
+    verticalAlign: "top",
     paddingTop: 0,
     paddingRight: 0,
     paddingBottom: 0,
     paddingLeft: 0,
+    wordBreak: "normal",
+    overflowWrap: "normal",
+    lineBreak: "auto",
     ...overrides,
   };
 }
@@ -149,6 +154,68 @@ describe("resolveTextStyle", () => {
     expect(s.fontSize).toBe(40);
     expect(s.color).toBe("rgb(0, 0, 0)"); // 他は抽出値のまま
   });
+
+  it("overrides.padding が 4 辺に適用され、個別指定がそれを塗り替える", () => {
+    stubComputed({
+      fontSize: "16px",
+      paddingTop: "5px",
+      paddingRight: "5px",
+      paddingBottom: "5px",
+      paddingLeft: "5px",
+    });
+    const s = resolveTextStyle(document.createElement("div"), {
+      padding: 20,
+      paddingLeft: 40,
+    });
+    expect(s.paddingTop).toBe(20);
+    expect(s.paddingRight).toBe(20);
+    expect(s.paddingBottom).toBe(20);
+    expect(s.paddingLeft).toBe(40);
+  });
+
+  it("padding のみ上書きしても CSS 由来の他プロパティは残る", () => {
+    stubComputed({ fontSize: "16px", color: "rgb(1, 2, 3)", paddingTop: "5px" });
+    const s = resolveTextStyle(document.createElement("div"), { paddingTop: 0 });
+    expect(s.paddingTop).toBe(0);
+    expect(s.color).toBe("rgb(1, 2, 3)");
+  });
+
+  it("alignContent から verticalAlign を解決し、overrides が優先される", () => {
+    stubComputed({ fontSize: "16px", alignContent: "center" });
+    expect(resolveTextStyle(document.createElement("div")).verticalAlign).toBe("center");
+    stubComputed({ fontSize: "16px", alignContent: "flex-end" });
+    expect(resolveTextStyle(document.createElement("div")).verticalAlign).toBe("bottom");
+    // normal / 未対応環境は top に丸める
+    stubComputed({ fontSize: "16px", alignContent: "normal" });
+    expect(resolveTextStyle(document.createElement("div")).verticalAlign).toBe("top");
+    stubComputed({ fontSize: "16px" });
+    expect(resolveTextStyle(document.createElement("div")).verticalAlign).toBe("top");
+    stubComputed({ fontSize: "16px", alignContent: "center" });
+    expect(
+      resolveTextStyle(document.createElement("div"), { verticalAlign: "bottom" }).verticalAlign,
+    ).toBe("bottom");
+  });
+});
+
+describe("layoutLinesDom", () => {
+  it("レイアウトを持たない環境（jsdom）では null を返してフォールバックさせる", () => {
+    expect(layoutLinesDom("aaa bbb ccc", 30, makeStyle())).toBeNull();
+  });
+
+  it("空文字は DOM を触らずに [] を返す", () => {
+    expect(layoutLinesDom("", 100, makeStyle())).toEqual([]);
+  });
+
+  it("maxWidth が 0 以下なら null（病的な入力で行あたり 1 文字の矩形問い合わせを避ける）", () => {
+    expect(layoutLinesDom("text", 0, makeStyle())).toBeNull();
+    expect(layoutLinesDom("text", -10, makeStyle())).toBeNull();
+  });
+
+  it("計測用のミラー要素を body に残さない", () => {
+    const before = document.body.children.length;
+    layoutLinesDom("aaa bbb ccc", 30, makeStyle());
+    expect(document.body.children.length).toBe(before);
+  });
 });
 
 describe("rasterizeText", () => {
@@ -221,6 +288,82 @@ describe("rasterizeText", () => {
     const ys = ctx.fillText.mock.calls.map((c) => c[2]);
     expect(ys[0]).toBeCloseTo(4 + 10); // paddingTop + lh/2
     expect(ys[1]).toBeCloseTo(4 + 10 + 20); // + lh
+  });
+
+  it("verticalAlign: center で paddingTop/Bottom を除いた領域の中央に寄る", () => {
+    const ctx = makeCtx();
+    spyCtx(ctx);
+    // cssHeight 100, padding 上 10 / 下 30 → contentHeight 60、1 行 20px なので slack 40
+    rasterizeText(
+      document.createElement("canvas"),
+      "hi",
+      makeStyle({
+        lineHeight: 20,
+        paddingTop: 10,
+        paddingBottom: 30,
+        verticalAlign: "center",
+      }),
+      1000,
+      100,
+      1,
+    );
+    expect(ctx.fillText.mock.calls[0][2]).toBeCloseTo(10 + 20 + 10); // paddingTop + slack/2 + lh/2
+  });
+
+  it("verticalAlign: bottom で下端が cssHeight - paddingBottom に揃う", () => {
+    const ctx = makeCtx();
+    spyCtx(ctx);
+    rasterizeText(
+      document.createElement("canvas"),
+      "hi",
+      makeStyle({
+        lineHeight: 20,
+        paddingTop: 10,
+        paddingBottom: 30,
+        verticalAlign: "bottom",
+      }),
+      1000,
+      100,
+      1,
+    );
+    // ブロック下端 = 100 - 30 = 70、その 1 行ぶん上が基準なのでベースラインは 60
+    expect(ctx.fillText.mock.calls[0][2]).toBeCloseTo(60);
+  });
+
+  it("verticalAlign: top は paddingBottom の影響を受けない（既定の互換）", () => {
+    const ctx = makeCtx();
+    spyCtx(ctx);
+    rasterizeText(
+      document.createElement("canvas"),
+      "hi",
+      makeStyle({ lineHeight: 20, paddingTop: 4, paddingBottom: 40 }),
+      1000,
+      100,
+      1,
+    );
+    expect(ctx.fillText.mock.calls[0][2]).toBeCloseTo(4 + 10);
+  });
+
+  it("コンテンツ領域に収まらない場合もクランプせず溢れたまま描く", () => {
+    const ctx = makeCtx();
+    spyCtx(ctx);
+    // contentHeight 20 に対して 3 行 × 20px = 60 → slack -40
+    rasterizeText(
+      document.createElement("canvas"),
+      "aaa bbb ccc",
+      makeStyle({
+        lineHeight: 20,
+        paddingTop: 10,
+        paddingBottom: 10,
+        verticalAlign: "center",
+      }),
+      30,
+      40,
+      1,
+    );
+    expect(ctx.fillText).toHaveBeenCalledTimes(3);
+    // paddingTop + slack/2 + lh/2 = 10 - 20 + 10 = 0（負方向にもクランプしない）
+    expect(ctx.fillText.mock.calls[0][2]).toBeCloseTo(0);
   });
 
   it("letterSpacing > 0 かつ ctx に letterSpacing なし → per-char フォールバックで文字数ぶん fillText", () => {

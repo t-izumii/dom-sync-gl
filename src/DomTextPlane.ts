@@ -101,6 +101,8 @@ export class DomTextPlane extends DomPlane {
     }
     const rect = this.positionCalculator.rect;
     if (rect.width <= 0 || rect.height <= 0) return;
+    const prevCanvasWidth = this.textCanvas.width;
+    const prevCanvasHeight = this.textCanvas.height;
     const ok = rasterizeText(
       this.textCanvas,
       this.text,
@@ -112,6 +114,16 @@ export class DomTextPlane extends DomPlane {
     if (!ok) return;
     this.lastRasterWidth = rect.width;
     this.lastRasterHeight = rect.height;
+    // canvas の実ピクセルサイズが変わったときは needsUpdate だけでは足りない。
+    // GPU 側のテクスチャは旧サイズのまま確保済みで、そこへ新しい canvas を
+    // 流し込むと内容が引き伸ばされて出る（padding 変更やレスポンシブな
+    // リサイズで再現する）。dispose して次の描画で確保し直させる。
+    if (
+      this.textCanvas.width !== prevCanvasWidth ||
+      this.textCanvas.height !== prevCanvasHeight
+    ) {
+      this.textTexture.dispose();
+    }
     this.textTexture.needsUpdate = true;
   }
 
