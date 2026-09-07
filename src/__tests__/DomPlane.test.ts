@@ -80,6 +80,81 @@ describe('DomPlane', () => {
   let container: HTMLElement;
   let disconnectSpy: ReturnType<typeof vi.fn>;
 
+  it('非表示の effect は更新せず、復帰時は時間とマウス差分を連続させる', () => {
+    const app = new DomSyncGL(container, { autoRaf: false });
+    const plane = app.createPlane(null);
+    class MotionEffect extends TestEffect {
+      samples: { time: number; move: number }[] = [];
+      update(time: number) { this.samples.push({ time, move: this.uMove.value }); }
+    }
+    const effect = plane.addEffect(new MotionEffect());
+    const feedback = vi.spyOn(effect, '_renderFeedback');
+    plane.updateEffects(1, new THREE.Vector2(0.2, 0.3), 0, 0);
+    plane.isVisible = false;
+    plane.updateEffects(20, new THREE.Vector2(0.8, 0.9), 0, 0);
+    expect(feedback).toHaveBeenCalledTimes(1);
+    plane.isVisible = true;
+    plane.updateEffects(30, new THREE.Vector2(0.8, 0.9), 0, 0);
+    plane.updateEffects(31, new THREE.Vector2(0.8, 0.9), 0, 0);
+    expect(effect.samples).toEqual([{ time: 1, move: 0 }, { time: 1, move: 0 }, { time: 2, move: 0 }]);
+    app.destroy();
+  });
+
+  it('連続サイズ変更中の RT 更新は間引き、最後のサイズを反映する', () => {
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const app = new DomSyncGL(container, { autoRaf: false });
+    const el = document.createElement('div');
+    const rect = vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 50));
+    const plane = app.createPlane(el, { updateRectEveryFrame: true });
+    plane.isVisible = true;
+    const effect = new TestEffect(); effect.resize = vi.fn(); plane.addEffect(effect);
+    vi.mocked(effect.resize).mockClear();
+    const composer = (plane as unknown as { planeComposer: PlaneComposer }).planeComposer;
+    const target = (composer as unknown as { targetA: THREE.RenderTarget }).targetA;
+    for (const width of [110, 120, 130]) {
+      rect.mockReturnValue(new DOMRect(0, 0, width, 50)); app.update(); now += 16;
+      expect(plane.mesh.scale.x).toBe(width);
+    }
+    expect(effect.resize).toHaveBeenCalledTimes(1);
+    expect(target.width).toBe(110 * app.renderer.getPixelRatio());
+    now = 110; app.update();
+    expect(target.width).toBe(130 * app.renderer.getPixelRatio());
+    expect(effect.resize).toHaveBeenCalledTimes(2);
+    app.destroy();
+  });
+
+  it('毎フレームのサイズ変更を mesh/uniform/RT/effect に反映し、位置だけの変更では RT をリサイズしない', async () => {
+    const app = new DomSyncGL(container, { autoRaf: false });
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const rect = vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 50));
+    let ctx!: PlaneNodeContext;
+    const plane = app.createPlane(el, { updateRectEveryFrame: true, colorNode: c => { ctx = c; return c.uTexture; } });
+    const effect = new TestEffect();
+    effect.resize = vi.fn();
+    plane.addEffect(effect);
+    await flush();
+    const composer = (plane as unknown as { planeComposer: PlaneComposer }).planeComposer;
+    const resize = vi.spyOn(composer, 'resize');
+    vi.mocked(effect.resize).mockClear();
+    rect.mockClear().mockReturnValue(new DOMRect(10, 20, 200, 120));
+    app.update();
+    expect(rect).toHaveBeenCalledTimes(1);
+    expect(plane.mesh.scale.toArray()).toEqual([200, 120, 1]);
+    expect(ctx.uResolution.value.toArray()).toEqual([200, 120]);
+    expect(resize).toHaveBeenCalledWith(200, 120);
+    expect(effect.resize).toHaveBeenCalledWith(200, 120);
+    const target = (composer as unknown as { targetA: THREE.RenderTarget }).targetA;
+    expect(target.width).toBe(200 * app.renderer.getPixelRatio());
+    expect(target.height).toBe(120 * app.renderer.getPixelRatio());
+    rect.mockReturnValue(new DOMRect(30, 40, 200, 120));
+    app.update();
+    expect(resize).toHaveBeenCalledTimes(1);
+    expect(effect.resize).toHaveBeenCalledTimes(1);
+    app.destroy();
+  });
+
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -579,6 +654,23 @@ describe('DomPlane', () => {
   });
 
   describe('effect の単一 owner・使い捨て契約（CR-07）', () => {
+    it('destroy 後のリソース追加は受け付けず、渡されたリソースの所有権も移さない', () => {
+      const app = new DomSyncGL(container);
+      const plane = app.createPlane(null) as DomPlane;
+      plane.destroy();
+      const effect = new TestEffect();
+      const attach = vi.spyOn(effect, '_attachRenderer');
+      const external = new THREE.Texture();
+      const dispose = vi.spyOn(external, 'dispose');
+      expect(() => plane.addEffect(effect)).toThrow(/destroy/);
+      expect(attach).not.toHaveBeenCalled();
+      expect(() => plane.setTexture(external, true)).toThrow(/destroy/);
+      expect(dispose).not.toHaveBeenCalled();
+      expect(() => plane.addFeedback({ outputNode: ctx => ctx.uPrev, outputUniform: 'feedback' })).toThrow(/destroy/);
+      external.dispose();
+      app.destroy();
+    });
+
     it('同じ effect を同じ plane に 2 回 addEffect すると throw する', () => {
       const app = new DomSyncGL(container);
       const plane = app.createPlane(null) as DomPlane;

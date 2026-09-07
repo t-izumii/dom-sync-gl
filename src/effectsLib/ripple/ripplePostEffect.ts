@@ -123,7 +123,8 @@ export class RipplePostEffect extends BaseEffect {
     };
 
     this.simMaterial = new THREE.MeshBasicNodeMaterial();
-    this.simMaterial.colorNode = this.buildSimNode();
+    // 波の高さは符号付きの数値。colorNode の色処理では負値が 0 に丸められる。
+    this.simMaterial.fragmentNode = this.buildSimNode();
     this.simMaterial.depthTest = false;
     this.simMaterial.depthWrite = false;
     this.simMaterial.blending = THREE.NoBlending;

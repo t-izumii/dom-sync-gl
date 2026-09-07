@@ -32,6 +32,8 @@ export class DomSyncGL {
   resizeCallbacks: (() => void)[];
   rect: DOMRect;
   domPlanes: DomPlane[];
+  // render フック中の削除に備え、登録変更時だけ走査用配列を作り直す。
+  private renderPlanes: readonly DomPlane[] = [];
   dom3DObjects: Dom3DObject[];
   clock: THREE.Clock;
   scrollSync: ScrollSync | null = null;
@@ -55,6 +57,7 @@ export class DomSyncGL {
   // update() が取得したフレーム状態を render() へ渡すための保持。update() 未実行で
   // render() を呼んでも直近フレーム（初期値 0）で描画でき例外にならない。
   private _frameElapsed: number = 0;
+  private readonly _frameMouse = new THREE.Vector2(0.5, 0.5);
   /**
    * renderer の非同期初期化の完了を示す Promise。WebGPU の device 取得は
    * async のため、バックエンド確定後の処理（isWebGPUBackend() の判定など）は
@@ -90,6 +93,11 @@ export class DomSyncGL {
     // 別 Promise を作らず同一 Promise に catch を付けるのは、呼び出し元が
     // await しなかった場合の unhandled rejection を防ぐため。
     this.ready = this.renderer.init().then(() => {
+      if (this.destroyed) {
+        // init 前の dispose では、後から確保される GPU リソースを解放できない。
+        this.renderer.dispose();
+        return;
+      }
       this._rendererReady = true;
     });
     this.ready.catch((err) => {
@@ -270,6 +278,7 @@ export class DomSyncGL {
 
     domPlane._setGui(this.devTools.getGUI());
     this.domPlanes.push(domPlane);
+    this.renderPlanes = this.domPlanes.slice();
 
     if (element) {
       const mesh = domPlane.getMesh();
@@ -308,6 +317,7 @@ export class DomSyncGL {
     );
     plane._setGui(this.devTools.getGUI());
     this.domPlanes.push(plane);
+    this.renderPlanes = this.domPlanes.slice();
     const mesh = plane.getMesh();
     this.domPlaneMeshes.push(mesh);
     this.domPlaneByMesh.set(mesh, plane);
@@ -319,6 +329,7 @@ export class DomSyncGL {
   private unregisterPlane(domPlane: DomPlane): void {
     const index = this.domPlanes.indexOf(domPlane);
     if (index > -1) this.domPlanes.splice(index, 1);
+    this.renderPlanes = this.domPlanes.slice();
     const mesh = domPlane.getMesh();
     const meshIndex = this.domPlaneMeshes.indexOf(mesh);
     if (meshIndex > -1) this.domPlaneMeshes.splice(meshIndex, 1);
@@ -507,9 +518,8 @@ export class DomSyncGL {
 
     this.offscreenObserver = new IntersectionObserver(
       (entries) => {
-        if (this.destroyed) return;
-        // 1 回の callback に同一 target の観測が複数積まれうるため、DomPlane の
-        // entries[0] ではなく最新の 1 件で判定する。取りこぼすと停止状態が反転したまま固まる。
+        if (this.destroyed || entries.length === 0) return;
+        // 同一 target の観測が複数積まれた場合は最新の状態で判定する。
         this.setPaused(!entries[entries.length - 1].isIntersecting);
       },
       { rootMargin: this.options.pauseRootMargin ?? '100%' },
@@ -644,7 +654,7 @@ export class DomSyncGL {
     this.effectManager.dispose();
     this.controls?.dispose();
     this.controls = null;
-    this.renderer.dispose();
+    if (this._rendererReady) this.renderer.dispose();
     this.canvas.remove();
   }
 
@@ -689,20 +699,32 @@ export class DomSyncGL {
     const scrollX = this._scroll.x;
     const scrollY = this._scroll.y;
 
-    this.pointer.update();
-    const mouse = this.pointer.getMouse();
+    const previousLeft = this.rect.left;
+    const previousTop = this.rect.top;
+    this.scrollSync?.update(scrollX, scrollY);
+    if (!this.scrollSync) {
+      // 通常フローの canvas は viewport 内の位置がスクロールで変わる。
+      // plane/object と共有している rect の位置だけ更新し、サイズは resize に任せる。
+      const rect = this.container.getBoundingClientRect();
+      this.rect.x = rect.left;
+      this.rect.y = rect.top;
+    }
+    if (previousLeft !== this.rect.left || previousTop !== this.rect.top) {
+      this.pointer.invalidateRect();
+    }
+
+    this.pointer.updatePosition();
 
     // dispatch 中の解除で固定長ループが壊れないよう snapshot を回す
     const callbacks = this.updateCallbacks.slice();
     for (let i = 0, n = callbacks.length; i < n; i++) {
       callbacks[i]();
     }
+    if (this.destroyed) return;
 
     const elapsed = this.clock.getElapsedTime();
     this._frameElapsed = elapsed;
-    this.effectManager.update(elapsed, mouse);
 
-    this.scrollSync?.update(scrollX, scrollY);
     for (let i = 0, n = planes.length; i < n; i++) {
       planes[i]._tickRead(scrollX, scrollY);
     }
@@ -710,14 +732,14 @@ export class DomSyncGL {
       objects[i]._tickRead(scrollX, scrollY);
     }
     for (let i = 0, n = planes.length; i < n; i++) {
-      planes[i].updateEffects(elapsed, mouse, scrollX, scrollY);
-    }
-    for (let i = 0, n = planes.length; i < n; i++) {
-      planes[i]._tickApply(elapsed, scrollX, scrollY);
+      planes[i]._tickApply(elapsed, scrollX, scrollY, false);
     }
     for (let i = 0, n = objects.length; i < n; i++) {
       objects[i]._tickApply(scrollX, scrollY);
     }
+    this.pointer.update();
+    this._frameMouse.copy(this.pointer.getMouse());
+    for (const plane of planes) plane._tickPointer();
   };
 
   /**
@@ -739,8 +761,16 @@ export class DomSyncGL {
 
     const outputTarget = options?.outputTarget ?? null;
     const elapsed = this._frameElapsed;
-    const planes = this.domPlanes;
+    const planes = this.renderPlanes;
 
+    // effect.update() はカスタム GPU 処理を含みうる。feedback とともに
+    // renderer の初期化ガード後で実行し、update() 単独では描画しない。
+    this.effectManager.update(elapsed, this._frameMouse);
+    if (this.destroyed) return;
+    for (let i = 0, n = planes.length; i < n; i++) {
+      planes[i].updateEffects(elapsed, this._frameMouse, this._scroll.x, this._scroll.y);
+      if (this.destroyed) return;
+    }
     for (let i = 0, n = planes.length; i < n; i++) {
       planes[i]._tickFeedback(elapsed);
     }

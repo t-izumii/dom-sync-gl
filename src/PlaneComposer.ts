@@ -24,8 +24,9 @@ export class PlaneComposer implements EffectTarget {
   // sourceMesh を Object3D として mainScene に残したまま、effect 有効時だけ
   // material をこれに差し替えて合成結果を表示する（renderOrder / layers /
   // frustumCulled / 親子関係を proxy へ移し替えず自動的に維持するため）。
-  // RT は premultiplied alpha なので premultipliedAlpha:true で合成し alpha の
-  // 再乗算を防ぐ。depthTest / depthWrite / side は originalMaterial の値を毎
+  // RT は premultiplied alpha。NodeMaterial の premultipliedAlpha は shader 内で
+  // RGB に alpha を掛けるので使わず、blend 係数のみ乗算済み入力向けに設定する。
+  // depthTest / depthWrite / side は originalMaterial の値を毎
   // render で同期してユーザー設定を維持する。カスタム blending は premultiplied
   // 合成と両立しないため同期しない。
   private readonly displayMaterial: THREE.MeshBasicNodeMaterial;
@@ -78,7 +79,13 @@ export class PlaneComposer implements EffectTarget {
     this.displayMaterial = new THREE.MeshBasicNodeMaterial();
     this.displayMaterial.colorNode = this.displayTexture;
     this.displayMaterial.transparent = true;
-    this.displayMaterial.premultipliedAlpha = true;
+    this.displayMaterial.blending = THREE.CustomBlending;
+    this.displayMaterial.blendEquation = THREE.AddEquation;
+    this.displayMaterial.blendSrc = THREE.OneFactor;
+    this.displayMaterial.blendDst = THREE.OneMinusSrcAlphaFactor;
+    this.displayMaterial.blendEquationAlpha = THREE.AddEquation;
+    this.displayMaterial.blendSrcAlpha = THREE.OneFactor;
+    this.displayMaterial.blendDstAlpha = THREE.OneMinusSrcAlphaFactor;
   }
 
   /**
@@ -168,14 +175,16 @@ export class PlaneComposer implements EffectTarget {
     this.displayMaterial.side = this.originalMaterial.side;
   }
 
-  resize(width: number, height: number): void {
+  resize(width: number, height: number, resizeTargets = true): void {
     if (this._disposed) return;
     const dpr = this.renderer.getPixelRatio();
     const w = Math.max(1, Math.floor(width * dpr));
     const h = Math.max(1, Math.floor(height * dpr));
 
-    this.targetA.setSize(w, h);
-    this.targetB.setSize(w, h);
+    if (resizeTargets) {
+      this.targetA.setSize(w, h);
+      this.targetB.setSize(w, h);
+    }
 
     this.localCamera.left = -width / 2;
     this.localCamera.right = width / 2;

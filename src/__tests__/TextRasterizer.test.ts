@@ -380,6 +380,25 @@ describe("rasterizeText", () => {
     expect(ctx.fillText).toHaveBeenCalledTimes(3);
   });
 
+  it('対応 Canvas では負の字間を設定し、詰めた幅で折り返しを計測する', () => {
+    const ctx = makeCtx(true);
+    ctx.measureText.mockImplementation((s: string) => ({ width: s.length * (10 + parseFloat(ctx.letterSpacing!)) }));
+    spyCtx(ctx);
+    rasterizeText(document.createElement('canvas'), 'abc', makeStyle({ letterSpacing: -2 }), 24, 50, 1);
+    expect(ctx.letterSpacing).toBe('-2px');
+    expect(ctx.fillText.mock.calls).toEqual([['abc', 0, 10]]);
+  });
+
+  it.each([
+    ['left', 0], ['center', 38], ['right', 76],
+  ] as const)('非対応 Canvas でも負の字間を %s 揃えで描画する', (textAlign, start) => {
+    const ctx = makeCtx(false);
+    spyCtx(ctx);
+    rasterizeText(document.createElement('canvas'), 'abc', makeStyle({ letterSpacing: -2, textAlign }), 100, 50, 1);
+    expect(ctx.fillText.mock.calls).toEqual([['a', start, 10], ['b', start + 8, 10], ['c', start + 16, 10]]);
+    expect(ctx.textAlign).toBe(textAlign);
+  });
+
   it("getContext が null → false を返し例外を投げない", () => {
     spyCtx(null);
     const result = rasterizeText(

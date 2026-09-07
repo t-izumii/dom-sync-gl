@@ -109,6 +109,8 @@ export interface CreatePlaneOptions {
    */
   uniforms?: Record<string, UniformNode<unknown>>;
   updateRectEveryFrame?: boolean;
+  /** 自動サイズ追従中の RT・テキスト再描画の最小間隔(ms)。既定100。0で毎フレーム更新。 */
+  resizeInterval?: number;
   segments?: number;
   onInView?: (plane: import('./DomPlane').DomPlane) => void;
   onOutView?: (plane: import('./DomPlane').DomPlane) => void;

@@ -37,6 +37,13 @@ export class MouseMotion {
     return this._move;
   }
 
+  reset(mouse: Vector2): void {
+    this.prev.copy(mouse);
+    this._current.copy(mouse);
+    this._hasCurrent = true;
+    this._move = 0;
+  }
+
   /**
    * @param mouse 今フレームのマウス位置（UV 系。座標系は呼び出し側で統一する）
    * @param aspect UV の横方向の引き伸ばし補正。有限でない値は 1 として扱う

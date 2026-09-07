@@ -164,8 +164,14 @@ export class ScrollSync {
   }
 
   private applyTransform(scrollX: number, scrollY: number): void {
-    // dom モードでは container の CSS 配置を尊重するため transform を当てない。
-    if (this._attach === 'dom') return;
+    // CSS 配置を保ちつつ、plane/object と共有する viewport 座標を更新する。
+    // scroll が同じでも sticky や CSS transform で動くので毎フレーム計測する。
+    if (this._attach === 'dom') {
+      const rect = this.container.getBoundingClientRect();
+      this._logicalRect.x = rect.left;
+      this._logicalRect.y = rect.top;
+      return;
+    }
 
     // scrollX/scrollY が前回と同じなら、offsetHeight 読み取り（強制レイアウト）
     // を含む以降の処理を丸ごとスキップする。updateSize() 呼び出し時はレイアウトが

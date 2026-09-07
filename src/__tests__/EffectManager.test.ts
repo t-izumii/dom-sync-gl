@@ -57,6 +57,7 @@ describe('EffectManager', () => {
 
   afterEach(() => {
     warnSpy.mockRestore();
+    vi.unstubAllEnvs();
   });
 
   it('addEffect: renderer 注入・composer への register・resize が行われる', () => {
@@ -87,6 +88,31 @@ describe('EffectManager', () => {
     manager.addEffect(effect, 100, 100);
 
     expect(effect.setupGUI).not.toHaveBeenCalled();
+  });
+
+  it('update 中の自分・後続 effect の削除でも走査が壊れない', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const first = manager.addEffect(new TestEffect(), 100, 100);
+    const removed = manager.addEffect(new TestEffect(), 100, 100);
+    const last = manager.addEffect(new TestEffect(), 100, 100);
+    first.update = () => { manager.removeEffect(first); manager.removeEffect(removed); };
+    removed.update = vi.fn();
+    last.update = vi.fn();
+    expect(() => manager.update(1, new THREE.Vector2())).not.toThrow();
+    expect(removed.update).not.toHaveBeenCalled();
+    expect(last.update).toHaveBeenCalledTimes(1);
+    manager.dispose();
+  });
+
+  it('update 中の clearEffects で破棄された後続 effect は呼ばない', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const first = manager.addEffect(new TestEffect(), 100, 100);
+    const last = manager.addEffect(new TestEffect(), 100, 100);
+    first.update = () => manager.clearEffects();
+    last.update = vi.fn();
+    expect(() => manager.update(1, new THREE.Vector2())).not.toThrow();
+    expect(last.update).not.toHaveBeenCalled();
+    expect(manager.hasEffects()).toBe(false);
   });
 
   it('gui があれば setupGUI(gui) が呼ばれ、戻り値のフォルダが _attachGUI() で登録される', () => {
@@ -267,8 +293,24 @@ describe('EffectManager', () => {
     const effect = new TestEffect();
 
     managerA.addEffect(effect, 100, 100);
+    const attach = vi.spyOn(effect, '_attachRenderer');
+    const setSize = vi.spyOn(effect, '_setSize');
 
     expect(() => managerB.addEffect(effect, 100, 100)).toThrow(/既に別の owner に登録済み/);
+    expect(attach).not.toHaveBeenCalled();
+    expect(setSize).not.toHaveBeenCalled();
+    expect((managerB as unknown as { internalComposer: unknown }).internalComposer).toBeNull();
+  });
+
+  it.each([true, false])('production の addEffect は owned=%s の所有権を守って置き換える', (owned) => {
+    vi.stubEnv('DEV', false);
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    const custom = { render: vi.fn(), resize: vi.fn(), dispose: vi.fn() };
+    manager.setPostEffect(custom, 100, 100, { owned });
+    manager.addEffect(new TestEffect(), 100, 100);
+    expect(custom.dispose).toHaveBeenCalledTimes(owned ? 1 : 0);
+    manager.dispose();
+    expect(custom.dispose).toHaveBeenCalledTimes(owned ? 1 : 0);
   });
 
   it('removeEffect で dispose 済みの effect は再 addEffect できず throw する', () => {

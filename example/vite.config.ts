@@ -6,6 +6,14 @@ import { resolve } from "node:path";
 // 参照する（ライブラリのソースを編集しながらサンプルで動作確認できる）。
 export default defineConfig({
   root: __dirname,
+  plugins: [{
+    name: 'gpu-regression-results',
+    configureServer(server) {
+      server.ws.on('gpu-regression:result', (data: { message: string }) => {
+        server.config.logger.info(`[GPU regression] ${data.message}`);
+      });
+    },
+  }],
   resolve: {
     alias: {
       "dom-sync-gl": resolve(__dirname, "../src/index.ts"),
@@ -21,6 +29,7 @@ export default defineConfig({
         "pause-offscreen": resolve(__dirname, "pause-offscreen.html"),
         "effects-lib": resolve(__dirname, "effects-lib.html"),
         "text-padding": resolve(__dirname, "text-padding.html"),
+        "gpu-regression": resolve(__dirname, "gpu-regression.html"),
       },
     },
   },

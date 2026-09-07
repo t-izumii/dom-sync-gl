@@ -200,8 +200,8 @@ export class MouseEffect extends BaseEffect {
    * `_setRenderer()` の時点の backend はあてにならない。init() の解決を待つ。
    * init() は冪等なので基底クラスの呼び出しと二重になっても安全。
    */
-  _attachRenderer(renderer: THREE.WebGPURenderer): void {
-    super._attachRenderer(renderer);
+  _attachRenderer(renderer: THREE.WebGPURenderer, planeFeedback = false): void {
+    super._attachRenderer(renderer, planeFeedback);
     this.renderer = renderer;
 
     void Promise.resolve(renderer.init()).then(
@@ -389,6 +389,13 @@ export class MouseEffect extends BaseEffect {
 
   resize(): void {
     this._rebuildFluid();
+  }
+
+  resume(time: number, mouse: THREE.Vector2): void {
+    this._lastTime = time;
+    this._prevMouse.copy(mouse);
+    this._hasPrevMouse = true;
+    this._pendingClicks.length = 0;
   }
 
   setupGUI(gui: GUI): GUI {

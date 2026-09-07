@@ -146,6 +146,7 @@ describe("DomTextPlane", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     document.body.innerHTML = "";
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -160,6 +161,49 @@ describe("DomTextPlane", () => {
     vi.spyOn(el, "getBoundingClientRect").mockReturnValue(rect);
     return el;
   }
+
+  it('連続リサイズ中の文字再描画を間引き、停止後の最終サイズへ追いつく', async () => {
+    const app = new DomSyncGL(container, { autoRaf: false });
+    const el = makeTextEl();
+    const plane = app.createTextPlane(el, { updateRectEveryFrame: true, pixelRatio: 1 });
+    await flush();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const rasterize = vi.spyOn(plane, 'rasterize');
+    for (const width of [210, 220, 230]) {
+      vi.mocked(el.getBoundingClientRect).mockReturnValue(new DOMRect(0, 0, width, 100));
+      app.update(); now += 16;
+    }
+    expect(rasterize).toHaveBeenCalledTimes(1);
+    expect((plane.texture!.image as HTMLCanvasElement).width).toBe(210);
+    now = 150; vi.advanceTimersByTime(100);
+    expect(rasterize).toHaveBeenCalledTimes(2);
+    expect((plane.texture!.image as HTMLCanvasElement).width).toBe(230);
+    vi.mocked(el.getBoundingClientRect).mockReturnValue(new DOMRect(0, 0, 240, 100));
+    app.update();
+    app.destroy();
+    vi.advanceTimersByTime(100);
+    expect(rasterize).toHaveBeenCalledTimes(2);
+  });
+
+  it('毎フレームのサイズ追従でテキストも再ラスタライズし、位置変更だけなら再描画しない', async () => {
+    const app = new DomSyncGL(container, { autoRaf: false });
+    const el = makeTextEl();
+    const plane = app.createTextPlane(el, { updateRectEveryFrame: true, pixelRatio: 1 });
+    await flush();
+    const rasterize = vi.spyOn(plane, 'rasterize');
+    vi.mocked(el.getBoundingClientRect).mockReturnValue(new DOMRect(10, 20, 300, 120));
+    app.update();
+    expect(plane.mesh.scale.toArray()).toEqual([300, 120, 1]);
+    const canvas = plane.texture!.image as HTMLCanvasElement;
+    expect([canvas.width, canvas.height]).toEqual([300, 120]);
+    expect(rasterize).toHaveBeenCalledTimes(1);
+    vi.mocked(el.getBoundingClientRect).mockReturnValue(new DOMRect(30, 40, 300, 120));
+    app.update();
+    expect(rasterize).toHaveBeenCalledTimes(1);
+    app.destroy();
+  });
 
   it("コンストラクタは super() 経由の早すぎる resize() 呼び出しでも例外を投げない（回帰）", () => {
     const app = new DomSyncGL(container);

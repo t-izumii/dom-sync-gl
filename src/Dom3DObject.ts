@@ -15,6 +15,7 @@ export class Dom3DObject {
   isVisible: boolean;
   private positionCalculator: DomPositionCalculator | null;
   private updateRectEveryFrame: boolean;
+  private sizeDirty = false;
   private observer: IntersectionObserver | null;
   private destroyed: boolean;
   private readonly scroll: { x: number; y: number };
@@ -51,7 +52,8 @@ export class Dom3DObject {
     if (element) {
       this.observer = new IntersectionObserver(
         (entries) => {
-          this.isVisible = entries[0].isIntersecting;
+          if (this.destroyed || entries.length === 0) return;
+          this.isVisible = entries[entries.length - 1].isIntersecting;
           if (this.model) this.model.visible = this.isVisible;
         },
         { rootMargin: '100%' },
@@ -67,12 +69,19 @@ export class Dom3DObject {
     // position: sticky は stick 前後で挙動が変わり、rect のキャッシュが効かないため
     // updateRectEveryFrame の指定に関わらず毎フレーム読み直す。
     if (this.updateRectEveryFrame || this.positionCalculator.isSticky) {
+      const { width, height } = this.positionCalculator.rect;
       this.positionCalculator.updatePositionInfo(scrollX, scrollY);
+      const rect = this.positionCalculator.rect;
+      this.sizeDirty ||= width !== rect.width || height !== rect.height;
     }
   }
 
   public _tickApply(scrollX: number, scrollY: number): void {
     if (!this.model || !this.isVisible) return;
+    if (this.sizeDirty) {
+      this.sizeDirty = false;
+      this.applyScale();
+    }
     this.setPosition(scrollX, scrollY);
   }
 
@@ -87,7 +96,10 @@ export class Dom3DObject {
     this.loader.load(
       modelPath,
       (gltf: GLTF) => {
-        if (this.destroyed) return;
+        if (this.destroyed) {
+          disposeModel(gltf.scene);
+          return;
+        }
         this.model = gltf.scene;
         this.setupModel();
       },
@@ -169,6 +181,7 @@ export class Dom3DObject {
   }
 
   public resize() {
+    this.sizeDirty = false;
     if (!this.positionCalculator) {
       this.applyScale();
       return;
@@ -198,23 +211,36 @@ export class Dom3DObject {
     if (this.model) {
       this.mainScene.remove(this.model);
 
-      this.model.traverse((child: THREE.Object3D) => {
-        if (!(child as THREE.Mesh).isMesh) return;
-        const mesh = child as THREE.Mesh;
-        mesh.geometry.dispose();
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        for (const m of materials) {
-          if (!m) continue;
-          disposeMaterialTextures(m);
-          m.dispose();
-        }
-      });
+      disposeModel(this.model);
       this.model = null;
     }
   }
 }
 
-function disposeMaterialTextures(material: THREE.Material): void {
+function disposeModel(model: THREE.Object3D): void {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  const textures = new Set<THREE.Texture>();
+  const skeletons = new Set<THREE.Skeleton>();
+  model.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    geometries.add(mesh.geometry);
+    for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      if (material) materials.add(material);
+    }
+    if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) skeletons.add((mesh as THREE.SkinnedMesh).skeleton);
+  });
+  for (const geometry of geometries) geometry.dispose();
+  for (const skeleton of skeletons) skeleton.dispose();
+  for (const material of materials) {
+    collectMaterialTextures(material, textures);
+    material.dispose();
+  }
+  for (const texture of textures) texture.dispose();
+}
+
+function collectMaterialTextures(material: THREE.Material, textures: Set<THREE.Texture>): void {
   const textureKeys = [
     "map",
     "alphaMap",
@@ -245,7 +271,7 @@ function disposeMaterialTextures(material: THREE.Material): void {
   for (const key of textureKeys) {
     const value = m[key];
     if (value && (value as THREE.Texture).isTexture) {
-      (value as THREE.Texture).dispose();
+      textures.add(value as THREE.Texture);
     }
   }
 }

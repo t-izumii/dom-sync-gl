@@ -27,6 +27,7 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', async () => {
 });
 
 import { Dom3DObject } from '../Dom3DObject';
+import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { DomPositionCalculator } from '../DomPositionCalculator';
 
 // positionCalculator は private フィールドだが、テストでは spy を仕込むために参照する
@@ -77,6 +78,21 @@ describe('Dom3DObject', () => {
     );
     return el;
   }
+
+  it.each(['contain', 'maxSide'] as const)('毎フレームの DOM サイズ変更に %s のモデルサイズが追従する', (fitMode) => {
+    const el = makeElement(100, 50);
+    const obj = new Dom3DObject(el, scene, new DOMRect(0, 0, 800, 600), { x: 0, y: 0 }, {
+      modelPath: 'dummy.glb', updateRectEveryFrame: true, fitMode, scale: 2,
+    });
+    const rect = vi.mocked(el.getBoundingClientRect);
+    rect.mockClear().mockReturnValue(new DOMRect(10, 20, 200, 120));
+    obj._tickRead(0, 0);
+    obj._tickApply(0, 0);
+    expect(rect).toHaveBeenCalledTimes(1);
+    const expected = (fitMode === 'contain' ? 120 : 200) * 2;
+    expect(obj.getModel()!.scale.toArray()).toEqual([expected, expected, expected]);
+    obj.destroy();
+  });
 
   it('要素ロック: モデルは Group にラップされ mainScene に追加される', () => {
     const el = makeElement(100, 100);
@@ -140,6 +156,31 @@ describe('Dom3DObject', () => {
   });
 
   describe('destroy() のリソース解放', () => {
+    it('destroy 後に読み込みが完了したモデルも共有リソースを一度だけ解放する', () => {
+      let complete!: (gltf: GLTF) => void;
+      vi.spyOn(GLTFLoader.prototype, 'load').mockImplementation((_url, onLoad) => {
+        complete = onLoad;
+      });
+      const obj = new Dom3DObject(null, scene, new DOMRect(0, 0, 100, 100), { x: 0, y: 0 }, {
+        modelPath: 'late.glb',
+      });
+      obj.destroy();
+      const group = new THREE.Group();
+      const geometry = new THREE.BoxGeometry();
+      const texture = new THREE.Texture();
+      const material = new THREE.MeshStandardMaterial({ map: texture, emissiveMap: texture });
+      group.add(new THREE.Mesh(geometry, material), new THREE.Mesh(geometry, material));
+      const geoDispose = vi.spyOn(geometry, 'dispose');
+      const matDispose = vi.spyOn(material, 'dispose');
+      const texDispose = vi.spyOn(texture, 'dispose');
+      complete({ scene: group } as GLTF);
+      expect(scene.children).toHaveLength(0);
+      expect(obj.getModel()).toBeNull();
+      expect(geoDispose).toHaveBeenCalledTimes(1);
+      expect(matDispose).toHaveBeenCalledTimes(1);
+      expect(texDispose).toHaveBeenCalledTimes(1);
+    });
+
     it('geometry / material / テクスチャ(map) を dispose し、mainScene から取り除く', () => {
       const el = makeElement(100, 100);
       const obj = new Dom3DObject(el, scene, new DOMRect(0, 0, 1000, 1000), { x: 0, y: 0 }, {

@@ -24,6 +24,8 @@ export class DomTextPlane extends DomPlane {
   private lastRasterHeight = 0;
   // DomPlane.destroyed は private のため自前フラグで判定する。
   private textDestroyed = false;
+  private lastAutoRaster = -Infinity;
+  private rasterTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     el: HTMLElement,
@@ -35,7 +37,7 @@ export class DomTextPlane extends DomPlane {
     sharedClock?: THREE.Clock,
   ) {
     // super() は内部で init() → loadTexture()（no-op override）→ resize() を同期実行する。
-    // その時点でサブクラスフィールドは未初期化のため、resize()/rasterize() 側にガードを置く。
+    // その時点でサブクラスフィールドは未初期化のため、updateSize()/rasterize() 側にガードを置く。
     super(el, scene, canvasRect, scroll, renderer, options, sharedClock);
 
     this.hideElementText = options.hideElementText ?? true;
@@ -163,23 +165,36 @@ export class DomTextPlane extends DomPlane {
     this.rasterize();
   }
 
-  public resize(): void {
-    super.resize();
+  protected updateSize(): void {
+    super.updateSize();
     // super() 経由の早期呼び出し（サブクラスフィールド未初期化）をガードする。
     if (!this.textCanvas) return;
     const rect = this.positionCalculator?.rect;
     if (!rect) return;
     if (rect.width !== this.lastRasterWidth || rect.height !== this.lastRasterHeight) {
-      if (this.refreshStyleOnResize) {
-        this.reresolveStyle();
+      const delay = this.resizeInterval - (performance.now() - this.lastAutoRaster);
+      if (delay <= 0) {
+        this.rasterizeResize();
+      } else if (this.rasterTimer === null) {
+        this.rasterTimer = setTimeout(() => this.rasterizeResize(), delay);
       }
-      this.rasterize();
     }
+  }
+
+  private rasterizeResize(): void {
+    if (this.rasterTimer !== null) clearTimeout(this.rasterTimer);
+    this.rasterTimer = null;
+    if (this.textDestroyed) return;
+    this.lastAutoRaster = performance.now();
+    if (this.refreshStyleOnResize) this.reresolveStyle();
+    this.rasterize();
   }
 
   public destroy(): void {
     if (this.textDestroyed) return;
     this.textDestroyed = true;
+    if (this.rasterTimer !== null) clearTimeout(this.rasterTimer);
+    this.rasterTimer = null;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     if (this.hidden && this.element) {

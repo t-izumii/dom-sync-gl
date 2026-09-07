@@ -241,6 +241,13 @@ export class SplashCursorEffect extends BaseEffect {
     if (dyeTexture) this._tDye.value = dyeTexture;
   }
 
+  resume(time: number, mouse: THREE.Vector2): void {
+    this._lastTime = time;
+    this._prevMouse.copy(mouse);
+    this._hasPrevMouse = true;
+    this._pendingClicks.length = 0;
+  }
+
   setupGUI(gui: GUI): GUI {
     const folder = gui.addFolder('スプラッシュカーソル (Splash cursor)');
     folder.add(this, 'enabled').name('有効');
