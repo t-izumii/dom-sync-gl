@@ -5,8 +5,9 @@
  * 画像アセットに依存せずオフラインで動くよう、plane / カーソル用のテクスチャは
  * すべて Canvas 2D で描いたグラデーションから生成する。
  *
- * - post 系（pixelTrail / smoothCursor / mouseFlow / ditherCursor / splashCursor /
- *   ripple）: 全画面グラデーション plane を敷き、app.addEffect() のみで駆動
+ * - post 系（pixelTrail / smoothCursor / mouseFlow / mouse / ditherCursor /
+ *   splashCursor / ripple）: 全画面グラデーション plane を敷き、
+ *   app.addEffect() のみで駆動
  * - plane 系（rippleFeedback / liquidSwap / stickerPeel）: `.demo-image` に
  *   同期した plane を作り、colorNode / positionNode を配線
  */
@@ -117,8 +118,11 @@ const EFFECTS: Record<string, EffectDef> = {
       app.addEffect(new MouseFlowEffect());
     },
   },
-    mouse: {
-    hint: "マウスの軌跡に沿って画面が流体的に歪む",
+  mouse: {
+    hint: "マウス移動でインク雲が広がる（WebGPU 限定。WebGL では何も起きない）",
+    // splashCursor と同じ理由。インク雲の外縁は輝度数%しかなく、
+    // 明るいグラデ地では埋もれて見えない。
+    darkGround: true,
     setup: (app) => {
       app.addEffect(new MouseEffect());
     },
