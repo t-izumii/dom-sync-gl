@@ -191,7 +191,7 @@ app.remove3DObject(obj);
 | `scale` | `number` | `1` | フィット後に掛けるスケール |
 | `offset` | `Offset3D` | `{x:0,y:0,z:0}` | フィット後のオフセット |
 | `fitMode` | `'maxSide' \| 'contain'` | `'maxSide'` | bbox を DOM サイズに合わせる方法 |
-| `updateRectEveryFrame` | `boolean` | `false` | 毎フレ DOM rect を取り直す |
+| `updateRectEveryFrame` | `boolean` | `false` | 毎フレーム DOM rect を測り直す。既定はリサイズ時のみなので、GSAP / CSS animation で動く要素には必須 |
 
 ### `addEffect(effect)` / `removeEffect(effect)` / `clearEffects()`
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useData } from 'vitepress';
 import { DomSyncGL, TSL } from 'dom-sync-gl';
 
 const { vec3, vec4, sin } = TSL;
@@ -49,6 +50,9 @@ function scrollUp() {
 function scrollDown() {
   scroller.value?.scrollBy({ top: 200, behavior: 'smooth' });
 }
+
+const { lang } = useData();
+const isEn = computed(() => lang.value.startsWith('en'));
 </script>
 
 <template>
@@ -85,7 +89,8 @@ function scrollDown() {
     <div class="demo-frame__controls">
       <button @click="scrollUp">▲ scroll</button>
       <button @click="scrollDown">▼ scroll</button>
-      <span>updateRectEveryFrame: true なので、カードの位置に毎フレ追従する。</span>
+      <span v-if="isEn">With updateRectEveryFrame: true, the plane follows the card position every frame.</span>
+      <span v-else>updateRectEveryFrame: true なので、カードの位置に毎フレ追従する。</span>
     </div>
   </div>
 </template>

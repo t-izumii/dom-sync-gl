@@ -9,7 +9,7 @@
 | `colorNode` | `(ctx: PlaneNodeContext) => Node` | テクスチャをそのまま表示 | plane の色を決める vec4 ノードを返す TSL ファクトリ |
 | `positionNode` | `(ctx: PlaneNodeContext) => Node` | 既定の頂点処理 | 頂点変位用の position ノードを返すファクトリ |
 | `uniforms` | `Record<string, UniformNode>` | `{}` | TSL の `uniform()` / `texture()` で生成した自前のノード。`ctx.uniforms` から参照できる |
-| `updateRectEveryFrame` | `boolean` | `false` | 毎フレ bbox を取り直す（CSS animation / GSAP で動く要素用） |
+| `updateRectEveryFrame` | `boolean` | `false` | 毎フレーム bbox を測り直す。既定はリサイズ時のみなので、GSAP / CSS animation で動く要素には必須 |
 | `segments` | `number` | `1` | PlaneGeometry セグメント数（vertex displacement 用） |
 | `onInView` / `onOutView` | `(plane) => void` | — | IntersectionObserver コールバック |
 | `inViewRootMargin` | `string` | `'100%'` | IO の rootMargin |
