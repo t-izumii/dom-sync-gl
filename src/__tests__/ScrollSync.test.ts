@@ -451,5 +451,30 @@ describe('ScrollSync', () => {
       expect(container.style.width).toBe('600px');
       expect(container.style.height).toBe('400px');
     });
+
+    it('dom モードでは viewport 計測用 probe を body に挿入しない', () => {
+      mockBCR(new DOMRect(0, 0, 600, 400));
+      const appendSpy = vi.spyOn(document.body, 'appendChild');
+
+      new ScrollSync(container, { attach: 'dom' });
+
+      // _measureViewportHeight() は 100lvh の probe div を body に append する。
+      // dom モードではその結果を使わないので一切呼ばれてはならない。
+      const appendedProbe = appendSpy.mock.calls.some(
+        ([node]) => node instanceof HTMLElement && node.style.height === '100lvh',
+      );
+      expect(appendedProbe).toBe(false);
+    });
+  });
+
+  it("translate モードでは viewport 計測用 probe を body に挿入する", () => {
+    const appendSpy = vi.spyOn(document.body, 'appendChild');
+
+    new ScrollSync(container);
+
+    const appendedProbe = appendSpy.mock.calls.some(
+      ([node]) => node instanceof HTMLElement && node.style.height === '100lvh',
+    );
+    expect(appendedProbe).toBe(true);
   });
 });

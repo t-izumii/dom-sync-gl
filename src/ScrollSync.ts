@@ -73,8 +73,12 @@ export class ScrollSync {
       willChange: s.willChange,
     };
 
-    const vh = ScrollSync._measureViewportHeight();
-    this._overscan = this._attach === 'dom' ? 0 : ScrollSync._resolveOverscan(options.overscan, vh);
+    // dom モードは overscan を確保しない（結果を使わない）ので、body への probe 挿入＋
+    // 強制レイアウトを伴う viewport 計測はスキップする。translate モードのときだけ計測する。
+    this._overscan =
+      this._attach === 'dom'
+        ? 0
+        : ScrollSync._resolveOverscan(options.overscan, ScrollSync._measureViewportHeight());
 
     this.applyContainerStyles();
     this.updateSize();
