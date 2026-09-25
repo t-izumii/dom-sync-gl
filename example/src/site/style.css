@@ -56,10 +56,12 @@ body.is-loading {
   overflow: hidden;
 }
 
-/* ロード中は本文を隠す（ローダーの下に DOM の文字が透けないように） */
+/* ロード中は本文を隠す（ローダーの下に DOM の文字が透けないように）。
+   スキップリンクも飛び先が見えない間はフォーカスできないよう外す */
 body.is-loading .nav,
 body.is-loading main,
-body.is-loading .visit {
+body.is-loading .visit,
+body.is-loading .skip-link {
   visibility: hidden;
 }
 
@@ -314,8 +316,24 @@ body.custom-cursor .cursor {
   align-items: center;
   gap: 1rem;
   padding: 0 var(--gutter);
-  /* 下地が明るい場所でも読めるよう、上端だけ薄く沈める */
-  background: linear-gradient(to bottom, rgba(7, 7, 10, 0.72), rgba(7, 7, 10, 0));
+}
+/* 上端の幕。本文の大きな文字がナビの下へ潜るとき、ナビの文字とぶつからないよう
+   ナビの高さより少し長く地の色へ沈める。下端は透明にして光の雰囲気は残す。
+   nav 自身が z-index で重ね合わせの単位になるので、-1 でも nav の中身の背後に収まる */
+.nav::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: calc(var(--nav-h) + 3.5rem);
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(7, 7, 10, 0.94) 0%,
+    rgba(7, 7, 10, 0.86) 42%,
+    rgba(7, 7, 10, 0.45) 72%,
+    rgba(7, 7, 10, 0) 100%
+  );
 }
 .nav__brand {
   display: inline-flex;
@@ -683,7 +701,7 @@ body.custom-cursor .cursor {
    03 Process
    ========================================================================= */
 .process {
-  padding: clamp(6rem, 14vw, 12rem) var(--gutter);
+  padding: clamp(5rem, 10vw, 9rem) var(--gutter) clamp(3rem, 6vw, 5rem);
 }
 .process__grid {
   display: grid;
@@ -752,7 +770,7 @@ body.custom-cursor .cursor {
    04 Figures
    ========================================================================= */
 .figures {
-  padding: clamp(5rem, 12vw, 10rem) var(--gutter);
+  padding: clamp(3rem, 6vw, 5rem) var(--gutter) clamp(5rem, 12vw, 10rem);
 }
 .figures__list {
   display: grid;
@@ -784,7 +802,7 @@ body.custom-cursor .cursor {
    05 Visit
    ========================================================================= */
 .visit {
-  padding: clamp(6rem, 14vw, 12rem) var(--gutter) 2rem;
+  padding: clamp(4rem, 9vw, 8rem) var(--gutter) 2rem;
 }
 .visit__giant {
   display: block;

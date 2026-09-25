@@ -1,7 +1,7 @@
 /**
  * マニフェストの GL アクセント。本文の背後で「読み進めた位置」に横一文字の
  * アナモルフィックフレアを灯す。uProgress（0..1）は manifesto.ts がスクロールから計算する。
- * 加算合成で使うので、alpha は光量として扱う。
+ * One/One の純加算で重ねるので、RGB がそのまま光量になる（alpha は合成に使わない）。
  */
 import { TSL } from "dom-sync-gl";
 import type { PlaneNodeContext } from "dom-sync-gl";
@@ -28,6 +28,7 @@ export const flareColorNode = (ctx: PlaneNodeContext): Node => {
 
   // 読み始め・読み終わりでは消す
   const life = smoothstep(0.0, 0.06, uProgress).mul(smoothstep(1.0, 0.94, uProgress));
-  const intensity = core.mul(0.9).add(soft.mul(0.22)).mul(along).mul(shimmer).mul(life);
-  return vec4(tint.mul(intensity), max(intensity, 0.0));
+  // 以前（src × alpha の加算）は実質 2 乗だったので、線形になったぶん係数を下げている
+  const intensity = core.mul(0.7).add(soft.mul(0.07)).mul(along).mul(shimmer).mul(life);
+  return vec4(tint.mul(max(intensity, 0.0)), 1.0);
 };

@@ -30,7 +30,9 @@ export const createBackgroundNode =
 
     // 主光源。ヒーローでは右上、ポインタへ 2 割だけ寄る（追いかけすぎると安っぽい）
     const mouse = vec2(uPointer.x.mul(aspect), uPointer.y).div(unit);
-    const home = vec2(aspect.mul(0.7), float(0.62).add(sin(t.mul(2.0)).mul(0.02))).div(unit);
+    // ヒーローを離れると光源は画面の上へ退いていく（uHero: ヒーロー 1 → 下の章 0）
+    const homeY = mix(float(0.98), float(0.62), uHero).add(sin(t.mul(2.0)).mul(0.02));
+    const home = vec2(aspect.mul(0.7), homeY).div(unit);
     const src = mix(home, mouse, 0.2);
 
     // 霧。スクロールで縦にゆっくり流して視差を付ける
@@ -49,17 +51,22 @@ export const createBackgroundNode =
     const bloom = exp(r2.mul(-2.4));
     const halationRing = exp(r2.mul(-7.0)).sub(core).max(0.0);
 
-    // アナモルフィックのストリーク。スクロールが速いほど横に伸びる
+    // アナモルフィックのストリーク。ヒーローの主役なので、ヒーローを離れると消え、
+    // Visit（uHero ≈ 0.55）で淡く戻る。ゆっくり呼吸させ、スクロールが速いほど横に伸びる
+    const lineAmt = smoothstep(0.3, 1.0, uHero);
+    const breathe = sin(t.mul(3.1)).mul(0.15).add(0.85);
     const stretch = mix(float(1.6), float(0.45), uSpeed);
-    const streak = exp(abs(d.y).mul(-90.0)).mul(exp(abs(d.x).mul(stretch.negate())));
-    const streakSoft = exp(abs(d.y).mul(-18.0)).mul(exp(abs(d.x).mul(-2.2)));
+    const streak = exp(abs(d.y).mul(-90.0))
+      .mul(exp(abs(d.x).mul(stretch.negate())))
+      .mul(lineAmt.mul(breathe));
+    const streakSoft = exp(abs(d.y).mul(-18.0)).mul(exp(abs(d.x).mul(-2.2))).mul(lineAmt);
 
     // 左下のシアンの対旋律（弱く、霧の濃淡でだけ見える）
     const src2 = vec2(aspect.mul(0.16).add(cos(t.mul(1.3)).mul(0.03)), 0.2).div(unit);
     const d2 = p.sub(src2);
     const cyan = exp(dot(d2, d2).mul(-4.0))
       .mul(0.3)
-      .add(exp(abs(d2.y).mul(-140.0)).mul(exp(abs(d2.x).mul(-3.0))).mul(0.18));
+      .add(exp(abs(d2.y).mul(-140.0)).mul(exp(abs(d2.x).mul(-3.0))).mul(lineAmt).mul(0.18));
 
     // 地の霧と滲み（ambient）。出力は linear なので、小さな値でも sRGB では明るく出る。
     // 地が黒く締まるよう ambient 全体を絞り、芯とストリークだけを強く残す

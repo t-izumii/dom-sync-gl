@@ -146,7 +146,10 @@ export function drawSketch(): THREE.CanvasTexture {
   ctx.font = "500 26px 'JetBrains Mono', ui-monospace, monospace";
   ctx.fillText("ROOM 03 / 6.4 × 9.0 m", 60, 90);
   ctx.fillText("LAMP 2400 lm — 2700 K", 60, 130);
-  ctx.fillText("afterimage ≈ 1.6 s", vx + 180, vy - 180);
+  // 右端で切れないよう、右揃えで余白の内側に置く
+  ctx.textAlign = "right";
+  ctx.fillText("afterimage ≈ 1.6 s", W - 60, vy - 180);
+  ctx.textAlign = "left";
   ctx.font = "italic 400 64px 'Instrument Serif', serif";
   ctx.fillText("study no. 7", 60, H - 90);
 

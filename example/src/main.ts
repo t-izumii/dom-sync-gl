@@ -101,8 +101,18 @@ const pinQuery = matchMedia("(min-width: 901px)");
 const galleryEl = $(".js-gallery");
 const gallery = galleryEl ? new Gallery(galleryEl, () => pinQuery.matches && !reduced()) : null;
 
+// カスタムカーソルは精密ポインタかつ動きの抑制なしの時だけ。設定の切り替えにも追従する
 const cursorEl = $(".cursor");
-const cursor = cursorEl && FINE_POINTER && !reduced() ? new Cursor(cursorEl, signal) : null;
+let cursor: Cursor | null = null;
+function syncCursor() {
+  const want = !!cursorEl && FINE_POINTER && !reduced();
+  if (want && !cursor) cursor = new Cursor(cursorEl!, signal);
+  else if (!want && cursor) {
+    cursor.destroy();
+    cursor = null;
+  }
+}
+syncCursor();
 
 // スクロールで現れる DOM の文字
 const revealIO = new IntersectionObserver(
@@ -131,16 +141,27 @@ const intro = new Intro($(".loader")!, {
   onDone: () => {
     scrollLocked = false;
     lenis.start();
-    $(".loader")?.setAttribute("aria-hidden", "true");
+    // 読み上げは「読み込み中」と「完了」の 2 回だけ（カウンタ自体は aria-hidden）
+    const status = $(".js-loader-status");
+    if (status) status.textContent = "読み込みが完了しました。";
+    // 読み上げの完了を待ってからローダーを支援技術から外す
+    window.setTimeout(() => $(".loader")?.setAttribute("aria-hidden", "true"), 1500);
   },
 });
 
-/** レイアウトに依存する計測をまとめてやり直す。ギャラリーの高さが他の位置を動かすので先に測る */
+/**
+ * レイアウトに依存する計測をまとめてやり直す。ギャラリーの高さが他の位置を動かすので先に測る。
+ * 最後に app.resize() で板の位置も測り直す。ギャラリーの高さ変更は window の resize を
+ * 伴わない（動きの抑制・幅のメディアクエリの切り替え、ライブラリの 100ms debounce より後の
+ * 再計測）ため、updateRectEveryFrame を使わない板（Process / Figures / Visit）が
+ * 古い位置のまま残ってしまう。
+ */
 function relayout() {
   gallery?.measure();
   manifesto?.measure();
   chapters.measure();
   lenis.resize();
+  app?.resize();
 }
 
 let resizeTimer = 0;
@@ -159,6 +180,7 @@ reducedMotionQuery.addEventListener(
   "change",
   () => {
     lenis.options.smoothWheel = !reduced();
+    syncCursor();
     relayout();
   },
   { signal },
@@ -191,7 +213,13 @@ async function createApp(): Promise<DomSyncGL | null> {
       // ?backend=webgl で WebGL 2 フォールバックを確認できる
       forceWebGL: new URLSearchParams(location.search).get("backend") === "webgl",
     });
-    await app.ready;
+    // device の取得が返ってこない環境で、ローダーが止まったままにならないよう打ち切る
+    await Promise.race([
+      app.ready,
+      new Promise((_, reject) =>
+        window.setTimeout(() => reject(new Error("renderer の初期化がタイムアウトしました")), 8000),
+      ),
+    ]);
     return app;
   } catch (err) {
     // WebGPU も WebGL 2 も使えない: DOM だけで読める構成に倒す
@@ -276,14 +304,32 @@ const frame = (time: number) => {
 rafId = requestAnimationFrame(frame);
 
 // ============================================================================
-// 5. GL シーンの構築（フォントと GL の準備を待ってから）
+// 5. 破棄（bfcache に載る遷移では壊さない）。ロード中に離れた場合も片付くよう、await より前に張る
 // ============================================================================
-const [readyApp] = await Promise.all([createApp(), loadFonts()]);
-app = readyApp;
-relayout();
+window.addEventListener(
+  "pagehide",
+  (e) => {
+    if (e.persisted) return;
+    cancelAnimationFrame(rafId);
+    window.clearTimeout(resizeTimer);
+    lifetime.abort();
+    revealIO.disconnect();
+    cursor?.destroy();
+    for (const part of parts) part.destroy?.();
+    parts.length = 0;
+    lenis.destroy();
+    app?.destroy();
+    app = null;
+  },
+  { signal },
+);
 
-if (app) {
-  const gl = app;
+// ============================================================================
+// 6. GL シーンの構築（フォントと GL の準備を待ってから）
+// ============================================================================
+
+/** GL の板・effect を組み立てる。途中で例外が出たら呼び出し側が no-gl に倒す */
+function buildScene(gl: DomSyncGL) {
   const hoverable = FINE_POINTER;
 
   parts.push(createBackground(gl, OCTAVES));
@@ -328,13 +374,10 @@ if (app) {
 
   // 仕上げパスは最後に繋ぐ（チェーンの末尾 = 画面に出る直前）
   finish = gl.addEffect(new FinishEffect());
-  intro.attach(finish);
-  // 1 フレーム描いてから DOM の黒をやめて GL の光漏れを透かす
-  requestAnimationFrame(() => requestAnimationFrame(() => intro.handOver()));
+}
 
-  if (DEBUG) (window as unknown as { app: DomSyncGL }).app = gl;
-} else {
-  // GL なし: 段階ボタンは文言と状態だけ切り替える
+/** GL なし: 段階ボタンは文言と状態だけ切り替える */
+function wireStagesDomOnly() {
   const buttons = $$<HTMLButtonElement>(".js-stage");
   const caption = $(".js-stage-caption");
   buttons.forEach((b, i) =>
@@ -349,25 +392,33 @@ if (app) {
   );
 }
 
-intro.setAssetsReady();
+try {
+  const [readyApp] = await Promise.all([createApp(), loadFonts()]);
+  app = readyApp;
+  if (app) {
+    try {
+      buildScene(app);
+      intro.attach(finish!);
+      // 1 フレーム描いてから DOM の黒をやめて GL の光漏れを透かす
+      requestAnimationFrame(() => requestAnimationFrame(() => intro.handOver()));
+      if (DEBUG) (window as unknown as { app: DomSyncGL }).app = app;
+    } catch (err) {
+      // 板の構築に失敗: 作りかけの GL を片付け、DOM だけで読める構成に倒す
+      console.warn("[HALATION] GL シーンを構築できないため DOM のみで表示します。", err);
+      const failed = app;
+      app = null;
+      finish = null;
+      hero = null;
+      for (const part of parts) part.destroy?.();
+      parts.length = 0;
+      failed.destroy();
+      document.documentElement.classList.add("no-gl");
+    }
+  }
+  if (!app) wireStagesDomOnly();
+  relayout();
+} finally {
+  // どの経路でも必ずローダーを進める（止まったままスクロールが固定されるのを防ぐ）
+  intro.setAssetsReady();
+}
 
-// ============================================================================
-// 6. 破棄（bfcache に載る遷移では壊さない）
-// ============================================================================
-window.addEventListener(
-  "pagehide",
-  (e) => {
-    if (e.persisted) return;
-    cancelAnimationFrame(rafId);
-    window.clearTimeout(resizeTimer);
-    lifetime.abort();
-    revealIO.disconnect();
-    cursor?.destroy();
-    for (const part of parts) part.destroy?.();
-    parts.length = 0;
-    lenis.destroy();
-    app?.destroy();
-    app = null;
-  },
-  { signal },
-);

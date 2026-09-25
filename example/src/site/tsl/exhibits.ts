@@ -106,7 +106,8 @@ const aurora: ArtFn = ({ p, t, m, hover }, octaves) => {
   for (const [freq, seed, tint] of layers) {
     const x = p.x.add(sway);
     const warp = fbm(vec2(x.mul(1.2).add(seed), t.mul(0.08).add(seed)));
-    const band = pow(sin(x.mul(freq * 7.0).add(warp.mul(6.0)).add(t.mul(0.3))).mul(0.5).add(0.5), 5.0);
+    // 底は理論上 0..1 だが、丸めで僅かに負になっても pow が未定義にならないよう max で守る
+    const band = pow(max(sin(x.mul(freq * 7.0).add(warp.mul(6.0)).add(t.mul(0.3))).mul(0.5).add(0.5), 0.0), 5.0);
     // 下端（光の裾）はノイズで上下させ、上に向かって薄くする
     const hem = warp.mul(0.5).sub(0.35).add(seed * 0.01);
     const vertical = smoothstep(hem, hem.add(0.04), p.y).mul(exp(p.y.sub(hem).mul(-3.2)));
@@ -189,7 +190,9 @@ const prism: ArtFn = ({ p, t, m, hover }) => {
   const edge = smoothstep(0.0, 0.06, second.sub(minD));
   const facet = hash21(id);
   // 斜めに通り過ぎる光の帯
-  const sweep = exp(pow(p.x.add(p.y.mul(0.6)).sub(sin(t.mul(0.25)).mul(0.7)), 2.0).mul(-18.0));
+  // pow() は負の底で未定義（GLSL / WGSL とも）なので、2 乗は自乗で書く
+  const sweepD = p.x.add(p.y.mul(0.6)).sub(sin(t.mul(0.25)).mul(0.7));
+  const sweep = exp(sweepD.mul(sweepD).mul(-18.0));
   const dm = length(p.sub(m));
   const glint = exp(dm.mul(dm).mul(-30.0)).mul(hover);
   const hue = facet.add(p.x.mul(0.4)).add(t.mul(0.03));

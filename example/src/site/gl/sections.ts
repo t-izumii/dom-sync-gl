@@ -5,6 +5,7 @@
 import { THREE, TSL, type DomSyncGL } from "dom-sync-gl";
 import { MouseFlowEffect } from "../../../../src/effectsLib/mouseFlow";
 import { FlipYEffect } from "../FlipYEffect";
+import { COARSE } from "../env";
 import { flareColorNode } from "../tsl/flare";
 import { createHalationTextNode, createSweepTextNode } from "../tsl/type";
 import { LAYER, Smoothed, layer, type Part } from "./common";
@@ -13,7 +14,10 @@ const { uniform } = TSL;
 
 /**
  * マニフェスト本文の背後に灯る横一文字のフレア。
- * 加算合成にして、背景の光と重なった所だけ明るくする。
+ * 純粋な加算（src × 1 + dst × 1）で重ねる。colorNode の RGB がそのまま光量になり、
+ * alpha は合成に使わない（AdditiveBlending は src × alpha なので、RGB にも光量を
+ * 掛けていると光量の 2 乗になってしまう）。canvas の alpha は背景の板が 1 で埋めて
+ * いるので、alpha 側は dst をそのまま残す。
  */
 export function createManifestoFlare(
   app: DomSyncGL,
@@ -26,7 +30,14 @@ export function createManifestoFlare(
     uniforms: { uProgress },
   });
   layer(plane, LAYER.flare);
-  plane.material.blending = THREE.AdditiveBlending;
+  const m = plane.material;
+  m.blending = THREE.CustomBlending;
+  m.blendEquation = THREE.AddEquation;
+  m.blendSrc = THREE.OneFactor;
+  m.blendDst = THREE.OneFactor;
+  m.blendEquationAlpha = THREE.AddEquation;
+  m.blendSrcAlpha = THREE.ZeroFactor;
+  m.blendDstAlpha = THREE.OneFactor;
   return {
     update() {
       uProgress.value = progress();
@@ -86,7 +97,8 @@ export function createVisitTitle(
   const reveal = new Smoothed(1.2);
   const hover = new Smoothed(4);
   const plane = app.createTextPlane(el, {
-    colorNode: createHalationTextNode({ glowRadius: 0.05, glow: 0.75, refraction: 0.05 }),
+    // タッチ端末では滲みのサンプルを省く（巨大な板で 1 画素 8 回の読み出しになるため）
+    colorNode: createHalationTextNode({ glowRadius: 0.05, glow: COARSE ? 0 : 0.75, refraction: 0.05 }),
     uniforms: { uReveal, uHover },
     refreshStyleOnResize: true,
     inViewRootMargin: "0px",
@@ -98,10 +110,11 @@ export function createVisitTitle(
   layer(plane, LAYER.text);
 
   let flow: MouseFlowEffect | null = null;
+  let flip: FlipYEffect | null = null;
   if (opts.interactive) {
     flow = plane.addEffect(new MouseFlowEffect({ strength: 1.6, dissipation: 0.94, falloff: 0.16 }));
     // PlaneComposer の上下反転を打ち消す（FlipYEffect.ts の説明を参照）
-    plane.addEffect(new FlipYEffect());
+    flip = plane.addEffect(new FlipYEffect());
   }
 
   return {
@@ -109,8 +122,11 @@ export function createVisitTitle(
       uReveal.value = reveal.step(dt);
       hover.target = opts.interactive && plane.isHovered() ? 1 : 0;
       uHover.value = hover.step(dt);
-      // 動きの抑制に切り替わったら流れを止める
-      if (flow) flow.enabled = !opts.reduced();
+      // 動きの抑制に切り替わったら流れを止める。反転パスも流れと一緒に切ると、
+      // 有効な pass が 0 になり PlaneComposer が RT を使わない素の描画へ戻る
+      const on = !opts.reduced();
+      if (flow && flow.enabled !== on) flow.enabled = on;
+      if (flip && flip.enabled !== on) flip.enabled = on;
     },
   };
 }

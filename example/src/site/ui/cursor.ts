@@ -4,7 +4,11 @@
  * リンク・ボタンの上では輪だけ広げる。
  *
  * 独自の rAF は持たず、main.ts の 1 本のループから update(dt) を呼ぶ。
- * リスナーは渡された AbortSignal でまとめて外す。
+ * リスナーは自前の AbortController で持ち、destroy()（動きの抑制に切り替わった時など）
+ * かページ全体の signal のどちらかで外す。
+ *
+ * 自前の表示はマウスのときだけ。ペンやタッチで操作された間はネイティブのカーソルに戻す
+ * （pointer: fine のペン環境で cursor: none だけが効いて何も見えなくなるのを防ぐ）。
  */
 import { damp } from "../env";
 
@@ -17,21 +21,30 @@ export class Cursor {
   private rx = this.x;
   private ry = this.y;
   private visible = false;
+  private readonly abort = new AbortController();
 
   constructor(
     private readonly root: HTMLElement,
-    signal: AbortSignal,
+    pageSignal: AbortSignal,
   ) {
+    pageSignal.addEventListener("abort", () => this.abort.abort(), { once: true });
+    const signal = this.abort.signal;
     this.dot = root.querySelector<HTMLElement>(".cursor__dot")!;
     this.ring = root.querySelector<HTMLElement>(".cursor__ring")!;
     this.label = root.querySelector<HTMLElement>(".cursor__label")!;
-    document.body.classList.add("custom-cursor");
+    // ネイティブのカーソルを隠すのは、最初にマウスが動いて自前の表示が出てから
     root.style.opacity = "0";
 
     window.addEventListener(
       "pointermove",
       (e) => {
-        if (e.pointerType !== "mouse") return;
+        if (e.pointerType !== "mouse") {
+          // ペン・タッチの間はネイティブのカーソルに戻す
+          this.hide();
+          document.body.classList.remove("custom-cursor");
+          return;
+        }
+        document.body.classList.add("custom-cursor");
         this.x = e.clientX;
         this.y = e.clientY;
         if (!this.visible) {
@@ -44,14 +57,16 @@ export class Cursor {
       },
       { passive: true, signal },
     );
+    // ウィンドウの外へ出たら隠す。document の pointerleave は発火しない環境があるので、
+    // relatedTarget が無い（＝ページの外へ出た）mouseout で判定する
     document.addEventListener(
-      "pointerleave",
-      () => {
-        this.visible = false;
-        root.style.opacity = "0";
+      "mouseout",
+      (e) => {
+        if (!e.relatedTarget) this.hide();
       },
       { signal },
     );
+    window.addEventListener("blur", () => this.hide(), { signal });
     // 委譲で状態を切り替える（要素ごとにリスナーを張らない）
     document.addEventListener("pointerover", (e) => this.onOver(e.target), { signal });
   }
@@ -66,6 +81,11 @@ export class Cursor {
     if (this.label.textContent !== text) this.label.textContent = text;
   }
 
+  private hide(): void {
+    this.visible = false;
+    this.root.style.opacity = "0";
+  }
+
   update(dt: number): void {
     if (!this.visible) return;
     this.rx = damp(this.rx, this.x, 14, dt);
@@ -75,6 +95,9 @@ export class Cursor {
   }
 
   destroy(): void {
+    this.abort.abort();
+    this.hide();
+    this.root.classList.remove("is-label", "is-link");
     document.body.classList.remove("custom-cursor");
   }
 }

@@ -23,18 +23,19 @@ export interface TextUniforms {
 export interface HalationTextOptions {
   /** 滲みの半径（文字の高さに対する比） */
   glowRadius?: number;
-  /** 滲みの強さ */
+  /** 滲みの強さ。0 なら滲みのサンプル自体を省く（タッチ端末向けの軽量版） */
   glow?: number;
   /** レンズの屈折量 */
   refraction?: number;
 }
 
-// 滲みを取るサンプル位置。半径の違う 2 重のリング（内 8 + 外 8、外側は半ステップ回す）に
-// して、1 重のリングで出る「文字の複製が並んで見える」段差を目立たなくする。
-const RING = Array.from({ length: 16 }, (_, i) => {
-  const outer = i >= 8;
-  const a = ((i % 8) / 8 + (outer ? 1 / 16 : 0)) * Math.PI * 2;
-  const r = outer ? 1 : 0.45;
+// 滲みを取るサンプル位置（8 点）。半径を 1 点おきに内・外で交互にして、
+// 同じ半径の 1 重リングで出る「文字の複製が並んで見える」段差を目立たなくする。
+// 巨大な見出しの板で 1 画素あたりの読み出しが増えすぎないよう、8 点に抑えている
+// （RGB の 3 点と合わせて 11 回）。
+const RING = Array.from({ length: 8 }, (_, i) => {
+  const a = (i / 8) * Math.PI * 2;
+  const r = i % 2 === 0 ? 1 : 0.55;
   return [Math.cos(a) * r, Math.sin(a) * r] as const;
 });
 
@@ -76,15 +77,18 @@ export const createHalationTextNode =
     const a = max(max(sR.a, sG.a), sB.a);
     const premul = vec3(sR.r.mul(sR.a), sG.g.mul(sG.a), sB.b.mul(sB.a));
 
-    // ハレーション: 周囲 8 方向の alpha の平均を、文字の外側にだけ橙で足す
-    let halo: Node = float(0.0);
-    for (const [cx, cy] of RING) {
-      const off = vec2(cx, cy).mul(vec2(float(glowRadius).div(aspect), glowRadius));
-      halo = halo.add(uTexture.sample(uvG.add(off)).a);
+    // ハレーション: 周囲 8 点の alpha の平均を、文字の外側にだけ橙で足す
+    let glow: Node = float(0.0);
+    if (glowAmt > 0) {
+      let halo: Node = float(0.0);
+      for (const [cx, cy] of RING) {
+        const off = vec2(cx, cy).mul(vec2(float(glowRadius).div(aspect), glowRadius));
+        halo = halo.add(uTexture.sample(uvG.add(off)).a);
+      }
+      halo = halo.div(RING.length);
+      glow = halo.mul(float(1.0).sub(a)).mul(glowAmt).mul(uHover.mul(0.6).add(0.7));
     }
-    halo = halo.div(RING.length);
     const haloCol = mix(vec3(1.0, 0.28, 0.08), shared.uKeyA, 0.5);
-    const glow = halo.mul(float(1.0).sub(a)).mul(glowAmt).mul(uHover.mul(0.6).add(0.7));
 
     const rgb = premul.add(haloCol.mul(glow));
     const alpha = clamp(a.add(glow), 0.0, 1.0);
@@ -104,7 +108,9 @@ export const createSweepTextNode = () => (ctx: PlaneNodeContext): Node => {
   };
   const s = uTexture.sample(uv);
   const pos = fract(shared.uClock.mul(0.09).add(uSeed)).mul(1.8).sub(0.4);
-  const band = exp(pow(uv.x.sub(pos).add(uv.y.mul(0.25)), 2.0).mul(-60.0));
+  // pow() は負の底で未定義なので 2 乗は自乗で書く
+  const bandD = uv.x.sub(pos).add(uv.y.mul(0.25));
+  const band = exp(bandD.mul(bandD).mul(-60.0));
   const col = s.rgb.mul(band.mul(0.6).add(0.78)).add(shared.uKeyA.mul(band).mul(0.45));
   const mask = smoothstep(uv.x.sub(0.05), uv.x, uReveal.mul(1.1));
   return vec4(col, s.a.mul(mask));

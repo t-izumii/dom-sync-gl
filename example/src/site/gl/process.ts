@@ -4,7 +4,7 @@
  *
  * - 段階ボタン（aria-pressed）で切り替え。遷移中の連打は最後の 1 回だけ覚えておく
  * - 遷移の中心は、板の上にポインタがあればその位置、なければ中央
- * - 画面に入った最初の 1 回だけ、無地 → Sketch のリビールを自動で見せる
+ * - 図版が 4 割見えた最初の 1 回だけ、無地 → Sketch のリビールを自動で見せる
  */
 import type { DomSyncGL } from "dom-sync-gl";
 import { LiquidSwap } from "../../../../src/effectsLib/liquidSwap";
@@ -34,18 +34,28 @@ export function createProcess(
   let t = 0;
   let queued: number | null = null;
 
-  const swap = new LiquidSwap({ refraction: 1.2, aberration: 1.4, edgeGlow: 1.6, flow: 1.1 });
+  // 色収差は線画（Sketch）の細い線で RGB が大きく割れて見えるので控えめにする
+  const swap = new LiquidSwap({ refraction: 1.0, aberration: 0.6, edgeGlow: 1.4, flow: 1.0 });
   const plane = app.createPlane(visual, {
     ...swap.planeOptions(),
     updateRectEveryFrame: false,
     inViewRootMargin: "0px",
-    onInView: () => {
+  });
+
+  // 最初のリビールは図版が 4 割見えてから始める（板の表示判定の rootMargin 0 だと
+  // 1px 入った時点で始まり、遷移の大半が画面外で終わってしまう）
+  const introIO = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      introIO.disconnect();
       if (!introduced) {
         introduced = true;
         start(0, true);
       }
     },
-  });
+    { threshold: 0.4 },
+  );
+  introIO.observe(visual);
   layer(plane, LAYER.art);
   swap.setTextures(blank, stages[0]);
   swap.progress = 0;
@@ -78,8 +88,11 @@ export function createProcess(
     b.addEventListener(
       "click",
       () => {
+        // 自動リビール前に押された場合は、無地からその段階へ遷移させる
+        const first = !introduced;
         introduced = true;
-        start(Number(b.dataset.stage ?? 0));
+        introIO.disconnect();
+        start(Number(b.dataset.stage ?? 0), first);
       },
       { signal: opts.signal },
     );
@@ -103,6 +116,7 @@ export function createProcess(
       }
     },
     destroy() {
+      introIO.disconnect();
       // LiquidSwap はテクスチャを所有しないので、描いた側が解放する
       blank.dispose();
       for (const tex of stages) tex.dispose();

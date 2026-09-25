@@ -6,6 +6,7 @@
 import { TSL, type DomSyncGL } from "dom-sync-gl";
 import { createBackgroundNode } from "../tsl/background";
 import { createHalationTextNode } from "../tsl/type";
+import { COARSE } from "../env";
 import { LAYER, Smoothed, layer, type Part } from "./common";
 
 const { uniform } = TSL;
@@ -25,7 +26,8 @@ export function createHeroTitle(app: DomSyncGL, el: HTMLElement, reduced: () => 
   const uReveal = uniform(0);
   const uHover = uniform(0);
   const plane = app.createTextPlane(el, {
-    colorNode: createHalationTextNode({ glowRadius: 0.06, glow: 0.6, refraction: 0.08 }),
+    // タッチ端末では滲みのサンプルを省く（巨大な板で 1 画素 8 回の読み出しになるため）
+    colorNode: createHalationTextNode({ glowRadius: 0.06, glow: COARSE ? 0 : 0.6, refraction: 0.08 }),
     uniforms: { uReveal, uHover },
     // clamp() の fluid な font-size をリサイズに追従させる
     refreshStyleOnResize: true,

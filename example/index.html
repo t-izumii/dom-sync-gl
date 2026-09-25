@@ -32,13 +32,16 @@
       <span class="cursor__ring"><span class="cursor__label"></span></span>
     </div>
 
-    <!-- ローダー。背景の黒と光漏れは GL の仕上げパスが描き、DOM は数字と文字だけ持つ -->
-    <div class="loader" role="status" aria-live="polite">
-      <p class="loader__brand"><span>HALATION</span><span lang="ja">光の残響展</span></p>
-      <p class="loader__count"><span class="js-loader-count">000</span><span class="loader__pct">%</span></p>
-      <p class="loader__note">
-        <span class="visually-hidden">読み込み中。</span>Calibrating the afterimage
-        <span lang="ja">— 残像を調律しています</span>
+    <!-- ローダー。背景の黒と光漏れは GL の仕上げパスが描き、DOM は数字と文字だけ持つ。
+         読み上げは status の「読み込み中」「完了」だけにし、毎フレーム変わるカウンタは隠す -->
+    <div class="loader">
+      <p class="visually-hidden js-loader-status" role="status">読み込み中です。</p>
+      <div aria-hidden="true">
+        <p class="loader__brand"><span>HALATION</span><span lang="ja">光の残響展</span></p>
+      </div>
+      <p class="loader__count" aria-hidden="true"><span class="js-loader-count">000</span><span class="loader__pct">%</span></p>
+      <p class="loader__note" aria-hidden="true">
+        Calibrating the afterimage <span lang="ja">— 残像を調律しています</span>
       </p>
     </div>
 
