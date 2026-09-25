@@ -3,19 +3,21 @@
 [![npm](https://img.shields.io/npm/v/dom-sync-gl.svg)](https://www.npmjs.com/package/dom-sync-gl)
 [![license](https://img.shields.io/npm/l/dom-sync-gl.svg)](./LICENSE)
 
-DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、スクロールに同期させつつ TSL ベースのポストエフェクトを重ねるための薄いラッパー。WebGPU 既定・WebGL 2 自動フォールバック。
+English | [日本語](./README.ja.md)
+
+A thin wrapper that places Three.js planes and 3D objects at the position of DOM elements, keeps them in sync with scrolling, and layers TSL-based post effects on top. WebGPU by default, with automatic fallback to WebGL 2.
 
 ## Features
 
-- DOM 要素の bbox に追従する Three.js mesh を `createPlane(selector)` で作れる
-- レンダラーは `three/webgpu` の `WebGPURenderer`。WebGPU 非対応環境では WebGL 2 に自動フォールバックし、シェーダーは TSL で書くので 1 実装で WGSL / GLSL 両対応
-- `createTextPlane(selector)` で DOM のテキストを板に（スタイルは CSS 由来のまま、DOM も残る）
-- ネイティブスクロールと canvas のズレを毎フレーム補正する
-- `BaseEffect` を継承して TSL の `outputNode` を返すだけでポストエフェクトを ping-pong で連結
-- iOS Safari の動的アドレスバーに canvas 高を追従させる（`overscan`）
-- rAF を自前で持てる（`autoRaf: false` + `tick()`）ので、Lenis 等と 1 本のループに統合できる
-- canvas が画面外にある間は描画ループごと止められる（`pauseWhenOffscreen`）
-- lil-gui / stats.js は optional（使うときだけ install）
+- `createPlane(selector)` creates a Three.js mesh that follows the bounding box of a DOM element
+- The renderer is `WebGPURenderer` from `three/webgpu`. It falls back to WebGL 2 where WebGPU is unavailable, and shaders are written in TSL, so one implementation covers both WGSL and GLSL
+- `createTextPlane(selector)` turns DOM text into a plane (styles come from CSS, and the DOM stays in place)
+- Corrects the offset between native scrolling and the canvas every frame
+- Extend `BaseEffect` and return a TSL `outputNode` to chain post effects with ping-pong buffers
+- Keeps the canvas height in step with the dynamic address bar of iOS Safari (`overscan`)
+- You can own the rAF loop (`autoRaf: false` + `tick()`) and drive it together with Lenis and similar libraries in a single loop
+- Stops the whole render loop while the canvas is off screen (`pauseWhenOffscreen`)
+- lil-gui and stats.js are optional (install them only when you use them)
 
 ## Install
 
@@ -23,14 +25,15 @@ DOM 要素の位置に Three.js の plane / 3D オブジェクトを貼って、
 npm install dom-sync-gl three
 ```
 
-必須は `three`（**>= 0.178.0**。内部で `three/webgpu` / `three/tsl` エントリポイントを使う）だけ。
-GUI パネルや FPS パネルを出したいときだけ追加:
+The only required dependency is `three` (**0.181.x / 0.182.x**; the library uses the `three/webgpu` and `three/tsl` entry points).
+The TSL API changes between three releases, so the peer dependency only covers the versions verified in CI.
+Add these only if you want the GUI or FPS panels:
 
 ```bash
 npm install lil-gui stats.js
 ```
 
-スムーズスクロールを併用したい場合は Lenis も（ライブラリは含まない。[Scroll sync](#scroll-sync) 参照）:
+For smooth scrolling, also add Lenis (not bundled; see [Scroll sync](#scroll-sync)):
 
 ```bash
 npm install lenis
@@ -51,13 +54,13 @@ const app = new DomSyncGL("#canvas", {
   scrollSync: true,
 });
 
-// .hero-card 要素にロックした plane
+// A plane locked to the .hero-card element
 app.createPlane(".hero-card", {
   colorNode: ({ uv, uTime }) =>
     vec4(uv, sin(uTime).mul(0.5).add(0.5), 1),
 });
 
-// 全画面背景レイヤとして使う
+// A fullscreen background layer
 app.createPlane(null, {
   colorNode: bgNode,
 });
@@ -67,24 +70,39 @@ app.createPlane(null, {
 
 ### WebGPU first / WebGL 2 fallback
 
-renderer は `three/webgpu` の `WebGPURenderer`。WebGPU が使える環境では WebGPU、使えない環境では
-WebGL 2 バックエンドに自動フォールバックする。シェーダーは GLSL 文字列ではなく **TSL のノードファクトリ**
-で書き、three が WGSL / GLSL へ自動変換するので利用側は 1 実装だけ書けばよい。
+The renderer is `WebGPURenderer` from `three/webgpu`. It uses WebGPU where available and falls back
+to the WebGL 2 backend otherwise. Shaders are written as **TSL node factories** rather than GLSL strings,
+and three compiles them to WGSL or GLSL, so you only write one implementation.
 
-WebGPU の device 取得は非同期なので、初期化完了は `app.ready`（Promise）で待てる。
+Acquiring a WebGPU device is asynchronous. Wait for initialization with `app.ready` (a Promise).
 
 ```ts
 const app = new DomSyncGL("#canvas");
-await app.ready; // 待たなくても安全（初期化完了まで render が no-op になるだけ）
+await app.ready; // Optional: render() is a no-op until initialization completes
 
-app.isWebGPUBackend(); // WebGL 2 フォールバック時は false（ready 解決前も false）
+app.isWebGPUBackend(); // false on the WebGL 2 fallback (and before ready resolves)
 ```
 
-デバッグ用に WebGL 2 バックエンドを強制する `forceWebGL: true` オプションもある。
+For debugging, the `forceWebGL: true` option forces the WebGL 2 backend.
 
 ### DOM-locked plane
 
-`createPlane(selector)` に渡した DOM 要素の位置・サイズに追従する Three.js mesh を作る。CSS で要素が動いてもピクセル単位で付いてくる。
+`createPlane(selector)` creates a Three.js mesh that follows the position and size of the given DOM element. It tracks page scrolling pixel for pixel.
+
+> [!IMPORTANT]
+> For performance, the element's position and size (`getBoundingClientRect()`) are **only re-measured on resize by default**.
+> If you move the element itself with GSAP, CSS animations, or transitions, the plane stays at the old position.
+> Set `updateRectEveryFrame: true` on elements that move.
+>
+> | How the element moves | Followed by default? |
+> |---|---|
+> | Page scroll | Yes |
+> | Window / container resize | Yes (after a 100 ms debounce) |
+> | `position: sticky` elements | Yes (re-measured every frame automatically) |
+> | transform / top / left animations, scrolling inside a parent element | **No** → `updateRectEveryFrame: true` |
+> | Layout changes (elements added or removed, fonts loading, etc.) | **No** → `updateRectEveryFrame: true` or `app.resize()` |
+>
+> `updateRectEveryFrame` reads layout every frame for each plane, so only enable it on elements that move.
 
 ```ts
 import { TSL } from "dom-sync-gl";
@@ -93,58 +111,58 @@ const { uniform } = TSL;
 const uIntensity = uniform(0.5);
 const plane = app.createPlane(".card", {
   colorNode,
-  updateRectEveryFrame: true,  // CSS animation / GSAP で動く要素用
-  uniforms: { uIntensity },    // 自前の uniform ノード（ctx.uniforms から参照できる）
+  updateRectEveryFrame: true,  // for elements moved by CSS animations or GSAP
+  uniforms: { uIntensity },    // your own uniform nodes (available as ctx.uniforms)
   onInView: () => (uIntensity.value = 1),
 });
 ```
 
-`colorNode` / `positionNode` ファクトリの引数（ctx）には、宣言不要で使えるノードが渡ってくる
-（値の更新は内部でやる）:
+The argument (ctx) of the `colorNode` / `positionNode` factories provides nodes you can use without
+declaring them (their values are updated internally):
 
-| ノード | 型 | 内容 |
+| Node | Type | Description |
 |---|---|---|
-| `uTime` | `UniformNode<number>` | 経過秒 |
-| `uResolution` | `UniformNode<Vector2>` | plane の pixel 寸法 |
-| `uMouseUV` | `UniformNode<Vector2>` | hover 中の plane-local UV (0..1) |
-| `uIsHovered` | `UniformNode<number>` | raycast hit 中なら 1 / それ以外 0 |
-| `uTexture` | `TextureNode` | `data-texture` 属性 or `setTexture()` のテクスチャ |
-| `uv` | `Node` | UV ノード |
+| `uTime` | `UniformNode<number>` | Elapsed seconds |
+| `uResolution` | `UniformNode<Vector2>` | Plane size in pixels |
+| `uMouseUV` | `UniformNode<Vector2>` | Plane-local UV (0..1) while hovered |
+| `uIsHovered` | `UniformNode<number>` | 1 while the raycast hits, otherwise 0 |
+| `uTexture` | `TextureNode` | Texture from the `data-texture` attribute or `setTexture()` |
+| `uv` | `Node` | UV node |
 
-`data-texture` で読むテクスチャの色空間の既定は `SRGBColorSpace`（NodeMaterial が画面出力時に
-linear→sRGB 変換を行うため、DOM の画像と表示が一致する）。生の値を素通ししたい場合のみ
-`textureColorSpace: THREE.NoColorSpace` を指定する。
+Textures loaded from `data-texture` default to `SRGBColorSpace` (NodeMaterial converts linear to sRGB
+on output, so the result matches the image in the DOM). Specify `textureColorSpace: THREE.NoColorSpace`
+only when you want to pass raw values through.
 
 ### Scroll sync
 
-`scrollSync: true` を渡すと container を `position: absolute` で document に貼り、毎 rAF
-で実効 scrollY を transform に流して viewport に追従させる。
+With `scrollSync: true`, the container is attached to the document with `position: absolute`, and the
+effective scrollY is applied to its transform on every rAF so it follows the viewport.
 
-実効 scrollY は `-document.documentElement.getBoundingClientRect().top` から取る。普段は
-`window.scrollY` と同じ値になるが、iOS Safari の上端 rubber-band / pull-to-refresh 中は
-visual viewport の offset が乗って負に振れる。この同じ値を container の transform と plane
-の位置計算の両方に流しているので、rubber-band 中も canvas と DOM が同じ分だけズレて見た目が
-揃う。pull-to-refresh も殺さずに済む。
+The effective scrollY is `-document.documentElement.getBoundingClientRect().top`. It normally equals
+`window.scrollY`, but during the rubber-band effect and pull-to-refresh at the top of iOS Safari it
+includes the visual viewport offset and goes negative. The same value drives both the container
+transform and the plane positions, so the canvas and the DOM shift by the same amount during the
+rubber-band effect, and pull-to-refresh keeps working.
 
 ```ts
 const app = new DomSyncGL("#canvas", {
   scrollSync: true,
 });
 
-// スクロール速度 (strength) を演出に使う場合
+// To use scroll velocity (strength) in your effects
 const app = new DomSyncGL("#canvas", {
   scrollSync: { trackStrength: true },
 });
 ```
 
-モバイルの URL バー伸縮で canvas の縁が欠ける対策 (`overscan`) は既定 (`'auto'`) で入る。
-`(pointer: coarse)` の環境でだけ上下に余白を確保し、マウス環境では 0 なので無駄は無い。
-切りたい場合だけ `scrollSync: { overscan: false }` を渡す。
+Protection against the canvas edges being cut off when the mobile URL bar resizes (`overscan`) is on
+by default (`'auto'`). Extra space above and below is only reserved on `(pointer: coarse)` devices;
+with a mouse it is 0, so nothing is wasted. Pass `scrollSync: { overscan: false }` to turn it off.
 
-### スムーズスクロール (Lenis)
+### Smooth scrolling (Lenis)
 
-ライブラリは Lenis を含まない。スムーズスクロールはアプリ側の関心事として切り離してある。
-入れる場合は、**Lenis と Core の両方の自前 rAF を止めて、1 本のループで順に駆動する**:
+The library does not include Lenis; smooth scrolling is left to the application.
+If you add it, **turn off the built-in rAF of both Lenis and the core, and drive them in order from a single loop**:
 
 ```ts
 import { DomSyncGL } from "dom-sync-gl";
@@ -158,37 +176,38 @@ const app = new DomSyncGL("#canvas", {
 });
 
 const raf = (time: number) => {
-  lenis.raf(time);   // 先にスクロールを確定させ、
-  app.tick(time);    // 確定後の値で WebGL を配置する
+  lenis.raf(time);   // settle the scroll position first,
+  app.tick(time);    // then place WebGL using the settled value
   requestAnimationFrame(raf);
 };
 requestAnimationFrame(raf);
 ```
 
-これで「スクロールの確定 → WebGL の配置」が同一フレーム・同じ順序で起きるのでズレない。
+"Settle the scroll → place WebGL" then happens in the same frame and in the same order, so nothing drifts.
 
-> ⚠️ `autoRaf` を両方 `true` のままにすると Lenis と Core が**別々の rAF ループ**を持つ。
-> ブラウザは rAF を登録順に実行するため、Core が先に登録されていると 1 フレーム古い scrollY を
-> 読み、背景 canvas がスクロール中だけズレる。1 本にまとめれば登録順に関係なく順序が保証される。
+> ⚠️ If you leave `autoRaf: true` on both, Lenis and the core run **separate rAF loops**.
+> Browsers run rAF callbacks in registration order, so if the core registers first it reads a scrollY
+> that is one frame old, and the background canvas drifts while scrolling. A single loop guarantees the
+> order regardless of registration.
 >
-> 以前あった `rafScroll` オプション / `RafScroll` クラス / `getRafScroll()` は、この整理に伴い**廃止**。
+> The former `rafScroll` option, `RafScroll` class, and `getRafScroll()` were **removed** as part of this change.
 
-既定ではタッチはネイティブのまま (`syncTouch: false`) なので、pull-to-refresh はそのまま動く。
+Touch input stays native by default (`syncTouch: false`), so pull-to-refresh keeps working.
 
 ### DOM text plane
 
-`createTextPlane(selector)` は DOM 要素のテキストを canvas に焼いて板に貼る。スタイルは
-`getComputedStyle` 由来なので `font-size: clamp(...)` のような fluid 指定もそのまま解決される。
+`createTextPlane(selector)` renders the text of a DOM element to a canvas and puts it on a plane.
+Styles come from `getComputedStyle`, so fluid values such as `font-size: clamp(...)` are resolved as-is.
 
 ```ts
 app.createTextPlane(".headline", { updateRectEveryFrame: true });
 ```
 
-元の DOM テキストは `color: transparent` になるだけで消えない。レイアウト・スクリーンリーダー・
-テキスト選択・SEO はそのまま残り、見た目だけが WebGL に差し替わる。
+The original DOM text only becomes `color: transparent`; it is not removed. Layout, screen readers,
+text selection, and SEO are unaffected, and only the visuals are replaced by WebGL.
 
-Web フォントを動的に読む場合は `loadFont()` の解決を待ってから板を作る（フォントの取得・登録は
-`DomTextPlane` の責務ではなく、独立ユーティリティの責務として分けてある）:
+When loading web fonts dynamically, wait for `loadFont()` to resolve before creating the plane (fetching
+and registering fonts is the job of a separate utility, not of `DomTextPlane`):
 
 ```ts
 import { loadFont } from "dom-sync-gl";
@@ -199,7 +218,7 @@ ready.then(() => app.createTextPlane(".headline"));
 
 ### Post effects
 
-`BaseEffect` を継承して TSL の `outputNode` ファクトリを返すだけ。あとは `app.addEffect()` に渡すとフルスクリーンチェーンに繋がる。前段の結果は `ctx.inputTexture` で受け取れる。
+Extend `BaseEffect` and return a TSL `outputNode` factory. Pass it to `app.addEffect()` and it joins the fullscreen chain. The result of the previous pass is available as `ctx.inputTexture`.
 
 ```ts
 import { BaseEffect, type BaseEffectConfig, TSL } from "dom-sync-gl";
@@ -225,94 +244,94 @@ class GrainEffect extends BaseEffect {
 app.addEffect(new GrainEffect());
 ```
 
-`plane.addEffect(effect)` で plane 単位のチェーンにもできる。
-plane が可視範囲を外れた間は effect の更新・feedback 描画を停止し、復帰時は停止時間を
-除いた時刻で再開する。独自のマウス履歴を持つ effect は `resume(time, mouse)` でリセットできる。
-`feedback.size: 'screen'` は全画面 effect では canvas、plane effect では plane の寸法×DPR を使う。
-`setupGUI(gui)` を実装しておくと、`gui` オプションに lil-gui インスタンスを渡したときだけ
-コントロールが出る。
+`plane.addEffect(effect)` builds a per-plane chain instead.
+While a plane is out of view, effect updates and feedback rendering stop, and they resume with the
+paused time excluded. Effects that keep their own mouse history can reset it in `resume(time, mouse)`.
+`feedback.size: 'screen'` uses the canvas size for fullscreen effects and the plane size × DPR for plane effects.
+If you implement `setupGUI(gui)`, controls appear only when a lil-gui instance is passed in the `gui` option.
 
-v0.3 の GLSL API（`fragmentShader` / `tDiffuse` / `IUniform`）からの移行はドキュメントの
-「v0.3 からの移行」を参照。
+To migrate from the v0.3 GLSL API (`fragmentShader` / `tDiffuse` / `IUniform`), see
+"Migrating from v0.3" in the documentation.
 
 ## API reference
 
 ### `new DomSyncGL(selector, options?)`
 
-| option | type | default | 説明 |
+| option | type | default | description |
 |---|---|---|---|
-| `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | スクロール同期を有効化 |
-| `autoRaf` | `boolean` | `true` | 内部 rAF ループを回すか。`false` なら自前の rAF から `tick()` で駆動 |
-| `pauseWhenOffscreen` | `boolean` | `false` | `scrollSync: { attach: 'dom' }` のとき、canvas が画面外にある間だけ描画ループを止める |
-| `pauseRootMargin` | `string` | `'100%'` | `pauseWhenOffscreen` の判定に使う IntersectionObserver の `rootMargin` |
-| `enablePointerTracking` | `boolean` | `true` | ポインタ座標と hover 判定を更新 |
-| `forceWebGL` | `boolean` | `false` | WebGPU が使えても WebGL 2 バックエンドを強制（デバッグ用） |
-| `maxPixelRatio` | `number` | `2` | `renderer.setPixelRatio` の上限 (モバイルは `1.5` 推奨) |
-| `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | renderer の出力色空間 |
-| `effectSamples` | `number` | `4` | EffectComposer の scene 描画 RT の MSAA サンプル数。`0` で無効化 |
-| `stats` | `Stats \| null` | `null` | 呼び出し元が生成した stats.js インスタンス |
-| `gui` | `GUI \| null` | `null` | 呼び出し元が生成した lil-gui インスタンス |
+| `scrollSync` | `boolean \| ScrollSyncOptions` | `false` | Enables scroll sync |
+| `autoRaf` | `boolean` | `true` | Whether to run the internal rAF loop. With `false`, drive it with `tick()` from your own rAF |
+| `pauseWhenOffscreen` | `boolean` | `false` | With `scrollSync: { attach: 'dom' }`, stops the render loop while the canvas is off screen |
+| `pauseRootMargin` | `string` | `'100%'` | IntersectionObserver `rootMargin` used by `pauseWhenOffscreen` |
+| `enablePointerTracking` | `boolean` | `true` | Updates pointer coordinates and hover detection |
+| `forceWebGL` | `boolean` | `false` | Forces the WebGL 2 backend even when WebGPU is available (for debugging) |
+| `maxPixelRatio` | `number` | `2` | Upper limit for `renderer.setPixelRatio` (`1.5` recommended on mobile) |
+| `outputColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | Output color space of the renderer |
+| `effectSamples` | `number` | `4` | MSAA sample count of the EffectComposer scene render target. `0` disables it |
+| `stats` | `Stats \| null` | `null` | A stats.js instance created by the caller |
+| `gui` | `GUI \| null` | `null` | A lil-gui instance created by the caller |
 
-> `stats` / `gui` は**インスタンスを渡す**方式。生成・DOM への挿入・破棄はすべて呼び出し元の責務で、
-> ライブラリは受け取ったものを使うだけ。以前の `showStats` / `showGUI` / `statsParent` / `guiTitle` は**廃止**。
-> `enableMouseTracking` / `setMouseTrackingEnabled()` は `enablePointerTracking` 系の別名として残っている。
+> `stats` and `gui` take **instances**. Creating them, inserting them into the DOM, and disposing them
+> are the caller's responsibility; the library only uses what it receives. The former `showStats` /
+> `showGUI` / `statsParent` / `guiTitle` options were **removed**.
+> `enableMouseTracking` / `setMouseTrackingEnabled()` remain as aliases of the `enablePointerTracking` API.
 
 #### Main methods / properties
 
-- `ready` — renderer の非同期初期化（WebGPU device 取得）の完了 Promise。await しなくても安全
-- `isWebGPUBackend()` — WebGPU バックエンドで動作しているか（`ready` 解決前は常に `false`）
-- `createPlane(selector, options?)` — DOM 要素にロックした plane を生成 (`selector` が `null` だと全画面背景)
-- `createTextPlane(selector, options?)` — DOM のテキストを焼いた plane を生成
-- `create3DObject(selector, options)` — GLTF モデルを DOM 要素にフィット
-- `tick(time?)` — 1 フレーム進める (`autoRaf: false` のとき自前の rAF から呼ぶ)。内部は `update()` → `render()` の分割で、個別にも呼べる
-- `addEffect(effect)` / `removeEffect(effect)` — フルスクリーンチェーンの管理
-- `addObject(obj3d)` / `removeObject(obj3d)` — シーンに直接追加
-- `addUpdateCallback(fn)` — 毎フレ呼ばれるコールバック登録 (unsubscribe 関数を返す)
-- `addResizeCallback(fn)` — リサイズ時のコールバック登録
-- `getScene()` / `getCamera()` / `getRenderer()` / `getMouse()` / `getScrollSync()` — 内部インスタンスへのアクセス
-- `destroy()` — リスナー・テクスチャ・RT をすべて解放
+- `ready` — Promise that resolves when the renderer finishes asynchronous initialization (WebGPU device acquisition). Safe to skip awaiting
+- `isWebGPUBackend()` — Whether the WebGPU backend is in use (always `false` before `ready` resolves)
+- `createPlane(selector, options?)` — Creates a plane locked to a DOM element (a fullscreen background when `selector` is `null`)
+- `createTextPlane(selector, options?)` — Creates a plane with the DOM text rendered onto it
+- `create3DObject(selector, options)` — Fits a GLTF model to a DOM element
+- `tick(time?)` — Advances one frame (call it from your own rAF when `autoRaf: false`). Internally split into `update()` → `render()`, which can also be called separately
+- `addEffect(effect)` / `removeEffect(effect)` — Manage the fullscreen chain
+- `addObject(obj3d)` / `removeObject(obj3d)` — Add objects to the scene directly
+- `addUpdateCallback(fn)` — Registers a per-frame callback (returns an unsubscribe function)
+- `addResizeCallback(fn)` — Registers a resize callback
+- `getScene()` / `getCamera()` / `getRenderer()` / `getMouse()` / `getScrollSync()` — Access internal instances
+- `destroy()` — Releases all listeners, textures, and render targets
 
-`update()` と `render()` を個別に呼ぶ場合、`BaseEffect.update()` と feedback の更新は
-renderer の初期化完了後の `render()` 内で実行される。`update()` で確定した時刻・マウス座標を
-使うため、描画直前に入力が変わっても同じフレームの値でエフェクトを処理する。
+When you call `update()` and `render()` separately, `BaseEffect.update()` and feedback updates run
+inside `render()` after the renderer has initialized. They use the time and mouse position fixed in
+`update()`, so effects process the values of the same frame even if input changes just before rendering.
 
 ### `ScrollSyncOptions`
 
-| option | type | default | 説明 |
+| option | type | default | description |
 |---|---|---|---|
-| `trackStrength` | `boolean` | `false` | `strength` (スクロール速度) の追跡を有効化 |
-| `strengthDecay` | `number` | `10` | strength の指数減衰係数 |
-| `overscan` | `number \| 'auto' \| false` | `'auto'` | canvas を viewport の上下に px 単位で広げる。`'auto'` は coarse pointer でのみ `vh * 0.25`、マウス環境では 0。切るなら `false` |
-| `attach` | `'translate' \| 'dom'` | `'translate'` | container の貼り付け方。`'dom'` は container の CSS 配置をそのまま尊重する |
+| `trackStrength` | `boolean` | `false` | Enables tracking of `strength` (scroll velocity) |
+| `strengthDecay` | `number` | `10` | Exponential decay factor of strength |
+| `overscan` | `number \| 'auto' \| false` | `'auto'` | Extends the canvas above and below the viewport, in px. `'auto'` uses `vh * 0.25` only with a coarse pointer and 0 with a mouse. `false` turns it off |
+| `attach` | `'translate' \| 'dom'` | `'translate'` | How the container is attached. `'dom'` keeps the container's own CSS placement |
 
-> `trackStrength: false` のまま `strength` を読むと常に `0`（DEV では一度だけ warn）。
+> Reading `strength` with `trackStrength: false` always returns `0` (with a one-time warning in DEV).
 
 ### `CreateTextPlaneOptions`
 
-`CreatePlaneOptions` を継承し、以下が追加される:
+Extends `CreatePlaneOptions` with:
 
-| option | type | default | 説明 |
+| option | type | default | description |
 |---|---|---|---|
-| `text` | `string` | `element.textContent` | 代わりに描画するテキスト |
-| `style` | `TextStyleOverrides` | `{}` | `getComputedStyle` の抽出結果を個別に上書き |
-| `pixelRatio` | `number` | `min(devicePixelRatio, 2)` | canvas の解像度倍率 |
-| `hideElementText` | `boolean` | `true` | 元 DOM テキストを `color: transparent` で隠すか |
+| `text` | `string` | `element.textContent` | Text to render instead |
+| `style` | `TextStyleOverrides` | `{}` | Overrides individual values extracted from `getComputedStyle` |
+| `pixelRatio` | `number` | `min(devicePixelRatio, 2)` | Resolution multiplier of the canvas |
+| `hideElementText` | `boolean` | `true` | Whether to hide the original DOM text with `color: transparent` |
 
 ### `CreatePlaneOptions`
 
-| option | type | default | 説明 |
+| option | type | default | description |
 |---|---|---|---|
-| `colorNode` | `(ctx: PlaneNodeContext) => Node` | テクスチャをそのまま表示 | plane の色を決める vec4 ノードを返す TSL ファクトリ |
-| `positionNode` | `(ctx: PlaneNodeContext) => Node` | 既定の頂点処理 | 頂点変位用の position ノードを返すファクトリ |
-| `uniforms` | `Record<string, UniformNode>` | `{}` | `uniform()` / `texture()` で生成した自前のノード |
-| `updateRectEveryFrame` | `boolean` | `false` | 毎フレ bbox を取り直す |
-| `resizeInterval` | `number` | `100` | 自動サイズ追従中のバッファ更新・テキスト再描画の最小間隔(ms)。mesh は毎フレ追従。`0` で間引きを無効化 |
-| `segments` | `number` | `1` | PlaneGeometry セグメント数 |
-| `onInView` / `onOutView` | `(plane) => void` | — | IntersectionObserver コールバック |
-| `inViewRootMargin` | `string` | `'100%'` | IO の rootMargin |
-| `inViewRepeat` | `boolean` | `false` | `true` で出入りのたび `onInView` が発火 |
-| `crossOrigin` | `string` | `'anonymous'` | `data-texture` 読み込み時の CORS 属性 |
-| `textureColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | `data-texture` で読むテクスチャの色空間 |
+| `colorNode` | `(ctx: PlaneNodeContext) => Node` | Shows the texture as-is | TSL factory returning a vec4 node for the plane color |
+| `positionNode` | `(ctx: PlaneNodeContext) => Node` | Default vertex processing | Factory returning a position node for vertex displacement |
+| `uniforms` | `Record<string, UniformNode>` | `{}` | Your own nodes created with `uniform()` / `texture()` |
+| `updateRectEveryFrame` | `boolean` | `false` | Re-measures the bbox every frame. By default it is only re-measured on resize, so this is required for elements moved by GSAP / CSS animations |
+| `resizeInterval` | `number` | `100` | Minimum interval (ms) for buffer updates and text re-rendering while following size changes. The mesh follows every frame. `0` disables throttling |
+| `segments` | `number` | `1` | PlaneGeometry segment count |
+| `onInView` / `onOutView` | `(plane) => void` | — | IntersectionObserver callbacks |
+| `inViewRootMargin` | `string` | `'100%'` | rootMargin of the IntersectionObserver |
+| `inViewRepeat` | `boolean` | `false` | With `true`, `onInView` fires every time the plane enters the view |
+| `crossOrigin` | `string` | `'anonymous'` | CORS attribute for `data-texture` loading |
+| `textureColorSpace` | `THREE.ColorSpace` | `SRGBColorSpace` | Color space of textures loaded from `data-texture` |
 
 ### Exports
 
@@ -330,7 +349,7 @@ import {
   BaseScene,
   // Utility
   DomPositionCalculator,
-  // three/webgpu と three/tsl を再 export (利用側で別途 import 不要)
+  // Re-exports of three/webgpu and three/tsl (no separate import needed)
   THREE, TSL,
 } from "dom-sync-gl";
 
@@ -362,25 +381,26 @@ import type {
 
 ## Browser support
 
-- Chrome / Edge / Firefox / Safari の最新 2 バージョン
-- WebGPU が使えない環境では WebGL 2 バックエンドに自動フォールバック（WebGL 2 は必須）
-- IE11 などは対象外
+- The latest two versions of Chrome / Edge / Firefox / Safari
+- Falls back to the WebGL 2 backend where WebGPU is unavailable (WebGL 2 is required)
+- IE11 and similar browsers are not supported
 
 ## Bundle
 
-`three` / `lil-gui` / `stats.js` はバンドルしていない（peer dependency。`three` は **>= 0.178.0**）。
-`sideEffects: false` なので tree-shaking も効く。
-Lenis もランタイム依存には含まない（使う場合はアプリ側で install する）。
+`three`, `lil-gui`, and `stats.js` are not bundled (peer dependencies; `three` must be **>=0.181.0 <0.183.0**).
+`sideEffects: false` enables tree-shaking.
+Lenis is not a runtime dependency either (install it in your application if you use it).
 
 ## Develop
 
 ```bash
 npm install
-npm run dev        # docs/ を vitepress で起動
-npm run example    # example/ を vite で起動 (http://localhost:5180)
-npm run build      # dist/ にビルド
+npm run dev        # start the docs/ site with VitePress
+npm run example    # start example/ with Vite (http://localhost:5180)
+npm run build      # build into dist/
 npm run test       # vitest
-npm run typecheck  # ライブラリ本体 (src/)
+npm run test:gpu   # verify WebGPU / WebGL 2 rendering in a real browser (headless Chromium)
+npm run typecheck  # the library itself (src/)
 ```
 
 ## License

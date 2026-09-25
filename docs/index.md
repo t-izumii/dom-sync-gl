@@ -21,7 +21,7 @@ hero:
 
 features:
   - title: DOM-locked plane
-    details: createPlane(selector) で要素の bbox に追従する Three.js mesh を生成。CSS で動いてもピクセル単位で付いてくる。
+    details: createPlane(selector) で要素の bbox に追従する Three.js mesh を生成。ページのスクロールにピクセル単位で付いてくる。
   - title: WebGPU / WebGL 2 自動フォールバック
     details: 既定で WebGPU、非対応環境では WebGL 2 に自動で切り替え。シェーダーは TSL で書くので 1 実装で WGSL / GLSL 両対応。
   - title: Scroll sync

@@ -106,8 +106,8 @@ export class FeedbackBuffer {
       for (const name of RESERVED_UNIFORM_NAMES) {
         if (name in options.uniforms) {
           throw new Error(
-            `[FeedbackBuffer] uniform "${name}" は予約済みで内部管理されます。` +
-              `options.uniforms から渡さないでください（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
+            `[FeedbackBuffer] uniform "${name}" is reserved and managed internally. ` +
+              `Do not pass it in options.uniforms (reserved names: ${RESERVED_UNIFORM_NAMES.join(", ")}).`,
           );
         }
       }

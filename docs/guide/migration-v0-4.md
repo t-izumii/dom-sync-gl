@@ -22,7 +22,7 @@ TSL で書いたシェーダーは three が WGSL（WebGPU）/ GLSL（WebGL 2）
 | 初期化 | 同期 | 非同期（`await app.ready`。待たなくても安全） |
 | `textureColorSpace` 既定 | `NoColorSpace` | `SRGBColorSpace` |
 | renderer | `THREE.WebGLRenderer` | `THREE.WebGPURenderer`（`three/webgpu`） |
-| three の peerDependency | `>=0.150.0` | `>=0.178.0` |
+| three の peerDependency | `>=0.150.0` | `>=0.181.0 <0.183.0` |
 
 ## GLSL → TSL 対応表
 
@@ -227,9 +227,10 @@ app.createPlane('.card', {
 });
 ```
 
-### three の peerDependency が `>=0.178.0` になった
+### three の peerDependency が `>=0.181.0 <0.183.0` になった
 
 `three/webgpu` / `three/tsl` エントリポイントと、内部で使う `QuadMesh` / `RenderTarget` などの
-API が安定した版として `>=0.178.0` を要求する。合わせて型も `THREE.WebGLRenderer` →
-`THREE.WebGPURenderer`、`WebGLRenderTarget` → `RenderTarget` に変わっている
-（`render({ outputTarget })` に渡す型も同様）。
+API を前提にしている。0.180 以前は符号付き feedback の値が正しく保持されず、0.183 以降は
+TSL の型定義が大きく変わるため、CI で実描画まで確認した 0.181.x / 0.182.x に限定している。
+合わせて型も `THREE.WebGLRenderer` → `THREE.WebGPURenderer`、`WebGLRenderTarget` → `RenderTarget` に
+変わっている（`render({ outputTarget })` に渡す型も同様）。

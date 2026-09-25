@@ -634,7 +634,7 @@ describe('DomPlane', () => {
           outputNode: (ctx) => ctx.uPrev,
           outputUniform: 'uFeedback',
         }),
-      ).toThrow(/texture\(\) ノードが options\.uniforms にありません/);
+      ).toThrow(/has no matching texture\(\) node in options\.uniforms/);
       app.destroy();
     });
 
@@ -678,7 +678,7 @@ describe('DomPlane', () => {
 
       plane.addEffect(effect);
 
-      expect(() => plane.addEffect(effect)).toThrow(/既に別の owner に登録済み/);
+      expect(() => plane.addEffect(effect)).toThrow(/already registered to another owner/);
       app.destroy();
     });
 
@@ -691,7 +691,7 @@ describe('DomPlane', () => {
       plane.addEffect(effect);
 
       expect(() => manager.addEffect(effect, 100, 100)).toThrow(
-        /既に別の owner に登録済み/,
+        /already registered to another owner/,
       );
       app.destroy();
     });
@@ -704,7 +704,7 @@ describe('DomPlane', () => {
       plane.addEffect(effect);
       plane.removeEffect(effect);
 
-      expect(() => plane.addEffect(effect)).toThrow(/dispose 済み/);
+      expect(() => plane.addEffect(effect)).toThrow(/disposed effect cannot be registered/);
       app.destroy();
     });
   });

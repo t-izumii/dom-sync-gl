@@ -38,8 +38,8 @@ export class EffectManager {
     effect._assertCanRegister();
     if (this.postEffect && this.postEffect !== this.internalComposer) {
       const msg =
-        '[DomSyncGL] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
-        '内部 EffectComposer で上書きします。所有中のカスタム postEffect は破棄します。';
+        '[DomSyncGL] A custom postEffect was set with setPostEffect() before addEffect(). ' +
+        'It will be replaced by the internal EffectComposer, and an owned custom postEffect will be disposed.';
 
       // DEV: 誤用に開発中すぐ気付けるよう即 throw（fail-fast）。
       // production: アプリを落とさず warn ログのみに留め、後続のフォールバック処理
@@ -95,9 +95,9 @@ export class EffectManager {
   ): void {
     if (this.effects.length > 0) {
       const msg =
-        '[DomSyncGL] setPostEffect() が呼ばれましたが、addEffect() で追加した effect が既に存在します。' +
-        '内部 EffectComposer を破棄してカスタム postEffect に差し替えます。' +
-        '事前に clearEffects() を呼ぶことを推奨します。';
+        '[DomSyncGL] setPostEffect() was called while effects added with addEffect() still exist. ' +
+        'The internal EffectComposer will be disposed and replaced by the custom postEffect. ' +
+        'Call clearEffects() first.';
       // DEV: fail-fast で即 throw。production: warn のみでフォールバック
       // （clearEffects() して差し替え）を続行する。上の addEffect() と同じ方針。
       if (import.meta.env?.DEV) throw new Error(msg);

@@ -6,7 +6,8 @@
 npm install dom-sync-gl three
 ```
 
-必須は `three`（**>= 0.178.0**。内部で `three/webgpu` / `three/tsl` エントリポイントを使う）だけ。
+必須は `three`（**0.181.x / 0.182.x**。内部で `three/webgpu` / `three/tsl` エントリポイントを使う）だけ。
+TSL は three の版ごとに API が変わるため、CI で動作を確認した範囲だけを peerDependency に指定している。
 GUI パネルや FPS パネルを出したいときは追加で:
 
 ```bash
@@ -42,7 +43,22 @@ app.createPlane('.hero-card', {
 });
 ```
 
-`.hero-card` の位置・サイズに plane が貼り付き、CSS で要素が動いてもピクセル単位で追従する。
+`.hero-card` の位置・サイズに plane が貼り付き、ページのスクロールにはピクセル単位で追従する。
+
+::: warning 動く要素には `updateRectEveryFrame: true` が必要
+要素の位置とサイズ（`getBoundingClientRect()`）は、性能のため**既定ではリサイズ時にしか測り直さない**。
+GSAP・CSS animation・transition などで要素そのものを動かすと、plane は元の位置に残る。
+
+| 要素の動き方 | 既定で追従するか |
+|---|---|
+| ページのスクロール | する |
+| window / container のリサイズ | する（100ms の debounce 後） |
+| `position: sticky` の要素 | する（自動で毎フレーム測り直す） |
+| transform / top / left のアニメーション、親要素の中でのスクロール | **しない** → `updateRectEveryFrame: true` |
+| レイアウトの変化（要素の追加・削除、フォント読み込みなど） | **しない** → `updateRectEveryFrame: true` か `app.resize()` |
+
+`updateRectEveryFrame` は plane ごとに毎フレーム layout を読むので、動く要素にだけ付ける。
+:::
 
 → 動くデモ・コード・解説は [Demos / DOM-locked Plane](/demos/plane) を参照。
 → v0.3 の GLSL API からの書き換えは [移行ガイド](/guide/migration-v0-4) を参照。

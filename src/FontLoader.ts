@@ -90,7 +90,7 @@ export async function loadFont(source: FontFaceSource | FontFaceSource[]): Promi
         cached = loadSingleFontFace(src).catch((e) => {
           fontLoadCache.delete(key);
           console.warn(
-            `[dom-sync-gl] FontFace の読み込みに失敗しました: ${src.family} (${src.url})`,
+            `[dom-sync-gl] Failed to load FontFace: ${src.family} (${src.url})`,
             e,
           );
         });

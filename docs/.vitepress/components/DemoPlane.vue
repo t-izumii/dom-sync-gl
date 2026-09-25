@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useData } from 'vitepress';
 import { DomSyncGL, TSL } from 'dom-sync-gl';
 
 const { vec2, vec3, vec4, sin, mix, distance, select } = TSL;
@@ -32,6 +33,9 @@ onBeforeUnmount(() => {
   app?.destroy();
   app = null;
 });
+
+const { lang } = useData();
+const isEn = computed(() => lang.value.startsWith('en'));
 </script>
 
 <template>
@@ -52,7 +56,8 @@ onBeforeUnmount(() => {
       ></div>
     </div>
     <div class="demo-frame__controls">
-      <span>カード型の canvas にフルスクリーン plane を 1 枚張って TSL シェーダーを流している。hover で色が変わる。</span>
+      <span v-if="isEn">A single fullscreen plane with a TSL shader fills a card-shaped canvas. The color changes on hover.</span>
+      <span v-else>カード型の canvas にフルスクリーン plane を 1 枚張って TSL シェーダーを流している。hover で色が変わる。</span>
     </div>
   </div>
 </template>

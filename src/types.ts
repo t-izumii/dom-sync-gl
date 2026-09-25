@@ -108,6 +108,11 @@ export interface CreatePlaneOptions {
    * 渡しておく（FeedbackBuffer の出力がそのノードへ毎フレーム反映される）。
    */
   uniforms?: Record<string, UniformNode<unknown>>;
+  /**
+   * 要素の位置・サイズ（getBoundingClientRect）を毎フレーム測り直す。既定 false。
+   * 既定ではリサイズ時（と position: sticky の要素）しか測り直さないため、
+   * GSAP・CSS animation などで要素そのものを動かす場合は true にする。
+   */
   updateRectEveryFrame?: boolean;
   /** 自動サイズ追従中の RT・テキスト再描画の最小間隔(ms)。既定100。0で毎フレーム更新。 */
   resizeInterval?: number;
@@ -181,6 +186,11 @@ export interface Create3DObjectOptions {
   modelPath: string;
   scale?: number;
   offset?: Offset3D;
+  /**
+   * 要素の位置・サイズ（getBoundingClientRect）を毎フレーム測り直す。既定 false。
+   * 既定ではリサイズ時（と position: sticky の要素）しか測り直さないため、
+   * GSAP・CSS animation などで要素そのものを動かす場合は true にする。
+   */
   updateRectEveryFrame?: boolean;
   fitMode?: Dom3DObjectFitMode;
 }

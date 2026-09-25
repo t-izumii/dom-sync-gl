@@ -89,7 +89,7 @@ export class Dom3DObject {
     const modelPath = this.options.modelPath;
 
     if (!modelPath) {
-      console.error("Dom3DObject: modelPath が指定されていません。");
+      console.error("[Dom3DObject] modelPath is not specified.");
       return;
     }
 
@@ -105,7 +105,7 @@ export class Dom3DObject {
       },
       undefined,
       (error: unknown) => {
-        console.error(`Failed to load model: ${modelPath}`, error);
+        console.error(`[Dom3DObject] Failed to load model: ${modelPath}`, error);
       },
     );
   }

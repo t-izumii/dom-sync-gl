@@ -155,16 +155,16 @@ export abstract class BaseEffect {
     // 起きるため throw する。
     if (this._disposed) {
       throw new Error(
-        "[BaseEffect] dispose 済みの effect は再登録できません。" +
-          "使い回す場合は新しいインスタンスを作ってください。",
+        "[BaseEffect] A disposed effect cannot be registered again. " +
+          "Create a new instance instead of reusing it.",
       );
     }
     if (this.pass !== null) {
       throw new Error(
-        "[BaseEffect] この effect インスタンスは既に別の owner に登録済みです。" +
-          "1 つの effect インスタンスは 1 つの owner にしか追加できません。" +
-          "`webgl.addEffect()` と `domPlane.addEffect()` を併用する場合など、" +
-          "使い回す場合は新しいインスタンスを作ってください。",
+        "[BaseEffect] This effect instance is already registered to another owner. " +
+          "An effect instance can only be added to one owner. " +
+          "When using both `app.addEffect()` and `domPlane.addEffect()`, " +
+          "create a separate instance for each.",
       );
     }
   }

@@ -254,8 +254,8 @@ export class ScrollSync {
       if (import.meta.env?.DEV && !this._warnedStrength) {
         this._warnedStrength = true;
         console.warn(
-          '[ScrollSync] strength は trackStrength: true で初期化した時のみ意味のある値を返します。' +
-          ' 現在は trackStrength=false なので常に 0 です。'
+          '[ScrollSync] strength only returns a meaningful value when initialized with trackStrength: true.' +
+          ' trackStrength is currently false, so it is always 0.'
         );
       }
       return 0;

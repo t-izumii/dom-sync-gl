@@ -57,9 +57,9 @@ new DomSyncGL('#canvas', { scrollSync: { overscan: false } });
 
 `'dom'` は container の CSS 配置をそのまま尊重し、position/サイズ/transform を一切上書きしない。
 container が `position: fixed` なら canvas も fixed 相当で表示され、普通配置なら container 自身の
-サイズで canvas が生成される。`overscan` は適用されない。既知の制限として、普通配置（非 fixed）の
-container はスクロールで canvas 自体が動くため `canvasRect` が古くなり DomPlane がドリフトしうる
-（fixed container なら問題ない）。
+サイズで canvas が生成される。`overscan` は適用されない。普通配置の container はスクロールで
+canvas 自体が動くが、canvas の位置を毎フレーム測り直すので plane はずれない（sticky や CSS transform で
+container が動く場合も同じ）。
 
 `'dom'` と組み合わせると、canvas が画面外にある間だけ描画ループを止める
 [`pauseWhenOffscreen`](/api/dom-sync-gl#options) が使える。

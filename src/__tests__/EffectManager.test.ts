@@ -284,7 +284,7 @@ describe('EffectManager', () => {
 
     manager.addEffect(effect, 100, 100);
 
-    expect(() => manager.addEffect(effect, 100, 100)).toThrow(/既に別の owner に登録済み/);
+    expect(() => manager.addEffect(effect, 100, 100)).toThrow(/already registered to another owner/);
   });
 
   it('別の manager にまたがる二重登録も throw する', () => {
@@ -296,7 +296,7 @@ describe('EffectManager', () => {
     const attach = vi.spyOn(effect, '_attachRenderer');
     const setSize = vi.spyOn(effect, '_setSize');
 
-    expect(() => managerB.addEffect(effect, 100, 100)).toThrow(/既に別の owner に登録済み/);
+    expect(() => managerB.addEffect(effect, 100, 100)).toThrow(/already registered to another owner/);
     expect(attach).not.toHaveBeenCalled();
     expect(setSize).not.toHaveBeenCalled();
     expect((managerB as unknown as { internalComposer: unknown }).internalComposer).toBeNull();
@@ -320,7 +320,7 @@ describe('EffectManager', () => {
     manager.addEffect(effect, 100, 100);
     manager.removeEffect(effect);
 
-    expect(() => manager.addEffect(effect, 100, 100)).toThrow(/dispose 済み/);
+    expect(() => manager.addEffect(effect, 100, 100)).toThrow(/disposed effect cannot be registered/);
   });
 
   it('setPostEffect: 既に addEffect 済みの effect があると DEV は throw、production は warn して差し替える', () => {

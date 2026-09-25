@@ -454,7 +454,7 @@ describe('DomSyncGL', () => {
       const app = new DomSyncGL(container);
       makeTextEl();
       app.destroy();
-      expect(() => app.createTextPlane('.text-target')).toThrow(/destroy 済み/);
+      expect(() => app.createTextPlane('.text-target')).toThrow(/destroyed instance/);
     });
   });
 

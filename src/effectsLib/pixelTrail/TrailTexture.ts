@@ -54,7 +54,7 @@ export class TrailTexture {
     this.canvas.width = this.canvas.height = this.size;
     const ctx = this.canvas.getContext('2d');
     if (ctx === null) {
-      throw new Error('[TrailTexture] 2D コンテキストを取得できません。');
+      throw new Error('[TrailTexture] Failed to get a 2D context.');
     }
     this.ctx = ctx;
     this.ctx.fillStyle = 'black';

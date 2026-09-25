@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import { useData } from 'vitepress';
 import { DomSyncGL, BaseEffect, type BaseEffectConfig, TSL } from 'dom-sync-gl';
 
 const { uniform, vec2, vec3, vec4, sin, mix, fract, dot } = TSL;
@@ -61,6 +62,9 @@ function toggleGrain() {
   grain.enabled = !grain.enabled;
   grainOn.value = grain.enabled;
 }
+
+const { lang } = useData();
+const isEn = computed(() => lang.value.startsWith('en'));
 </script>
 
 <template>
@@ -72,7 +76,8 @@ function toggleGrain() {
     ></div>
     <div class="demo-frame__controls">
       <button @click="toggleGrain">grain: {{ grainOn ? 'ON' : 'OFF' }}</button>
-      <span>背景 plane + Grain ポストエフェクト。<code>effect.enabled</code> でパスをスキップできる。</span>
+      <span v-if="isEn">A background plane with a Grain post effect. <code>effect.enabled</code> skips the pass.</span>
+      <span v-else>背景 plane + Grain ポストエフェクト。<code>effect.enabled</code> でパスをスキップできる。</span>
     </div>
   </div>
 </template>

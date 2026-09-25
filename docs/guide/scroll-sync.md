@@ -105,13 +105,6 @@ viewport に貼り付けている**ので止められない。scrollSync 無し�
 - IntersectionObserver 非対応環境では監視を張らず、従来どおり回り続ける
 - タブ非表示（`document.hidden`）は扱わない。オフスクリーン判定のみ
 
-::: warning 通常フローの container では canvasRect のドリフトとセットで効く
-`pauseWhenOffscreen` が意味を持つのは「オフスクリーンになりうる container」、つまり
-`position: fixed` **ではない** container だが、これは
-[canvasRect のドリフト](/api/scroll#attach)が起きる条件でもある。停止の有無で挙動は変わらない
-（ドリフトは最後に計測した時点に依存するため）が、併用時は両方を意識しておく。
-:::
-
 ## スクロール速度を演出に使う
 
 `trackStrength: true` にすると `strength`（0〜1）が読めるようになる。速く動かすほど 1 に近づき、

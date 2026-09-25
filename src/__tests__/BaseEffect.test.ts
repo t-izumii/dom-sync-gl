@@ -145,7 +145,7 @@ describe('BaseEffect._register()', () => {
     effect._register(composer);
     const pass = effect.getPass()!;
 
-    expect(() => effect._register(composer)).toThrow(/既に別の owner に登録済み/);
+    expect(() => effect._register(composer)).toThrow(/already registered to another owner/);
     // 旧 pass はそのまま保持され、副作用で差し替わっていない
     expect(effect.getPass()).toBe(pass);
     composer.dispose();
@@ -158,7 +158,7 @@ describe('BaseEffect._register()', () => {
 
     effect._register(composerA);
 
-    expect(() => effect._register(composerB)).toThrow(/既に別の owner に登録済み/);
+    expect(() => effect._register(composerB)).toThrow(/already registered to another owner/);
     composerA.dispose();
     composerB.dispose();
   });
@@ -170,7 +170,7 @@ describe('BaseEffect._register()', () => {
     composer.removeEffect(effect.getPass()!);
     effect._dispose();
 
-    expect(() => effect._register(composer)).toThrow(/dispose 済み/);
+    expect(() => effect._register(composer)).toThrow(/disposed effect cannot be registered/);
     composer.dispose();
   });
 });
