@@ -75,9 +75,12 @@ export class DomSyncGL {
     this.container = element as HTMLElement;
 
     this.canvas = document.createElement('canvas');
+    // canvas はデフォルトで inline 要素。ベースライン下の descender ぶんの隙間が出るのを避け、
+    // レイアウトへの寄与を素直にするため block にする。
+    this.canvas.style.display = 'block';
     this.container.appendChild(this.canvas);
 
-    this.rect = this.container.getBoundingClientRect();
+    this.rect = this.measureContainerRect();
     this.scene = new THREE.Scene();
     this.renderer = new THREE.WebGPURenderer({
       canvas: this.canvas,
@@ -182,6 +185,25 @@ export class DomSyncGL {
     return this._scroll;
   }
 
+  // canvas（rect が表す領域）が viewport 固定か。translate モード・scrollSync 無しは
+  // 常に viewport 固定（true）。attach:'dom' のときだけ container の CSS 配置に従う。
+  // false のとき rect（logicalRect）は page 座標なので、位置計算側は scroll を加算しない。
+  private canvasViewportFixed(): boolean {
+    return this.scrollSync ? this.scrollSync.canvasViewportFixed : true;
+  }
+
+  // container の box を測る。CSS でサイズ未指定（auto）の container だと、内部の canvas
+  // （デフォルト 300×150、または前回 setSize した高さ）が container の高さに乗ってしまい、
+  // その高さで canvas を再度 setSize → さらに container が伸びる…というフィードバックループに
+  // なりうる。計測中だけ canvas を display:none にして自身の寄与を排除し、ループを断つ。
+  private measureContainerRect(): DOMRect {
+    const prevDisplay = this.canvas.style.display;
+    this.canvas.style.display = 'none';
+    const rect = this.container.getBoundingClientRect();
+    this.canvas.style.display = prevDisplay || 'block';
+    return rect;
+  }
+
   private refreshScrollCache(): void {
     this._scroll.x = window.scrollX;
     this._scroll.y = this.scrollSync
@@ -266,6 +288,7 @@ export class DomSyncGL {
       this.renderer,
       options,
       this.clock,
+      this.canvasViewportFixed(),
     );
 
     domPlane._setGui(this.devTools.getGUI());
@@ -305,6 +328,7 @@ export class DomSyncGL {
       this.renderer,
       options,
       this.clock,
+      this.canvasViewportFixed(),
     );
     plane._setGui(this.devTools.getGUI());
     this.domPlanes.push(plane);
@@ -358,6 +382,7 @@ export class DomSyncGL {
       this.rect,
       this._scroll,
       options,
+      this.canvasViewportFixed(),
     );
     this.dom3DObjects.push(dom3DObject);
     dom3DObject._setOnDestroy(() => this.unregister3DObject(dom3DObject));
@@ -580,7 +605,7 @@ export class DomSyncGL {
       this.scrollSync.updateSize();
       this.rect = this.scrollSync.logicalRect;
     } else {
-      this.rect = this.container.getBoundingClientRect();
+      this.rect = this.measureContainerRect();
     }
     if (this.rect.width <= 0 || this.rect.height <= 0) return;
 

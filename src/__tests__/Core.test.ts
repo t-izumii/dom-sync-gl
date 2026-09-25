@@ -92,6 +92,35 @@ describe('DomSyncGL', () => {
     expect(() => new DomSyncGL('#does-not-exist')).toThrow(/Container not found/);
   });
 
+  it('canvas は display:block に設定される（inline のベースライン隙間を避ける）', () => {
+    const app = new DomSyncGL(container);
+    expect(app.canvas.style.display).toBe('block');
+    app.destroy();
+  });
+
+  it('container の計測中は canvas を display:none にして自身の寄与を排除する（フィードバックループ回避）', () => {
+    // Given: auto サイズ container を模し、計測時に canvas が display:none なら本来の
+    // サイズ（400×300）、そうでなければ canvas ぶん膨らんだサイズ（400×450）を返す。
+    const bcrSpy = vi.spyOn(container, 'getBoundingClientRect');
+    let canvasHiddenAtMeasure = false;
+    bcrSpy.mockImplementation(() => {
+      const canvas = container.querySelector('canvas');
+      const hidden = !canvas || canvas.style.display === 'none';
+      if (hidden) canvasHiddenAtMeasure = true;
+      return new DOMRect(0, 0, 400, hidden ? 300 : 450);
+    });
+
+    const app = new DomSyncGL(container);
+
+    // Then: 計測は canvas を隠した状態で行われ、canvas 膨張ぶんが rect に混入しない。
+    expect(canvasHiddenAtMeasure).toBe(true);
+    expect(app.rect.height).toBe(300);
+    // 計測後は canvas の display が block に戻っている。
+    expect(app.canvas.style.display).toBe('block');
+
+    app.destroy();
+  });
+
   it('addUpdateCallback は callback を登録し、戻り値で解除できる', () => {
     const app = new DomSyncGL(container);
     const cb = vi.fn();

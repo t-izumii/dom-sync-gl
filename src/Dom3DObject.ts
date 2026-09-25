@@ -28,6 +28,7 @@ export class Dom3DObject {
     canvasRect: DOMRect,
     scroll: { x: number; y: number },
     options: Create3DObjectOptions,
+    canvasViewportFixed: boolean = true,
   ) {
     this.element = element;
     this.mainScene = mainScene;
@@ -42,7 +43,7 @@ export class Dom3DObject {
     };
     this.updateRectEveryFrame = options.updateRectEveryFrame ?? false;
     this.positionCalculator = element
-      ? new DomPositionCalculator(element, canvasRect, this.scroll.x, this.scroll.y)
+      ? new DomPositionCalculator(element, canvasRect, this.scroll.x, this.scroll.y, canvasViewportFixed)
       : null;
     this.isVisible = !element;
     this.destroyed = false;

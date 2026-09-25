@@ -301,7 +301,7 @@ export function rasterizeText(
   const ls = style.letterSpacing;
   // ctx.letterSpacing 対応環境では measureText がスペーシング込みを返すため、
   // 折り返し計測でも手動加算しない。非対応環境では文字数ぶんを加算する。
-  const supportsLetterSpacing = ls > 0 && "letterSpacing" in ctx;
+  const supportsLetterSpacing = ls !== 0 && "letterSpacing" in ctx;
   if (supportsLetterSpacing) {
     (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${ls}px`;
   }
@@ -368,7 +368,7 @@ export function rasterizeText(
     const line = lines[i];
     if (line === "") continue;
     const lineY = startY + style.lineHeight / 2 + i * style.lineHeight;
-    if (ls > 0 && !supportsLetterSpacing) {
+    if (ls !== 0 && !supportsLetterSpacing) {
       drawLetterSpaced(line, lineY);
     } else {
       ctx.fillText(line, x, lineY);

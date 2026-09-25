@@ -33,10 +33,11 @@ export class DomTextPlane extends DomPlane {
     renderer: THREE.WebGPURenderer,
     options: CreateTextPlaneOptions = {},
     sharedClock?: THREE.Clock,
+    canvasViewportFixed: boolean = true,
   ) {
     // super() は内部で init() → loadTexture()（no-op override）→ resize() を同期実行する。
     // その時点でサブクラスフィールドは未初期化のため、resize()/rasterize() 側にガードを置く。
-    super(el, scene, canvasRect, scroll, renderer, options, sharedClock);
+    super(el, scene, canvasRect, scroll, renderer, options, sharedClock, canvasViewportFixed);
 
     this.hideElementText = options.hideElementText ?? true;
     this.refreshStyleOnResize = options.refreshStyleOnResize ?? false;

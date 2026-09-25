@@ -99,6 +99,7 @@ export class DomPlane {
     renderer: THREE.WebGPURenderer,
     options: CreatePlaneOptions = {},
     sharedClock?: THREE.Clock,
+    canvasViewportFixed: boolean = true,
   ) {
     if (options.uniforms) {
       for (const name of RESERVED_UNIFORM_NAMES) {
@@ -126,7 +127,7 @@ export class DomPlane {
     this.clock = sharedClock ?? new THREE.Clock();
     this.canvasRect = canvasRect;
     this.positionCalculator = el
-      ? new DomPositionCalculator(el, canvasRect, this.scroll.x, this.scroll.y)
+      ? new DomPositionCalculator(el, canvasRect, this.scroll.x, this.scroll.y, canvasViewportFixed)
       : null;
 
     this.isVisible = !el;

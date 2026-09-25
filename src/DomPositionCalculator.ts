@@ -7,15 +7,24 @@ export class DomPositionCalculator {
   rect: DOMRect;
   private readonly _outPosition = { x: 0, y: 0 };
   private _isSticky: boolean = false;
+  // canvas（canvasRect）が viewport に固定されているか。
+  // - true（既定）: translate モード / fixed 相当の container。canvasRect は viewport 相対の
+  //   スナップショットで、page 座標へは現在の scroll を加算して求める。
+  // - false: attach:'dom' + 通常フロー container。canvas はページに固定され画面上を流れる。
+  //   canvasRect は既に page 座標で渡されるため、scroll を加算してはならない
+  //   （加算すると計測時からのスクロール差分ぶん plane がドリフトする）。
+  private _canvasViewportFixed: boolean = true;
 
   constructor(
     element: HTMLElement,
     canvasRect: DOMRect,
     scrollX: number,
     scrollY: number,
+    canvasViewportFixed: boolean = true,
   ) {
     this.element = element;
     this.canvasRect = canvasRect;
+    this._canvasViewportFixed = canvasViewportFixed;
     this.rect = new DOMRect();
     this.positionInfo = {
       pageTop: 0,
@@ -54,8 +63,11 @@ export class DomPositionCalculator {
     let canvasCenterX: number;
     let canvasCenterY: number;
 
-    if (this.positionInfo.isFixed) {
-
+    if (this.positionInfo.isFixed || !this._canvasViewportFixed) {
+      // isFixed 要素: pageTop/pageLeft は viewport 相対の rect 値そのもの。
+      // canvasViewportFixed=false（dom + 通常フロー）: canvasRect は既に page 座標なので
+      //   scroll を足さない。要素側の pageTop（= rect.top + scrollY, page 座標）と同じ空間で
+      //   引き算するため、両者とも scroll を二重加算しないこの分岐で整合する。
       canvasCenterX = this.canvasRect.left + this.canvasRect.width / 2;
       canvasCenterY = this.canvasRect.top + this.canvasRect.height / 2;
     } else {

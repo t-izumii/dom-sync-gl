@@ -380,6 +380,57 @@ describe("rasterizeText", () => {
     expect(ctx.fillText).toHaveBeenCalledTimes(3);
   });
 
+  it("負の letterSpacing かつ ctx に letterSpacing あり → ctx.letterSpacing に負値が設定される", () => {
+    const ctx = makeCtx(true); // letterSpacing 対応
+    spyCtx(ctx);
+    rasterizeText(
+      document.createElement("canvas"),
+      "abc",
+      makeStyle({ letterSpacing: -2 }),
+      1000,
+      50,
+      1,
+    );
+    // 対応環境では ctx.letterSpacing にそのまま反映し、fillText は 1 行 1 回。
+    expect(ctx.letterSpacing).toBe("-2px");
+    expect(ctx.fillText).toHaveBeenCalledTimes(1);
+    expect(ctx.fillText).toHaveBeenCalledWith("abc", expect.any(Number), expect.any(Number));
+  });
+
+  it("負の letterSpacing かつ ctx に letterSpacing なし → per-char フォールバックで描画される", () => {
+    const ctx = makeCtx(false); // 非対応環境
+    spyCtx(ctx);
+    rasterizeText(
+      document.createElement("canvas"),
+      "abc",
+      makeStyle({ letterSpacing: -2 }),
+      1000,
+      50,
+      1,
+    );
+    // 負値でも per-char で 1 文字ずつ描画される（旧実装は ls > 0 ゲートで通常 fillText に落ちていた）。
+    expect(ctx.fillText).toHaveBeenCalledTimes(3);
+  });
+
+  it("負の letterSpacing で measure（折り返し計測）が狭く見積もられ、描画と一致する", () => {
+    // 非対応環境: measure は w + ls*len（ls<0 なので狭くなる）。
+    // 1 文字 10px、ls=-4 の下で "aaaaa"(5 文字) の実効幅 = 50 + (-4*5) = 30。
+    // contentWidth 40 なら 1 行に収まり、41px 見積りの誤判定で折り返さないことを確認する。
+    const ctx = makeCtx(false);
+    spyCtx(ctx);
+    rasterizeText(
+      document.createElement("canvas"),
+      "aaaaa aaaaa",
+      makeStyle({ letterSpacing: -4 }),
+      40,
+      100,
+      1,
+    );
+    // 各語の実効幅 30 <= 40 なので 2 語がそれぞれ 1 行 = 2 行。per-char 描画で 10 回 fillText。
+    // （measure と描画が一致していれば contentWidth 超過ではみ出さない。）
+    expect(ctx.fillText).toHaveBeenCalledTimes(10);
+  });
+
   it("getContext が null → false を返し例外を投げない", () => {
     spyCtx(null);
     const result = rasterizeText(
