@@ -100,7 +100,7 @@ export class PlaneComposer implements EffectTarget {
    */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
-      throw new Error('[PlaneComposer] dispose 済みのインスタンスでは addEffect() できません。');
+      throw new Error('[PlaneComposer] Cannot call addEffect() on a disposed instance.');
     }
     const inputTexture = texture(this.targetA.texture);
     const material = new THREE.MeshBasicNodeMaterial();

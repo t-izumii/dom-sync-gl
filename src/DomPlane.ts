@@ -111,8 +111,8 @@ export class DomPlane {
       for (const name of RESERVED_UNIFORM_NAMES) {
         if (name in options.uniforms) {
           throw new Error(
-            `[DomPlane] uniform "${name}" は予約済みで内部管理されます。` +
-              `options.uniforms から渡さないでください（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
+            `[DomPlane] uniform "${name}" is reserved and managed internally. ` +
+              `Do not pass it in options.uniforms (reserved names: ${RESERVED_UNIFORM_NAMES.join(", ")}).`,
           );
         }
       }
@@ -310,7 +310,7 @@ export class DomPlane {
         },
         undefined,
         (error: unknown) => {
-          console.error(`Failed to load texture: ${texturePath}`, error);
+          console.error(`[DomPlane] Failed to load texture: ${texturePath}`, error);
         },
       );
     } else if (this.nodes.uTexture.value !== placeholderTexture) {
@@ -404,7 +404,7 @@ export class DomPlane {
   }
 
   public setTexture(texture: THREE.Texture, takeOwnership: boolean = false): void {
-    if (this.destroyed) throw new Error('[DomPlane] destroy 済みの plane に texture は設定できません。');
+    if (this.destroyed) throw new Error('[DomPlane] Cannot set a texture on a destroyed plane.');
     this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture && this.texture !== texture) {
       this.texture.dispose();
@@ -508,7 +508,7 @@ export class DomPlane {
   }
 
   public addEffect<T extends BaseEffect>(effect: T): T {
-    if (this.destroyed) throw new Error('[DomPlane] destroy 済みの plane に effect は追加できません。');
+    if (this.destroyed) throw new Error('[DomPlane] Cannot add an effect to a destroyed plane.');
     effect._assertCanRegister();
     const composer = this.enableEffects();
     const rect = this.positionCalculator?.rect ?? this.canvasRect;
@@ -527,12 +527,12 @@ export class DomPlane {
   }
 
   public addFeedback(options: AddFeedbackOptions): FeedbackBuffer {
-    if (this.destroyed) throw new Error('[DomPlane] destroy 済みの plane に feedback は追加できません。');
+    if (this.destroyed) throw new Error('[DomPlane] Cannot add feedback to a destroyed plane.');
     if (RESERVED_UNIFORM_NAMES.includes(options.outputUniform)) {
       throw new Error(
-        `[DomPlane] addFeedback の outputUniform "${options.outputUniform}" は` +
-          `予約済み uniform 名で内部管理されます。別の名前を指定してください` +
-          `（予約名: ${RESERVED_UNIFORM_NAMES.join(", ")}）。`,
+        `[DomPlane] addFeedback() outputUniform "${options.outputUniform}" is a reserved ` +
+          `uniform name managed internally. Use a different name ` +
+          `(reserved names: ${RESERVED_UNIFORM_NAMES.join(", ")}).`,
       );
     }
     // colorNode のノードグラフは構築時に確定しているため、後から参照を注入できない。
@@ -542,9 +542,9 @@ export class DomPlane {
       | undefined;
     if (!target || target.isTextureNode !== true) {
       throw new Error(
-        `[DomPlane] addFeedback の outputUniform "${options.outputUniform}" に対応する ` +
-          `texture() ノードが options.uniforms にありません。colorNode から参照するため、` +
-          `createPlane の options.uniforms に同名の texture() ノードを渡してください。`,
+        `[DomPlane] addFeedback() outputUniform "${options.outputUniform}" has no matching ` +
+          `texture() node in options.uniforms. colorNode must be able to reference it, so pass ` +
+          `a texture() node with the same name in the options.uniforms of createPlane().`,
       );
     }
     const buffer = new FeedbackBuffer(this.renderer, options);

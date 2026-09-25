@@ -73,7 +73,7 @@ export class DomSyncGL {
         ? document.querySelector(selector)
         : selector;
     if (!element) {
-      throw new Error(`Container not found: ${selector}`);
+      throw new Error(`[DomSyncGL] Container not found: ${selector}`);
     }
     this.container = element as HTMLElement;
 
@@ -104,7 +104,7 @@ export class DomSyncGL {
       this._rendererReady = true;
     });
     this.ready.catch((err) => {
-      console.error('[DomSyncGL] renderer の初期化に失敗しました。', err);
+      console.error('[DomSyncGL] Failed to initialize the renderer.', err);
     });
     this.camera = new Camera(this.rect);
     this.light = new Light(this.scene);
@@ -266,7 +266,7 @@ export class DomSyncGL {
     options?: CreatePlaneOptions
   ) {
     if (this.destroyed) {
-      throw new Error('[DomSyncGL] createPlane(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] createPlane(): cannot be used on a destroyed instance.');
     }
     let element: HTMLElement | null = null;
 
@@ -311,7 +311,7 @@ export class DomSyncGL {
     options?: CreateTextPlaneOptions,
   ): DomTextPlane {
     if (this.destroyed) {
-      throw new Error('[DomSyncGL] createTextPlane(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] createTextPlane(): cannot be used on a destroyed instance.');
     }
     const element =
       typeof selector === 'string'
@@ -364,7 +364,7 @@ export class DomSyncGL {
     options: Create3DObjectOptions,
   ) {
     if (this.destroyed) {
-      throw new Error('[DomSyncGL] create3DObject(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] create3DObject(): cannot be used on a destroyed instance.');
     }
     let element: HTMLElement | null = null;
 
@@ -431,7 +431,7 @@ export class DomSyncGL {
 
   enableOrbitControls() {
     if (this.destroyed) {
-      throw new Error('[DomSyncGL] enableOrbitControls(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] enableOrbitControls(): cannot be used on a destroyed instance.');
     }
     if (!this.controls) {
       if (this.scrollSync) {
@@ -448,7 +448,7 @@ export class DomSyncGL {
 
   addEffect<T extends BaseEffect>(effect: T): T {
     if (this.destroyed) {
-      throw new Error('[DomSyncGL] addEffect(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] addEffect(): cannot be used on a destroyed instance.');
     }
     return this.effectManager.addEffect(effect, this.rect.width, this.rect.height);
   }
@@ -459,7 +459,7 @@ export class DomSyncGL {
 
   setPostEffect(postEffect: EffectLike, options?: { owned?: boolean }): void {
     if (this.destroyed) {
-      throw new Error('[DomSyncGL] setPostEffect(): destroy 済みのインスタンスでは使えません。');
+      throw new Error('[DomSyncGL] setPostEffect(): cannot be used on a destroyed instance.');
     }
     this.effectManager.setPostEffect(
       postEffect,
@@ -524,7 +524,7 @@ export class DomSyncGL {
     if (this.scrollSync?.attach !== 'dom') {
       if (import.meta.env?.DEV) {
         console.warn(
-          '[DomSyncGL] pauseWhenOffscreen は scrollSync: { attach: "dom" } の時のみ有効です。',
+          '[DomSyncGL] pauseWhenOffscreen only works with scrollSync: { attach: "dom" }.',
         );
       }
       return;

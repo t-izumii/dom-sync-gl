@@ -238,7 +238,7 @@ describe("DomTextPlane", () => {
       const app = new DomSyncGL(container);
       expect(() => app.createTextPlane(".not-exist")).toThrow(/Element not found/);
       app.destroy();
-      expect(() => app.createTextPlane(".not-exist")).toThrow(/destroy 済み/);
+      expect(() => app.createTextPlane(".not-exist")).toThrow(/destroyed instance/);
     });
 
     it("textTexture.colorSpace は SRGBColorSpace（NodeMaterial の出力変換と相殺して DOM 文字色と一致, CR-04）", async () => {

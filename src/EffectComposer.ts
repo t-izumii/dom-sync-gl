@@ -72,8 +72,8 @@ export class EffectPass {
     if (node === undefined) {
       if (import.meta.env?.DEV) {
         console.warn(
-          `[EffectPass] uniform "${key}" は定義されていません。タイポか、` +
-          `BaseEffect.getConfig() の uniforms に追加し忘れている可能性があります。`
+          `[EffectPass] uniform "${key}" is not defined. It may be a typo, ` +
+          `or it was not added to the uniforms returned by BaseEffect.getConfig().`
         );
       }
       return;
@@ -158,7 +158,7 @@ export class EffectComposer implements EffectTarget, EffectLike {
    */
   addEffect(options: EffectOptions): EffectPass {
     if (this._disposed) {
-      throw new Error('[EffectComposer] dispose 済みのインスタンスでは addEffect() できません。');
+      throw new Error('[EffectComposer] Cannot call addEffect() on a disposed instance.');
     }
     const inputTexture = texture(this.targetA.texture);
     const material = new THREE.MeshBasicNodeMaterial();
