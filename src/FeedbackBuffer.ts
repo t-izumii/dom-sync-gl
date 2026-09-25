@@ -145,7 +145,7 @@ export class FeedbackBuffer {
     this.userUniforms = { ...options.uniforms };
 
     this.material = new THREE.MeshBasicNodeMaterial();
-    this.material.colorNode = options.outputNode({
+    this.material.fragmentNode = options.outputNode({
       uPrev,
       uMouse,
       uPrevMouse,

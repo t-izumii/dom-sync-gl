@@ -50,6 +50,13 @@ export class DomPlane {
   canvasRect: DOMRect;
   isVisible: boolean;
   private updateRectEveryFrame: boolean;
+  private sizeDirty = false;
+  private effectsHidden = false;
+  private lastEffectTime: number | null = null;
+  private effectTimeOffset = 0;
+  private pendingEffectsResize = false;
+  private lastAutoResize = -Infinity;
+  protected readonly resizeInterval: number;
   private observer: IntersectionObserver | null;
   private destroyed: boolean;
   private planeComposer: PlaneComposer | null = null;
@@ -99,7 +106,6 @@ export class DomPlane {
     renderer: THREE.WebGPURenderer,
     options: CreatePlaneOptions = {},
     sharedClock?: THREE.Clock,
-    canvasViewportFixed: boolean = true,
   ) {
     if (options.uniforms) {
       for (const name of RESERVED_UNIFORM_NAMES) {
@@ -119,6 +125,7 @@ export class DomPlane {
     this.texture = null;
     this.destroyed = false;
     this.updateRectEveryFrame = options.updateRectEveryFrame || false;
+    this.resizeInterval = Math.max(0, options.resizeInterval ?? 100);
     this.crossOrigin = options.crossOrigin;
     // gui は生成元が構築後に _setGui() で注入するため、実行は _setGui() まで遅らせる。
     this.setupGUIHook = options.setupGUI;
@@ -127,7 +134,7 @@ export class DomPlane {
     this.clock = sharedClock ?? new THREE.Clock();
     this.canvasRect = canvasRect;
     this.positionCalculator = el
-      ? new DomPositionCalculator(el, canvasRect, this.scroll.x, this.scroll.y, canvasViewportFixed)
+      ? new DomPositionCalculator(el, canvasRect, this.scroll.x, this.scroll.y)
       : null;
 
     this.isVisible = !el;
@@ -138,7 +145,8 @@ export class DomPlane {
 
       this.observer = new IntersectionObserver(
         (entries) => {
-          const entry = entries[0];
+          if (this.destroyed || entries.length === 0) return;
+          const entry = entries[entries.length - 1];
           this.isVisible = entry.isIntersecting;
           this.mesh.visible = this.isVisible;
 
@@ -215,17 +223,37 @@ export class DomPlane {
     // position: sticky は stick 前後で挙動が変わり、rect のキャッシュが効かないため
     // updateRectEveryFrame の指定に関わらず毎フレーム読み直す。
     if (this.updateRectEveryFrame || this.positionCalculator.isSticky) {
+      const { width, height } = this.positionCalculator.rect;
       this.positionCalculator.updatePositionInfo(scrollX, scrollY);
+      const rect = this.positionCalculator.rect;
+      this.sizeDirty ||= width !== rect.width || height !== rect.height;
     }
   }
 
-  public _tickApply(elapsedTime: number, scrollX: number, scrollY: number): void {
+  public _tickApply(elapsedTime: number, scrollX: number, scrollY: number, updatePointerMotion = true): void {
     if (!this.isVisible) return;
+    if (this.sizeDirty) {
+      this.sizeDirty = false;
+      this.updateSize();
+      this.pendingEffectsResize = true;
+    }
+    if (this.pendingEffectsResize && performance.now() - this.lastAutoResize >= this.resizeInterval) {
+      this.lastAutoResize = performance.now();
+      this.resizeEffects();
+    } else if (this.pendingEffectsResize) {
+      const rect = this.positionCalculator?.rect ?? this.canvasRect;
+      this.planeComposer?.resize(rect.width, rect.height, false);
+    }
     this.nodes.uTime.value = elapsedTime;
-    this.updateMouseMotion();
+    if (updatePointerMotion) this._tickPointer();
     if (this.positionCalculator) {
       this.setPosition(scrollX, scrollY);
     }
+  }
+
+  /** Core は位置確定 → raycast の後に、そのフレームの UV で移動量を更新する。 */
+  public _tickPointer(): void {
+    if (this.isVisible) this.updateMouseMotion();
   }
 
   /** plane の w/h 比。UV の横方向の引き伸ばしを移動量計算で戻すために使う。 */
@@ -292,7 +320,7 @@ export class DomPlane {
     }
   }
 
-  private updateSize() {
+  protected updateSize() {
     if (this.positionCalculator) {
       const rect = this.positionCalculator.rect;
       this.mesh.scale.set(rect.width, rect.height, 1);
@@ -313,11 +341,8 @@ export class DomPlane {
       scrollY,
     );
     this.mesh.position.set(x, y, 0);
-    // PointerController のレイキャストは mesh.matrixWorld を参照し、フレーム内では
-    // この apply より前（レンダーより前）に走る。レンダーループの自動更新に頼ると
-    // scene.matrixWorldAutoUpdate 無効時に古い座標で判定してしまうため、位置確定と
-    // 同時にここで更新して hover 判定を常に最新に保つ。
-    this.mesh.updateMatrixWorld();
+    // render より先に走る raycast に、親を含む最新の行列を供給する。
+    this.mesh.updateWorldMatrix(true, false);
   }
 
   public setCanvasRect(canvasRect: DOMRect) {
@@ -328,6 +353,8 @@ export class DomPlane {
   }
 
   public resize() {
+    if (this.destroyed) return;
+    this.sizeDirty = false;
     if (this.positionCalculator) {
       const scrollX = this.scroll.x;
       const scrollY = this.scroll.y;
@@ -345,6 +372,11 @@ export class DomPlane {
       this.mesh.updateMatrixWorld();
     }
 
+    this.resizeEffects();
+  }
+
+  private resizeEffects(): void {
+    this.pendingEffectsResize = false;
     if (this.planeComposer) {
       const rect = this.positionCalculator?.rect ?? this.canvasRect;
       this.planeComposer.resize(rect.width, rect.height);
@@ -360,6 +392,7 @@ export class DomPlane {
   }
 
   public reloadTexture(): void {
+    if (this.destroyed) return;
     this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture) {
       this.texture.dispose();
@@ -371,6 +404,7 @@ export class DomPlane {
   }
 
   public setTexture(texture: THREE.Texture, takeOwnership: boolean = false): void {
+    if (this.destroyed) throw new Error('[DomPlane] destroy 済みの plane に texture は設定できません。');
     this.textureLoadGeneration++;
     if (this.texture && this.ownsTexture && this.texture !== texture) {
       this.texture.dispose();
@@ -386,6 +420,11 @@ export class DomPlane {
     scrollX: number,
     scrollY: number,
   ) {
+    if (this.destroyed) return;
+    if (!this.isVisible || !this.mesh.visible) {
+      this.effectsHidden = true;
+      return;
+    }
     if (this.effects.length === 0) return;
 
     if (globalMouse) {
@@ -420,12 +459,20 @@ export class DomPlane {
     // geometry UV 系のまま維持する(colorNode は geometry UV と比較するため)。
     const uv = this.nodes.uMouseUV.value;
     this._effectMouseUV.set(uv.x, 1 - uv.y);
+    const resumed = this.effectsHidden;
+    if (resumed && this.lastEffectTime !== null) {
+      this.effectTimeOffset += time - this.lastEffectTime;
+    }
+    this.effectsHidden = false;
+    this.lastEffectTime = time;
+    const effectTime = time - this.effectTimeOffset;
     const effects = this.effects;
     for (let i = 0, n = effects.length; i < n; i++) {
       const effect = effects[i];
       if (!effect.enabled) continue;
-      effect._setFrameState(time, this._effectMouseUV);
-      effect.update(time, this._effectMouseUV);
+      if (resumed) effect._resume(effectTime, this._effectMouseUV);
+      effect._setFrameState(effectTime, this._effectMouseUV);
+      effect.update(effectTime, this._effectMouseUV);
       // update() の後。サブクラスが update() で更新する uniform を
       // 蓄積の計算に反映させるため。
       effect._renderFeedback();
@@ -461,22 +508,26 @@ export class DomPlane {
   }
 
   public addEffect<T extends BaseEffect>(effect: T): T {
+    if (this.destroyed) throw new Error('[DomPlane] destroy 済みの plane に effect は追加できません。');
+    effect._assertCanRegister();
     const composer = this.enableEffects();
-    effect._attachRenderer(this.renderer);
+    const rect = this.positionCalculator?.rect ?? this.canvasRect;
+    effect._setSize(rect.width, rect.height);
+    effect._attachRenderer(this.renderer, true);
     effect._setRenderer?.(this.renderer);
     effect._register(composer);
-    const rect = this.positionCalculator?.rect ?? this.canvasRect;
     effect._setSize(rect.width, rect.height);
     effect.resize?.(rect.width, rect.height);
     if (this.gui && effect.setupGUI) {
       const folder = effect.setupGUI(this.gui);
       if (folder) effect._attachGUI(folder);
     }
-    this.effects.push(effect);
+    this.effects = [...this.effects, effect];
     return effect;
   }
 
   public addFeedback(options: AddFeedbackOptions): FeedbackBuffer {
+    if (this.destroyed) throw new Error('[DomPlane] destroy 済みの plane に feedback は追加できません。');
     if (RESERVED_UNIFORM_NAMES.includes(options.outputUniform)) {
       throw new Error(
         `[DomPlane] addFeedback の outputUniform "${options.outputUniform}" は` +
@@ -540,7 +591,7 @@ export class DomPlane {
   public removeEffect(effect: BaseEffect): boolean {
     const idx = this.effects.indexOf(effect);
     if (idx < 0) return false;
-    this.effects.splice(idx, 1);
+    this.effects = this.effects.filter(candidate => candidate !== effect);
     const pass = effect.getPass();
     if (pass && this.planeComposer) {
       this.planeComposer.removeEffect(pass);
@@ -575,6 +626,8 @@ export class DomPlane {
   public destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.isVisible = false;
+    this.mesh.visible = false;
     const onDestroy = this.onDestroy;
     this.onDestroy = null;
     onDestroy?.();

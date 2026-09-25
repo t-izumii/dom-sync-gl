@@ -77,6 +77,41 @@ describe('PointerController（ポインタ統合: マウス/タッチ/ペン）'
     harness.pc.destroy();
   });
 
+  it('静止中でも canvas が移動・画面外へ移動すると UV と active を再計算する', () => {
+    const canvas = makeCanvas();
+    let top = 0;
+    canvas.getBoundingClientRect = () => new DOMRect(0, top, 100, 100);
+    const pc = new PointerController({ canvas, camera: {} as Camera, planeMeshes: [], planeByMesh: new Map(), planes: [] });
+    pc.setEnabled(true);
+    dispatchPointer('pointermove', { clientX: 50, clientY: 50 });
+    top = -25; pc.invalidateRect(); pc.update();
+    expect(pc.getMouse().y).toBeCloseTo(0.25);
+    top = -100; pc.invalidateRect(); pc.update();
+    expect(pc.isPointerActive()).toBe(false);
+    top = 0; pc.invalidateRect(); pc.update();
+    expect(pc.isPointerActive()).toBe(true);
+    window.dispatchEvent(new Event('blur'));
+    pc.invalidateRect(); pc.update();
+    expect(pc.isPointerActive()).toBe(false);
+    pc.destroy();
+  });
+
+  it('離したタッチは rect 再計測時に復活せず、サイズ0のcanvasでNaNにならない', () => {
+    const canvas = makeCanvas();
+    const pc = new PointerController({ canvas, camera: {} as Camera, planeMeshes: [], planeByMesh: new Map(), planes: [] });
+    pc.setEnabled(true);
+    dispatchPointer('pointerdown', { pointerType: 'touch', clientX: 50, clientY: 50 });
+    dispatchPointer('pointerup', { pointerType: 'touch', clientX: 50, clientY: 50 });
+    pc.invalidateRect(); pc.update();
+    expect(pc.isPointerActive()).toBe(false);
+    canvas.getBoundingClientRect = () => new DOMRect(0, 0, 0, 0);
+    pc.invalidateRect();
+    dispatchPointer('pointermove', { clientX: 0, clientY: 0 });
+    expect(pc.isPointerActive()).toBe(false);
+    expect(Number.isFinite(pc.getMouse().x)).toBe(true);
+    pc.destroy();
+  });
+
   it('マウス移動: canvas 内なら UV を更新し active=true / pointerType=mouse（従来挙動）', () => {
     const { pc, fullscreenPlane } = harness;
     dispatchPointer('pointermove', { pointerType: 'mouse', clientX: 50, clientY: 50 });
@@ -213,6 +248,7 @@ function makePlaneMock(visible: boolean): {
     isVisible: visible,
     element: document.createElement('div'),
     setHoverInfo: vi.fn(),
+    getMesh: () => mesh,
   };
   return { plane, mesh };
 }
@@ -240,7 +276,7 @@ function makeRaycastHarness(): RaycastHarness {
 
   const pc = new PointerController({
     canvas: makeCanvas(),
-    camera: { instance: {} } as unknown as Camera,
+    camera: { instance: new THREE.PerspectiveCamera() } as unknown as Camera,
     planeMeshes: [a.mesh, b.mesh],
     planeByMesh,
     planes: [a.plane, b.plane] as unknown as DomPlane[],

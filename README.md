@@ -203,11 +203,9 @@ ready.then(() => app.createTextPlane(".headline"));
 
 ```ts
 import { BaseEffect, type BaseEffectConfig, TSL } from "dom-sync-gl";
-const { uniform, vec2, vec4, fract, sin, dot } = TSL;
+const { vec2, vec4, fract, sin, dot } = TSL;
 
 class GrainEffect extends BaseEffect {
-  private uTime = uniform(0);
-
   protected getConfig(): BaseEffectConfig {
     return {
       outputNode: ({ inputTexture, uv }) => {
@@ -228,6 +226,9 @@ app.addEffect(new GrainEffect());
 ```
 
 `plane.addEffect(effect)` で plane 単位のチェーンにもできる。
+plane が可視範囲を外れた間は effect の更新・feedback 描画を停止し、復帰時は停止時間を
+除いた時刻で再開する。独自のマウス履歴を持つ effect は `resume(time, mouse)` でリセットできる。
+`feedback.size: 'screen'` は全画面 effect では canvas、plane effect では plane の寸法×DPR を使う。
 `setupGUI(gui)` を実装しておくと、`gui` オプションに lil-gui インスタンスを渡したときだけ
 コントロールが出る。
 
@@ -271,6 +272,10 @@ v0.3 の GLSL API（`fragmentShader` / `tDiffuse` / `IUniform`）からの移行
 - `getScene()` / `getCamera()` / `getRenderer()` / `getMouse()` / `getScrollSync()` — 内部インスタンスへのアクセス
 - `destroy()` — リスナー・テクスチャ・RT をすべて解放
 
+`update()` と `render()` を個別に呼ぶ場合、`BaseEffect.update()` と feedback の更新は
+renderer の初期化完了後の `render()` 内で実行される。`update()` で確定した時刻・マウス座標を
+使うため、描画直前に入力が変わっても同じフレームの値でエフェクトを処理する。
+
 ### `ScrollSyncOptions`
 
 | option | type | default | 説明 |
@@ -301,6 +306,7 @@ v0.3 の GLSL API（`fragmentShader` / `tDiffuse` / `IUniform`）からの移行
 | `positionNode` | `(ctx: PlaneNodeContext) => Node` | 既定の頂点処理 | 頂点変位用の position ノードを返すファクトリ |
 | `uniforms` | `Record<string, UniformNode>` | `{}` | `uniform()` / `texture()` で生成した自前のノード |
 | `updateRectEveryFrame` | `boolean` | `false` | 毎フレ bbox を取り直す |
+| `resizeInterval` | `number` | `100` | 自動サイズ追従中のバッファ更新・テキスト再描画の最小間隔(ms)。mesh は毎フレ追従。`0` で間引きを無効化 |
 | `segments` | `number` | `1` | PlaneGeometry セグメント数 |
 | `onInView` / `onOutView` | `(plane) => void` | — | IntersectionObserver コールバック |
 | `inViewRootMargin` | `string` | `'100%'` | IO の rootMargin |

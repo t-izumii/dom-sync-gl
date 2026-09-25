@@ -39,12 +39,6 @@ export class ScrollSync {
   private _lastRawY: number = NaN;
 
   private _logicalRect: DOMRect = new DOMRect();
-  // canvas（logicalRect が表す領域）が viewport に固定されているか。
-  // translate モードは container を毎tick translate で viewport 追従させるので常に true。
-  // dom モードは container の CSS position で決まり、fixed/sticky なら true（viewport 固定・
-  // logicalRect は viewport 相対のまま）、通常フローなら false（page 固定・logicalRect は
-  // page 座標で保持）。DomPositionCalculator の座標変換分岐に渡す。
-  private _canvasViewportFixed: boolean = true;
 
   private _originalStyles: {
     position: string;
@@ -133,30 +127,7 @@ export class ScrollSync {
       const rect = this.container.getBoundingClientRect();
       this._viewportWidth = rect.width;
       this._viewportHeight = rect.height;
-
-      // container が fixed/sticky なら canvas は viewport 固定なので、logicalRect は
-      // viewport 相対のまま持つ（DomPositionCalculator が現在 scroll を加算して page 化する）。
-      // 通常フロー container なら canvas は page 固定で画面上を流れるため、計測時点の scroll を
-      // 足して logicalRect を page 座標で保持する。こうしないと、位置式が現在 scroll を加算する
-      // 前提と食い違い、計測時からのスクロール差分ぶん plane がドリフトする。
-      const position =
-        typeof window.getComputedStyle === 'function'
-          ? window.getComputedStyle(this.container).position
-          : '';
-      this._canvasViewportFixed = position === 'fixed' || position === 'sticky';
-
-      if (this._canvasViewportFixed) {
-        this._logicalRect = new DOMRect(rect.left, rect.top, rect.width, rect.height);
-      } else {
-        const scrollX = window.scrollX;
-        const scrollY = ScrollSync.computeEffectiveScrollY();
-        this._logicalRect = new DOMRect(
-          rect.left + scrollX,
-          rect.top + scrollY,
-          rect.width,
-          rect.height,
-        );
-      }
+      this._logicalRect = new DOMRect(rect.left, rect.top, rect.width, rect.height);
       return;
     }
 
@@ -197,8 +168,14 @@ export class ScrollSync {
   }
 
   private applyTransform(scrollX: number, scrollY: number): void {
-    // dom モードでは container の CSS 配置を尊重するため transform を当てない。
-    if (this._attach === 'dom') return;
+    // CSS 配置を保ちつつ、plane/object と共有する viewport 座標を更新する。
+    // scroll が同じでも sticky や CSS transform で動くので毎フレーム計測する。
+    if (this._attach === 'dom') {
+      const rect = this.container.getBoundingClientRect();
+      this._logicalRect.x = rect.left;
+      this._logicalRect.y = rect.top;
+      return;
+    }
 
     // scrollX/scrollY が前回と同じなら、offsetHeight 読み取り（強制レイアウト）
     // を含む以降の処理を丸ごとスキップする。updateSize() 呼び出し時はレイアウトが
@@ -270,12 +247,6 @@ export class ScrollSync {
 
   get attach(): 'translate' | 'dom' {
     return this._attach;
-  }
-
-  // canvas が viewport 固定か（= logicalRect が viewport 相対か）。
-  // false のとき logicalRect は page 座標で、位置計算側は scroll を加算してはならない。
-  get canvasViewportFixed(): boolean {
-    return this._canvasViewportFixed;
   }
 
   get strength(): number {

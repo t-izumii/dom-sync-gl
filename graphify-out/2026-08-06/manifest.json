@@ -150,8 +150,8 @@
     "semantic_hash": ""
   },
   "src/TextRasterizer.ts": {
-    "mtime": 1785938080.562556,
-    "ast_hash": "5efdda3cca934e357f38ad4c294ba4b7",
+    "mtime": 1785976054.1849077,
+    "ast_hash": "af7495bdc2e5379e7d4184c6bab3956f",
     "semantic_hash": ""
   },
   "src/__tests__/BaseEffect.test.ts": {
@@ -230,8 +230,8 @@
     "semantic_hash": ""
   },
   "src/__tests__/TextRasterizer.test.ts": {
-    "mtime": 1785938117.3939934,
-    "ast_hash": "93100296026c5a68293544c1c4463dda",
+    "mtime": 1785976081.135062,
+    "ast_hash": "5b35d1275d591ba5e4f841658f0575ff",
     "semantic_hash": ""
   },
   "src/__tests__/scroll-wiring.test.ts": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "docs/api/dom-text-plane.md": {
-    "mtime": 1785938154.7942295,
-    "ast_hash": "32031296f885a5218114077ec6a63153",
+    "mtime": 1785976215.0034308,
+    "ast_hash": "33b3f2d1ae8b01e922c5f6230b0d6695",
     "semantic_hash": ""
   },
   "docs/api/load-font.md": {
@@ -550,8 +550,8 @@
     "semantic_hash": ""
   },
   "docs/guide/text-planes.md": {
-    "mtime": 1785938171.1403081,
-    "ast_hash": "696e6737ada145bd298f8434240af09a",
+    "mtime": 1785976229.6795425,
+    "ast_hash": "413a4ac4c7ebce5276bbfb8b2017bc47",
     "semantic_hash": ""
   },
   "docs/index.md": {
@@ -560,8 +560,8 @@
     "semantic_hash": "6d102028be651129c2df7b14c3e540b6"
   },
   "example/README.md": {
-    "mtime": 1785940445.6422746,
-    "ast_hash": "a5f5b1f046af5bb94e2bf3a59dce16ec",
+    "mtime": 1785976178.181914,
+    "ast_hash": "a1f265b99b3ee31f14a18569bec7c7c2",
     "semantic_hash": ""
   },
   "example/dom-test.html": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "example/text-padding.html": {
-    "mtime": 1785940406.9679952,
-    "ast_hash": "0e4c6c2dc3ba3b9796abcbb3c54fb8f6",
+    "mtime": 1785976168.2967498,
+    "ast_hash": "bb2fe5362f80cf3713a7b6fb0d78305d",
     "semantic_hash": ""
   }
 }

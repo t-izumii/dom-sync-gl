@@ -5,8 +5,8 @@
     "semantic_hash": "db555d56812a91be54d19242cc9fd927"
   },
   ".claude/settings.local.json": {
-    "mtime": 1785761807.2365935,
-    "ast_hash": "a5466345ca1f8db06168e847f3dc8b96",
+    "mtime": 1786025643.5259895,
+    "ast_hash": "4b19c0b9bafd90c8b16a50b95e5752e6",
     "semantic_hash": ""
   },
   "docs/.vitepress/components/DemoEffect.vue": {
@@ -40,8 +40,8 @@
     "semantic_hash": "a38dc57625a133a57e6154e37625346b"
   },
   "example/src/effects-lib.ts": {
-    "mtime": 1785493028.008826,
-    "ast_hash": "63aad6453bb1c49e3da8aa06cff5d1e0",
+    "mtime": 1786027019.275342,
+    "ast_hash": "04dd8960fc7524970572661f1fa15d75",
     "semantic_hash": ""
   },
   "example/src/effects.ts": {
@@ -280,13 +280,13 @@
     "semantic_hash": ""
   },
   "src/effectsLib/mouse/index.ts": {
-    "mtime": 1785491141.6450698,
-    "ast_hash": "f7bf9518c4e296470c99c746b7f3fb21",
-    "semantic_hash": "f7bf9518c4e296470c99c746b7f3fb21"
+    "mtime": 1786026957.8805428,
+    "ast_hash": "ef5e1da8e6edd783c09fdb711eb5f86f",
+    "semantic_hash": ""
   },
   "src/effectsLib/mouse/mouseEffect.ts": {
-    "mtime": 1785491141.645181,
-    "ast_hash": "9399dfbe8776a3ba960e129beaa1541a",
+    "mtime": 1786027691.1814673,
+    "ast_hash": "6c2a41450b47461738d2c3193c9f6b35",
     "semantic_hash": ""
   },
   "src/effectsLib/mouseFlow/index.ts": {
@@ -570,9 +570,9 @@
     "semantic_hash": "de54c654a3aebeead11b09b2239f0aaa"
   },
   "example/effects-lib.html": {
-    "mtime": 1785245191.917988,
-    "ast_hash": "7a17d8befe492a015cb7cf6c21cfb99b",
-    "semantic_hash": "7a17d8befe492a015cb7cf6c21cfb99b"
+    "mtime": 1786026962.3433888,
+    "ast_hash": "a5962d41d3a6e673539fb62ec83ba4b8",
+    "semantic_hash": ""
   },
   "example/index.html": {
     "mtime": 1785204597.809909,
@@ -607,6 +607,16 @@
   "example/text-padding.html": {
     "mtime": 1785976168.2967498,
     "ast_hash": "bb2fe5362f80cf3713a7b6fb0d78305d",
+    "semantic_hash": ""
+  },
+  "src/effectsLib/mouse/fluidCompute.ts": {
+    "mtime": 1786027471.4379468,
+    "ast_hash": "6add9c7bb8c6f5840344aee983e2545b",
+    "semantic_hash": ""
+  },
+  "src/effectsLib/mouse/fluidKernels.ts": {
+    "mtime": 1786027400.6165402,
+    "ast_hash": "558873cdb08c0579df1982884955c4ed",
     "semantic_hash": ""
   }
 }

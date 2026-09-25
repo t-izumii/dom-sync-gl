@@ -35,16 +35,18 @@ export class EffectManager {
     return this.effects.length > 0;
   }
   addEffect<T extends BaseEffect>(effect: T, width: number, height: number): T {
+    effect._assertCanRegister();
     if (this.postEffect && this.postEffect !== this.internalComposer) {
       const msg =
         '[DomSyncGL] addEffect() を呼ぶ前に setPostEffect() でカスタム postEffect が設定されています。' +
-        '内部 EffectComposer で上書きします。カスタム postEffect は手動で dispose してください。';
+        '内部 EffectComposer で上書きします。所有中のカスタム postEffect は破棄します。';
 
       // DEV: 誤用に開発中すぐ気付けるよう即 throw（fail-fast）。
       // production: アプリを落とさず warn ログのみに留め、後続のフォールバック処理
       // （内部 EffectComposer で上書き）を続行する。
       if (import.meta.env?.DEV) throw new Error(msg);
       console.warn(msg);
+      if (this.postEffectOwned) this.postEffect.dispose();
     }
     if (!this.internalComposer) {
       this.internalComposer = new EffectComposer(
@@ -69,7 +71,8 @@ export class EffectManager {
       const folder = effect.setupGUI(this.gui);
       if (folder) effect._attachGUI(folder);
     }
-    this.effects.push(effect);
+    // update フック中に登録・解除されても走査中の配列を変更しない。
+    this.effects = [...this.effects, effect];
     return effect;
   }
 
@@ -122,7 +125,7 @@ export class EffectManager {
   removeEffect(effect: BaseEffect): boolean {
     const idx = this.effects.indexOf(effect);
     if (idx < 0) return false;
-    this.effects.splice(idx, 1);
+    this.effects = this.effects.filter(candidate => candidate !== effect);
     const pass = effect.getPass();
     if (pass && this.internalComposer) {
       this.internalComposer.removeEffect(pass);
@@ -142,14 +145,15 @@ export class EffectManager {
   }
 
   clearEffects(): void {
-    for (const effect of this.effects) {
-      effect._dispose();
-    }
+    const effects = this.effects;
+    const postEffect = this.postEffect;
+    const owned = this.postEffectOwned;
     this.effects = [];
-    if (this.postEffectOwned) this.postEffect?.dispose();
     this.postEffect = null;
     this.postEffectOwned = true;
     this.internalComposer = null;
+    for (const effect of effects) effect._dispose();
+    if (owned) postEffect?.dispose();
   }
 
   // effect.update に渡すマウスの変換バッファ(毎フレームの alloc を避ける)。
@@ -201,13 +205,6 @@ export class EffectManager {
   }
 
   dispose(): void {
-    for (const effect of this.effects) {
-      effect._dispose();
-    }
-    this.effects = [];
-    if (this.postEffectOwned) this.postEffect?.dispose();
-    this.postEffect = null;
-    this.postEffectOwned = true;
-    this.internalComposer = null;
+    this.clearEffects();
   }
 }

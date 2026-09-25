@@ -441,6 +441,21 @@ describe('BaseEffect uMove（マウス移動強度ゲート）', () => {
 });
 
 describe('BaseEffect feedback バッファ', () => {
+  it('plane owner は renderer 全体でなく plane の寸法と DPR で確保する', () => {
+    const mock = makeFeedbackRenderer();
+    mock.getPixelRatio = () => 2;
+    mock.drawingBuffer.set(3840, 2160);
+    const effect = new FeedbackEffect();
+    effect._setSize(200, 100);
+    effect._attachRenderer(asRenderer(mock), true);
+    const composer = new EffectComposer(asRenderer(mock), 200, 100);
+    effect._register(composer);
+    const image = effect.fbTexture.value.image as { width: number; height: number };
+    expect(image.width).toBe(400);
+    expect(image.height).toBe(200);
+    expect(mock.getDrawingBufferSize).not.toHaveBeenCalled();
+    effect._dispose(); composer.dispose();
+  });
   it('feedback 未宣言なら RT を確保せず、_renderFeedback() は no-op', async () => {
     const mock = makeFeedbackRenderer();
     const composer = new EffectComposer(asRenderer(mock), 100, 100);

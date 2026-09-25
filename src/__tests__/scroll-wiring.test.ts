@@ -96,6 +96,71 @@ describe('Core → DomPlane / Dom3DObject のスクロール配線', () => {
     vi.restoreAllMocks();
   });
 
+  it('移動したplaneを同じフレームに実raycastでhover判定する', () => {
+    const app = new DomSyncGL(container, { autoRaf: false });
+    vi.spyOn(app.canvas, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 800, 600));
+    const el = document.createElement('div');
+    const rect = vi.spyOn(el, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 100));
+    const plane = app.createPlane(el, { updateRectEveryFrame: true });
+    plane.isVisible = true; plane.mesh.visible = true;
+    const event = new Event('pointermove');
+    Object.assign(event, { pointerType: 'mouse', pointerId: 1, clientX: 400, clientY: 300 });
+    window.dispatchEvent(event);
+    app.update();
+    expect(plane.isHovered()).toBe(false);
+    rect.mockReturnValue(new DOMRect(350, 250, 100, 100));
+    app.update();
+    expect(plane.isHovered()).toBe(true);
+    expect(plane.getMouseUV().x).toBeCloseTo(0.5);
+    expect(plane.getMouseUV().y).toBeCloseTo(0.5);
+    rect.mockReturnValue(new DOMRect(0, 0, 100, 100));
+    app.update();
+    expect(plane.isHovered()).toBe(false);
+    app.destroy();
+  });
+
+  it.each([
+    { scrollSync: false as const, fixed: false },
+    { scrollSync: { attach: 'dom' as const }, fixed: false },
+    { scrollSync: false as const, fixed: true },
+    { scrollSync: { attach: 'dom' as const }, fixed: true },
+  ])('canvas のスクロールに plane/3D object が同期する: %j', ({ scrollSync, fixed }) => {
+    let scrollX = 0;
+    let scrollY = 0;
+    vi.spyOn(window, 'scrollX', 'get').mockImplementation(() => scrollX);
+    vi.spyOn(window, 'scrollY', 'get').mockImplementation(() => scrollY);
+    vi.spyOn(document.documentElement, 'getBoundingClientRect')
+      .mockImplementation(() => new DOMRect(-scrollX, -scrollY, 1600, 2000));
+    vi.mocked(container.getBoundingClientRect).mockImplementation(() =>
+      new DOMRect(100 - (fixed ? 0 : scrollX), 200 - (fixed ? 0 : scrollY), 800, 600));
+    const el = document.createElement('div');
+    container.appendChild(el);
+    vi.spyOn(el, 'getBoundingClientRect').mockImplementation(() =>
+      new DOMRect(150 - scrollX, 250 - scrollY, 100, 100));
+    const app = new DomSyncGL(container, { autoRaf: false, scrollSync });
+    // updateRectEveryFrame が false でも、共有 canvasRect の更新で追従する。
+    const plane = app.createPlane(el);
+    plane.isVisible = true;
+    const obj = app.create3DObject(el, { modelPath: 'dummy.glb' });
+    obj.model = new THREE.Group(); // GLTF 取得はスタブ。位置計算には実際の Group を使う。
+    obj.isVisible = true;
+    obj.resize();
+    const planeBefore = plane.mesh.position.clone();
+    const objectBefore = obj.model.position.clone();
+
+    scrollX = 30;
+    scrollY = 100;
+    app.update();
+    const dx = fixed ? -30 : 0;
+    const dy = fixed ? 100 : 0;
+    expect(plane.mesh.position.x).toBe(planeBefore.x + dx);
+    expect(plane.mesh.position.y).toBe(planeBefore.y + dy);
+    expect(obj.model.position.x).toBe(objectBefore.x + dx);
+    expect(obj.model.position.y).toBe(objectBefore.y + dy);
+    if (scrollSync) expect(app.getScrollSync()!.logicalRect).toBe(plane.canvasRect);
+    app.destroy();
+  });
+
   it('createPlane が生成した plane は Core の getScroll() と同一の live 参照を保持する', () => {
     // Given: 初期化済みの DomSyncGL と DOM 要素
     const app = new DomSyncGL(container);

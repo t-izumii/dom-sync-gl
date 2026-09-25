@@ -76,8 +76,8 @@ export class TrailTexture {
       this.force = this.force * this.smoothing + force * (1 - this.smoothing);
 
       if (this.interpolate > 0) {
-        const spacing = (this.radius * 0.5) / this.interpolate;
-        const lines = Math.ceil(dd / (spacing * spacing));
+        const spacing = Math.max(1e-6, (this.radius * 0.5) / this.interpolate);
+        const lines = Math.min(512, Math.ceil(Math.sqrt(dd) / spacing));
         if (lines > 1) {
           for (let i = 1; i < lines; i++) {
             this.trail.push({

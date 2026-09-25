@@ -8,7 +8,6 @@ const { uniform } = TSL;
 // uniform ノードはフィールドとして生成時に作り、getConfig() の outputNode と
 // uniforms（setUniform の参照先）の両方から同じノードを共有する。
 export class FilmEffect extends BaseEffect {
-  private readonly uTime = uniform(0);
   private readonly uResolution = uniform(new THREE.Vector2(1, 1));
   private readonly uStrength = uniform(0);
 

@@ -27,6 +27,8 @@ export class PointerController {
   private canvasRect: DOMRect | null = null;
   private enabled = false;
   private pointerAbort: AbortController | null = null;
+  private readonly clientPosition = new THREE.Vector2();
+  private hasClientPosition = false;
 
   constructor(opts: {
     canvas: HTMLCanvasElement;
@@ -81,8 +83,11 @@ export class PointerController {
   }
 
   private applyPosition(clientX: number, clientY: number): boolean {
+    this.clientPosition.set(clientX, clientY);
+    this.hasClientPosition = true;
     const rect = this.getCanvasRect();
     const isInside =
+      rect.width > 0 && rect.height > 0 &&
       clientX >= rect.left &&
       clientX <= rect.right &&
       clientY >= rect.top &&
@@ -98,6 +103,7 @@ export class PointerController {
     this.enabled = enabled;
     if (enabled) {
       if (this.pointerAbort) return;
+      this.invalidateRect();
       this.pointerAbort = new AbortController();
       const opts: AddEventListenerOptions = {
         signal: this.pointerAbort.signal,
@@ -107,12 +113,15 @@ export class PointerController {
       window.addEventListener('pointerdown', this.onPointerDown, opts);
       window.addEventListener('pointerup', this.onPointerUp, opts);
       window.addEventListener('pointercancel', this.onPointerCancel, opts);
+      window.addEventListener('blur', this.onWindowLeave, opts);
+      window.addEventListener('pointerout', this.onPointerOut, opts);
     } else {
       this.pointerAbort?.abort();
       this.pointerAbort = null;
       this.active = false;
       this.activePointerId = null;
       this.pointerType = 'none';
+      this.hasClientPosition = false;
       if (this.hoveredPlane) {
         this.hoveredPlane.setHoverInfo(false, null);
         this.hoveredPlane = null;
@@ -172,19 +181,37 @@ export class PointerController {
       this.activePointerId = null;
       this.active = false;
       this.pointerType = 'none';
+      this.hasClientPosition = false;
     }
+  }
+
+  private onWindowLeave = (): void => {
+    this.active = false;
+    this.activePointerId = null;
+    this.pointerType = 'none';
+    this.hasClientPosition = false;
+  };
+
+  private onPointerOut = (event: PointerEvent): void => {
+    if (event.relatedTarget === null && event.pointerType === 'mouse') this.onWindowLeave();
+  };
+
+  /** DOM が動いた場合は、静止中のポインタも最後の画面座標から再投影する。 */
+  updatePosition(): void {
+    if (!this.enabled || this.canvasRect !== null || !this.hasClientPosition) return;
+    if (this.pointerType !== 'mouse' && this.activePointerId === null) return;
+    this.active = this.applyPosition(this.clientPosition.x, this.clientPosition.y);
   }
 
   update(): void {
     if (!this.enabled) return;
+    this.updatePosition();
 
     this.updateFullscreenHover();
 
-    if (this.planeMeshes.length === 0) return;
-
     // hover 中の plane が非表示になると raycast 対象から外れ、通常経路では
     // 二度と hover 解除されないため、先にここで解除する。
-    if (this.hoveredPlane && !this.hoveredPlane.isVisible) {
+    if (this.hoveredPlane && (!this.hoveredPlane.isVisible || !this.planeByMesh.has(this.hoveredPlane.getMesh()))) {
       this.hoveredPlane.setHoverInfo(false, null);
       this.hoveredPlane = null;
     }
@@ -205,6 +232,12 @@ export class PointerController {
     }
 
     this.ndcBuf.set(this.mouse.x * 2 - 1, this.mouse.y * 2 - 1);
+    if (targets.length === 0) {
+      this.hoveredPlane?.setHoverInfo(false, null);
+      this.hoveredPlane = null;
+      return;
+    }
+    this.camera.instance.updateWorldMatrix(true, false);
     this.raycaster.setFromCamera(this.ndcBuf, this.camera.instance);
     const intersects = this.raycaster.intersectObjects(targets, false);
 
@@ -254,5 +287,7 @@ export class PointerController {
     this.pointerType = 'none';
     this.hoveredPlane = null;
     this.canvasRect = null;
+    this.hasClientPosition = false;
+    this.enabled = false;
   }
 }

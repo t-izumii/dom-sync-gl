@@ -301,13 +301,13 @@ export function rasterizeText(
   const ls = style.letterSpacing;
   // ctx.letterSpacing 対応環境では measureText がスペーシング込みを返すため、
   // 折り返し計測でも手動加算しない。非対応環境では文字数ぶんを加算する。
-  const supportsLetterSpacing = ls !== 0 && "letterSpacing" in ctx;
+  const supportsLetterSpacing = "letterSpacing" in ctx;
   if (supportsLetterSpacing) {
     (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${ls}px`;
   }
   const measure = (s: string): number => {
     const w = ctx.measureText(s).width;
-    return supportsLetterSpacing || ls === 0 ? w : w + ls * s.length;
+    return supportsLetterSpacing || ls === 0 ? w : w + ls * Array.from(s).length;
   };
 
   const contentWidth = cssWidth - style.paddingLeft - style.paddingRight;
@@ -344,11 +344,15 @@ export function rasterizeText(
 
   const drawLetterSpaced = (s: string, lineY: number): void => {
     // 非対応環境のフォールバック: 1 文字ずつ描画し advance を手動加算する。
-    let cursor = x;
+    const align = ctx.textAlign;
+    const width = measure(s);
+    let cursor = x - (align === "center" ? width / 2 : align === "right" ? width : 0);
+    ctx.textAlign = "left";
     for (const ch of s) {
       ctx.fillText(ch, cursor, lineY);
       cursor += ctx.measureText(ch).width + ls;
     }
+    ctx.textAlign = align;
   };
 
   // 縦揃えの基準はコンテンツ領域（要素高さから上下 padding を除いた範囲）。

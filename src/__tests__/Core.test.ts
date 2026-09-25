@@ -11,6 +11,8 @@ vi.mock('three/webgpu', async () => {
     // isWebGPUBackend() の判定対象。init() 後にのみ参照される想定。
     backend = { isWebGPUBackend: true };
     private dpr = 1;
+    private initialized = false;
+    private ready: Promise<void> | null = null;
     // render() の保存・復元契約を検証できるよう、バインド中の RT を保持する。
     private currentTarget: unknown = null;
     constructor(opts: { canvas?: HTMLCanvasElement }) {
@@ -18,7 +20,7 @@ vi.mock('three/webgpu', async () => {
     }
     // 実物と同じく非同期初期化。Core の ready / render ガードの検証に使う。
     init(): Promise<void> {
-      return Promise.resolve();
+      return this.ready ??= Promise.resolve().then(() => { this.initialized = true; });
     }
     setSize() {}
     setPixelRatio(v: number) {
@@ -33,7 +35,17 @@ vi.mock('three/webgpu', async () => {
     getRenderTarget() {
       return this.currentTarget;
     }
-    render() {}
+    getSize(v: { set(x: number, y: number): unknown }) { return v.set(800, 600); }
+    getDrawingBufferSize(v: { set(x: number, y: number): unknown }) { return v.set(800, 600); }
+    getClearColor(c: unknown) { return c; }
+    getClearAlpha() { return 0; }
+    setClearColor() {}
+    clear() {
+      if (!this.initialized) throw new Error('GPU access before init');
+    }
+    render() {
+      if (!this.initialized) throw new Error('GPU access before init');
+    }
     dispose() {}
   }
   return {
@@ -55,6 +67,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type * as THREE from 'three/webgpu';
 import type GUI from 'lil-gui';
 import { BaseEffect, type BaseEffectConfig } from '../effects/BaseEffect';
+import { vec4 } from 'three/tsl';
+import { RipplePostEffect } from '../effectsLib/ripple/ripplePostEffect';
+import { SplashCursorEffect } from '../effectsLib/splashCursor/splashCursorEffect';
 
 class TestEffect extends BaseEffect {
   protected getConfig(): BaseEffectConfig {
@@ -632,6 +647,63 @@ describe('DomSyncGL', () => {
   });
 
   describe('update() / render() 分割（CR-05）', () => {
+    it.each(['screen', 'plane'] as const)('%s effect の GPU 処理と feedback は初期化後の render でだけ実行する', async (owner) => {
+      const app = new DomSyncGL(container, { autoRaf: false });
+      class GpuEffect extends BaseEffect {
+        protected getConfig(): BaseEffectConfig {
+          return { outputNode: ctx => ctx.inputTexture, feedback: { node: () => vec4(0) } };
+        }
+        update() { this.glRenderer!.clear(); }
+      }
+      const effect = new GpuEffect();
+      if (owner === 'screen') app.addEffect(effect);
+      else app.createPlane(null).addEffect(effect);
+      const update = vi.spyOn(effect, 'update');
+      const feedback = vi.spyOn(effect, '_renderFeedback');
+      const renderer = app.getRenderer();
+      const draw = vi.spyOn(renderer, 'render');
+      const clear = vi.spyOn(renderer, 'clear');
+
+      expect(() => app.tick()).not.toThrow();
+      expect(update).not.toHaveBeenCalled();
+      await app.ready;
+      app.getMouse().set(0.2, 0.3);
+      app.update();
+      app.getMouse().set(0.8, 0.9); // 描画前の入力イベントで更新済みフレームを変えない
+      expect(update).not.toHaveBeenCalled();
+      expect(feedback).not.toHaveBeenCalled();
+      expect(draw).not.toHaveBeenCalled();
+      expect(clear).not.toHaveBeenCalled();
+
+      app.render();
+      expect(update).toHaveBeenCalledTimes(1);
+      const effectMouse = update.mock.calls[0] as unknown as [number, THREE.Vector2];
+      expect(effectMouse[1].x).toBeCloseTo(0.2);
+      expect(effectMouse[1].y).toBeCloseTo(0.7);
+      expect(feedback).toHaveBeenCalledTimes(1);
+      expect(update.mock.invocationCallOrder[0]).toBeLessThan(feedback.mock.invocationCallOrder[0]);
+      expect(draw).toHaveBeenCalled();
+      effect.enabled = false;
+      app.tick();
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(feedback).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
+    it.each([RipplePostEffect, SplashCursorEffect])('%s を ready 前に追加しても GPU にアクセスしない', async (Effect) => {
+      const app = new DomSyncGL(container, { autoRaf: false });
+      app.addEffect(new Effect());
+      const draw = vi.spyOn(app.renderer, 'render');
+      const clear = vi.spyOn(app.renderer, 'clear');
+      expect(() => { app.tick(); app.tick(); }).not.toThrow();
+      expect(draw).not.toHaveBeenCalled();
+      expect(clear).not.toHaveBeenCalled();
+      await app.ready;
+      expect(() => app.tick()).not.toThrow();
+      expect(draw).toHaveBeenCalled();
+      app.destroy();
+    });
+
     it('update() は GPU 描画パス（render / setRenderTarget）を一切呼ばない', async () => {
       const app = new DomSyncGL(container);
       // ready ガードで no-op になっているだけではないことを保証するため init 完了後に検証
@@ -737,6 +809,30 @@ describe('DomSyncGL', () => {
   });
 
   describe('ready / 非同期初期化（WebGPU 移行）', () => {
+    it('effect.update 中に app を破棄したら、破棄済み renderer で描画しない', async () => {
+      const app = new DomSyncGL(container, { autoRaf: false });
+      const effect = app.addEffect(new TestEffect());
+      await app.ready;
+      effect.update = () => app.destroy();
+      const render = vi.spyOn(app.renderer, 'render');
+      expect(() => app.render()).not.toThrow();
+      expect(render).not.toHaveBeenCalled();
+    });
+
+    it('plane effect の更新中に自身の plane を削除しても次の plane を更新する', async () => {
+      const app = new DomSyncGL(container, { autoRaf: false });
+      const first = app.createPlane(null);
+      const second = app.createPlane(null);
+      const effect = first.addEffect(new TestEffect());
+      const next = second.addEffect(new TestEffect());
+      effect.update = () => first.destroy();
+      next.update = vi.fn();
+      await app.ready;
+      expect(() => app.render()).not.toThrow();
+      expect(next.update).toHaveBeenCalledTimes(1);
+      app.destroy();
+    });
+
     it('render() は renderer.init() 完了前は no-op、ready 解決後に描画する', async () => {
       const app = new DomSyncGL(container);
       const renderer = app.getRenderer();
@@ -764,8 +860,23 @@ describe('DomSyncGL', () => {
 
     it('ready 解決前に destroy() しても例外にならない', async () => {
       const app = new DomSyncGL(container);
+      const dispose = vi.spyOn(app.renderer, 'dispose');
       expect(() => app.destroy()).not.toThrow();
+      expect(dispose).not.toHaveBeenCalled();
       await expect(app.ready).resolves.toBeUndefined();
+      expect(dispose).toHaveBeenCalledTimes(1);
+      expect(app.isWebGPUBackend()).toBe(false);
+      app.destroy();
+      expect(dispose).toHaveBeenCalledTimes(1);
+    });
+
+    it('初期化済み renderer は destroy 時に一度だけ解放する', async () => {
+      const app = new DomSyncGL(container, { autoRaf: false });
+      await app.ready;
+      const dispose = vi.spyOn(app.renderer, 'dispose');
+      app.destroy();
+      app.destroy();
+      expect(dispose).toHaveBeenCalledTimes(1);
     });
   });
 

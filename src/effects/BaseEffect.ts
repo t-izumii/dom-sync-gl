@@ -35,7 +35,7 @@ export interface FeedbackNodeContext {
 export interface FeedbackOptions {
   /** 新しい蓄積値（vec4）を返すファクトリ。register 時に一度だけ呼ばれる */
   node: (ctx: FeedbackNodeContext) => Node;
-  /** 'screen' = drawing buffer と同解像度 / 数値 N = N×N の正方。既定 'screen' */
+  /** 'screen' = owner の描画解像度（plane はそのサイズ×DPR）/ 数値 N = N×N。既定 'screen' */
   size?: "screen" | number;
   /**
    * 既定 HalfFloat。8bit だと「前フレーム × 減衰率」の丸め戻りで小さな値が
@@ -127,6 +127,7 @@ export abstract class BaseEffect {
    */
   protected glRenderer: WebGPURenderer | null = null;
   private _glRendererReady = false;
+  private _planeFeedback = false;
 
   private _feedback: FeedbackOptions | null = null;
   private _fbRead: RenderTarget | null = null;
@@ -140,7 +141,7 @@ export abstract class BaseEffect {
 
   private _enabled = true;
   get enabled(): boolean {
-    return this._enabled;
+    return this._enabled && !this._disposed;
   }
   set enabled(value: boolean) {
     this._enabled = value;
@@ -149,7 +150,7 @@ export abstract class BaseEffect {
 
   protected abstract getConfig(): BaseEffectConfig;
 
-  _register(target: EffectTarget): void {
+  _assertCanRegister(): void {
     // 二重 register を許すと update の二重実行や owner をまたいだ dispose が
     // 起きるため throw する。
     if (this._disposed) {
@@ -166,6 +167,10 @@ export abstract class BaseEffect {
           "使い回す場合は新しいインスタンスを作ってください。",
       );
     }
+  }
+
+  _register(target: EffectTarget): void {
+    this._assertCanRegister();
     // getConfig() は closure を返すだけで outputNode はまだ呼ばれていないため、
     // addEffect() より前に feedbackTexture を実 RT へ差し替えられる。
     const config = this.getConfig();
@@ -184,14 +189,15 @@ export abstract class BaseEffect {
    * サブクラスがオーバーライドする公開フックで、`super` の呼び忘れで
    * 基底側の初期化が静かに飛ぶため。owner が必ず呼ぶ内部 API。
    */
-  _attachRenderer(renderer: WebGPURenderer): void {
+  _attachRenderer(renderer: WebGPURenderer, planeFeedback = false): void {
+    this._planeFeedback = planeFeedback;
     this.glRenderer = renderer;
     // init() は冪等なので多重呼び出しは安全。失敗時は ready を立てないことで
     // GPU コマンドの発行を止める（no-op に留める）。
     try {
       void Promise.resolve(renderer.init()).then(
         () => {
-          this._glRendererReady = true;
+          if (!this._disposed) this._glRendererReady = true;
         },
         () => {},
       );
@@ -221,7 +227,8 @@ export abstract class BaseEffect {
 
     const material = new MeshBasicNodeMaterial();
     // 蓄積 RT は前フレームの内容を丸ごと置き換えるため合成しない。
-    material.colorNode = options.node({ prev, uv: uv() });
+    // feedback は色とは限らず、速度や高さなどの符号付きデータも保持する。
+    material.fragmentNode = options.node({ prev, uv: uv() });
     material.depthTest = false;
     material.depthWrite = false;
     material.blending = NoBlending;
@@ -259,7 +266,9 @@ export abstract class BaseEffect {
       // CSS px の this.width/height ではなく drawing buffer を使う（DPR 分ずれるため）。
       const renderer = this.glRenderer;
       if (!renderer) return;
-      const size = renderer.getDrawingBufferSize(_sizeScratch);
+      const size = this._planeFeedback
+        ? _sizeScratch.set(this.width, this.height).multiplyScalar(renderer.getPixelRatio())
+        : renderer.getDrawingBufferSize(_sizeScratch);
       w = Math.max(1, Math.round(size.x));
       h = Math.max(1, Math.round(size.y));
     }
@@ -336,6 +345,17 @@ export abstract class BaseEffect {
     this._updateMove(mouse);
   }
 
+  _resume(time: number, mouse: Vector2): void {
+    this.mouseMotion.reset(mouse);
+    this.uPrevMouse.value.copy(mouse);
+    this.uMouse.value.copy(mouse);
+    this.uMove.value = 0;
+    this.resume?.(time, mouse);
+  }
+
+  /** 非表示からの復帰時。独自の入力履歴を持つ effect はここで基準を合わせる。 */
+  resume?(_time: number, _mouse: Vector2): void;
+
   /**
    * plane 側の `FeedbackContext.uMove` / `uPrevMouse`（`FeedbackBuffer.step()`）と
    * 同じ `MouseMotion` を使う。post effect 側にも同じ手触りを配って非対称を埋めている。
@@ -353,6 +373,7 @@ export abstract class BaseEffect {
     this.uMove.value = this.mouseMotion.move;
   }
 
+  /** Core の render フェーズで初期化完了後に呼ばれる。GPU 処理もここで実行できる。 */
   update(_time: number, _mouse?: Vector2): void {}
 
   resize?(_width: number, _height: number): void;

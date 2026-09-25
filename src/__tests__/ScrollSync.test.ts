@@ -452,38 +452,6 @@ describe('ScrollSync', () => {
       expect(container.style.height).toBe('400px');
     });
 
-    describe('canvasViewportFixed / logicalRect の座標系', () => {
-      it('通常フロー container は canvasViewportFixed=false、logicalRect は page 座標（scroll 加算）', () => {
-        // Given: 通常フロー（position: static）の container、初期スクロール 300
-        Object.defineProperty(window, 'scrollY', { value: 300, writable: true, configurable: true });
-        // viewport 相対 BCR: 通常フローなので top は scroll ぶん減っている
-        mockBCR(new DOMRect(10, -280, 600, 400));
-
-        const sync = new ScrollSync(container, { attach: 'dom' });
-
-        // Then: canvas はページに固定される（viewport 固定ではない）
-        expect(sync.canvasViewportFixed).toBe(false);
-        // logicalRect は viewport 相対 rect に計測時 scroll を足した page 座標
-        // top = -280 + effectiveScrollY(300) = 20
-        expect(sync.logicalRect.left).toBe(10);
-        expect(sync.logicalRect.top).toBe(20);
-        expect(sync.logicalRect.width).toBe(600);
-        expect(sync.logicalRect.height).toBe(400);
-      });
-
-      it('fixed container は canvasViewportFixed=true、logicalRect は viewport 相対のまま', () => {
-        Object.defineProperty(window, 'scrollY', { value: 300, writable: true, configurable: true });
-        container.style.position = 'fixed';
-        mockBCR(new DOMRect(10, 20, 600, 400));
-
-        const sync = new ScrollSync(container, { attach: 'dom' });
-
-        expect(sync.canvasViewportFixed).toBe(true);
-        // scroll を足さず viewport 相対の rect そのまま
-        expect(sync.logicalRect.top).toBe(20);
-      });
-    });
-
     it('dom モードでは viewport 計測用 probe を body に挿入しない', () => {
       mockBCR(new DOMRect(0, 0, 600, 400));
       const appendSpy = vi.spyOn(document.body, 'appendChild');

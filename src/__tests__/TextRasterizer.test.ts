@@ -380,55 +380,23 @@ describe("rasterizeText", () => {
     expect(ctx.fillText).toHaveBeenCalledTimes(3);
   });
 
-  it("負の letterSpacing かつ ctx に letterSpacing あり → ctx.letterSpacing に負値が設定される", () => {
-    const ctx = makeCtx(true); // letterSpacing 対応
+  it('対応 Canvas では負の字間を設定し、詰めた幅で折り返しを計測する', () => {
+    const ctx = makeCtx(true);
+    ctx.measureText.mockImplementation((s: string) => ({ width: s.length * (10 + parseFloat(ctx.letterSpacing!)) }));
     spyCtx(ctx);
-    rasterizeText(
-      document.createElement("canvas"),
-      "abc",
-      makeStyle({ letterSpacing: -2 }),
-      1000,
-      50,
-      1,
-    );
-    // 対応環境では ctx.letterSpacing にそのまま反映し、fillText は 1 行 1 回。
-    expect(ctx.letterSpacing).toBe("-2px");
-    expect(ctx.fillText).toHaveBeenCalledTimes(1);
-    expect(ctx.fillText).toHaveBeenCalledWith("abc", expect.any(Number), expect.any(Number));
+    rasterizeText(document.createElement('canvas'), 'abc', makeStyle({ letterSpacing: -2 }), 24, 50, 1);
+    expect(ctx.letterSpacing).toBe('-2px');
+    expect(ctx.fillText.mock.calls).toEqual([['abc', 0, 10]]);
   });
 
-  it("負の letterSpacing かつ ctx に letterSpacing なし → per-char フォールバックで描画される", () => {
-    const ctx = makeCtx(false); // 非対応環境
-    spyCtx(ctx);
-    rasterizeText(
-      document.createElement("canvas"),
-      "abc",
-      makeStyle({ letterSpacing: -2 }),
-      1000,
-      50,
-      1,
-    );
-    // 負値でも per-char で 1 文字ずつ描画される（旧実装は ls > 0 ゲートで通常 fillText に落ちていた）。
-    expect(ctx.fillText).toHaveBeenCalledTimes(3);
-  });
-
-  it("負の letterSpacing で measure（折り返し計測）が狭く見積もられ、描画と一致する", () => {
-    // 非対応環境: measure は w + ls*len（ls<0 なので狭くなる）。
-    // 1 文字 10px、ls=-4 の下で "aaaaa"(5 文字) の実効幅 = 50 + (-4*5) = 30。
-    // contentWidth 40 なら 1 行に収まり、41px 見積りの誤判定で折り返さないことを確認する。
+  it.each([
+    ['left', 0], ['center', 38], ['right', 76],
+  ] as const)('非対応 Canvas でも負の字間を %s 揃えで描画する', (textAlign, start) => {
     const ctx = makeCtx(false);
     spyCtx(ctx);
-    rasterizeText(
-      document.createElement("canvas"),
-      "aaaaa aaaaa",
-      makeStyle({ letterSpacing: -4 }),
-      40,
-      100,
-      1,
-    );
-    // 各語の実効幅 30 <= 40 なので 2 語がそれぞれ 1 行 = 2 行。per-char 描画で 10 回 fillText。
-    // （measure と描画が一致していれば contentWidth 超過ではみ出さない。）
-    expect(ctx.fillText).toHaveBeenCalledTimes(10);
+    rasterizeText(document.createElement('canvas'), 'abc', makeStyle({ letterSpacing: -2, textAlign }), 100, 50, 1);
+    expect(ctx.fillText.mock.calls).toEqual([['a', start, 10], ['b', start + 8, 10], ['c', start + 16, 10]]);
+    expect(ctx.textAlign).toBe(textAlign);
   });
 
   it("getContext が null → false を返し例外を投げない", () => {

@@ -402,7 +402,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "example_src_effects_lib",
-      "community": 54,
+      "community": 29,
       "community_name": "effects-lib.ts",
       "norm_label": "effects-lib.ts"
     },
@@ -410,10 +410,10 @@
       "label": "makeGradientTexture()",
       "file_type": "code",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L37",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "example_src_effects_lib_makegradienttexture",
-      "community": 54,
+      "community": 29,
       "community_name": "effects-lib.ts",
       "norm_label": "makegradienttexture()"
     },
@@ -421,10 +421,10 @@
       "label": "EffectDef",
       "file_type": "code",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L91",
+      "source_location": "L92",
       "_origin": "ast",
       "id": "example_src_effects_lib_effectdef",
-      "community": 54,
+      "community": 29,
       "community_name": "effects-lib.ts",
       "norm_label": "effectdef"
     },
@@ -432,10 +432,10 @@
       "label": "EFFECTS",
       "file_type": "code",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L101",
+      "source_location": "L102",
       "_origin": "ast",
       "id": "example_src_effects_lib_effects",
-      "community": 54,
+      "community": 29,
       "community_name": "effects-lib.ts",
       "norm_label": "effects"
     },
@@ -443,10 +443,10 @@
       "label": "requested",
       "file_type": "code",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L197",
+      "source_location": "L201",
       "_origin": "ast",
       "id": "example_src_effects_lib_requested",
-      "community": 54,
+      "community": 29,
       "community_name": "effects-lib.ts",
       "norm_label": "requested"
     },
@@ -454,21 +454,21 @@
       "label": "gui",
       "file_type": "code",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L221",
+      "source_location": "L225",
       "_origin": "ast",
       "id": "example_src_effects_lib_gui",
-      "community": 73,
-      "community_name": "gui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "gui"
     },
     {
       "label": "app",
       "file_type": "code",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L222",
+      "source_location": "L226",
       "_origin": "ast",
       "id": "example_src_effects_lib_app",
-      "community": 54,
+      "community": 29,
       "community_name": "effects-lib.ts",
       "norm_label": "app"
     },
@@ -974,8 +974,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "example_src_text_padding",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "text-padding.ts"
     },
     {
@@ -985,8 +985,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "example_src_text_padding_cardcolornode",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "cardcolornode()"
     },
     {
@@ -996,8 +996,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "example_src_text_padding_app",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "app"
     },
     {
@@ -1007,8 +1007,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "example_src_text_padding_cardspec",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "cardspec"
     },
     {
@@ -1018,8 +1018,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "example_src_text_padding_cards",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "cards"
     },
     {
@@ -1029,8 +1029,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "example_src_text_padding_planes",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "planes"
     },
     {
@@ -1040,8 +1040,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "example_src_text_padding_refreshall",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "refreshall()"
     },
     {
@@ -1051,8 +1051,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "example_src_text_padding_bindpadslider",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 8,
+      "community_name": "DomTextPlane",
       "norm_label": "bindpadslider()"
     },
     {
@@ -2262,7 +2262,7 @@
       "_origin": "ast",
       "id": "src_core_domsyncgl_createplane",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".createplane()"
     },
     {
@@ -2273,7 +2273,7 @@
       "_origin": "ast",
       "id": "src_core_domsyncgl_createtextplane",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".createtextplane()"
     },
     {
@@ -2284,7 +2284,7 @@
       "_origin": "ast",
       "id": "src_core_domsyncgl_unregisterplane",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".unregisterplane()"
     },
     {
@@ -2404,8 +2404,8 @@
       "source_location": "L434",
       "_origin": "ast",
       "id": "src_core_domsyncgl_setposteffect",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 6,
+      "community_name": "DomSyncGL",
       "norm_label": ".setposteffect()"
     },
     {
@@ -2415,7 +2415,7 @@
       "source_location": "L446",
       "_origin": "ast",
       "id": "src_core_domsyncgl_removeeffect",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".removeeffect()"
     },
@@ -2889,7 +2889,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "domplane"
     },
     {
@@ -2911,7 +2911,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_tickread",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._tickread()"
     },
     {
@@ -2922,7 +2922,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_tickapply",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._tickapply()"
     },
     {
@@ -2933,7 +2933,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_rectaspect",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".rectaspect()"
     },
     {
@@ -2944,7 +2944,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_updatemousemotion",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".updatemousemotion()"
     },
     {
@@ -2955,7 +2955,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_tickrendercomposer",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._tickrendercomposer()"
     },
     {
@@ -2966,7 +2966,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_init",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".init()"
     },
     {
@@ -2977,7 +2977,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_loadtexture",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".loadtexture()"
     },
     {
@@ -2988,7 +2988,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_updatesize",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".updatesize()"
     },
     {
@@ -2999,7 +2999,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_setposition",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".setposition()"
     },
     {
@@ -3010,7 +3010,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_setcanvasrect",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".setcanvasrect()"
     },
     {
@@ -3021,7 +3021,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_resize",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".resize()"
     },
     {
@@ -3032,7 +3032,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_getmesh",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".getmesh()"
     },
     {
@@ -3043,7 +3043,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_reloadtexture",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".reloadtexture()"
     },
     {
@@ -3054,7 +3054,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_settexture",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".settexture()"
     },
     {
@@ -3064,7 +3064,7 @@
       "source_location": "L382",
       "_origin": "ast",
       "id": "src_domplane_domplane_updateeffects",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".updateeffects()"
     },
@@ -3076,7 +3076,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_getmouseuv",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".getmouseuv()"
     },
     {
@@ -3087,7 +3087,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_ishovered",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".ishovered()"
     },
     {
@@ -3098,7 +3098,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_sethoverinfo",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".sethoverinfo()"
     },
     {
@@ -3109,7 +3109,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_enableeffects",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".enableeffects()"
     },
     {
@@ -3120,7 +3120,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_addeffect",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".addeffect()"
     },
     {
@@ -3130,8 +3130,8 @@
       "source_location": "L478",
       "_origin": "ast",
       "id": "src_domplane_domplane_addfeedback",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".addfeedback()"
     },
     {
@@ -3141,8 +3141,8 @@
       "source_location": "L508",
       "_origin": "ast",
       "id": "src_domplane_domplane_removefeedback",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".removefeedback()"
     },
     {
@@ -3153,7 +3153,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_tickfeedback",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._tickfeedback()"
     },
     {
@@ -3163,8 +3163,8 @@
       "source_location": "L539",
       "_origin": "ast",
       "id": "src_domplane_domplane_removeeffect",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 31,
+      "community_name": "EffectManager",
       "norm_label": ".removeeffect()"
     },
     {
@@ -3175,7 +3175,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_setgui",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._setgui()"
     },
     {
@@ -3186,7 +3186,7 @@
       "_origin": "ast",
       "id": "src_domplane_domplane_setondestroy",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._setondestroy()"
     },
     {
@@ -3196,8 +3196,8 @@
       "source_location": "L574",
       "_origin": "ast",
       "id": "src_domplane_domplane_destroy",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 31,
+      "community_name": "EffectManager",
       "norm_label": ".destroy()"
     },
     {
@@ -3218,8 +3218,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": "dompositioncalculator"
     },
     {
@@ -3229,8 +3229,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_constructor",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".constructor()"
     },
     {
@@ -3240,8 +3240,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_updatepositioninfo",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".updatepositioninfo()"
     },
     {
@@ -3251,8 +3251,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_refreshpositiontype",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".refreshpositiontype()"
     },
     {
@@ -3262,8 +3262,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_calculatewebglposition",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".calculatewebglposition()"
     },
     {
@@ -3273,8 +3273,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_setcanvasrect",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".setcanvasrect()"
     },
     {
@@ -3284,8 +3284,8 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_isfixed",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".isfixed()"
     },
     {
@@ -3295,8 +3295,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_issticky",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".issticky()"
     },
     {
@@ -3306,8 +3306,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_pagetop",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".pagetop()"
     },
     {
@@ -3317,8 +3317,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "src_dompositioncalculator_dompositioncalculator_pageleft",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": ".pageleft()"
     },
     {
@@ -3328,8 +3328,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_domtextplane",
-      "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community": 11,
+      "community_name": "src/index.ts",
       "norm_label": "domtextplane.ts"
     },
     {
@@ -3339,7 +3339,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": "domtextplane"
     },
@@ -3350,7 +3350,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_constructor",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".constructor()"
     },
@@ -3361,7 +3361,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_loadtexture",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".loadtexture()"
     },
@@ -3372,7 +3372,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_applyhide",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".applyhide()"
     },
@@ -3383,7 +3383,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_rasterize",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".rasterize()"
     },
@@ -3394,7 +3394,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_refreshstyle",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".refreshstyle()"
     },
@@ -3405,7 +3405,7 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_reresolvestyle",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".reresolvestyle()"
     },
@@ -3416,7 +3416,7 @@
       "source_location": "L157",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_settext",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".settext()"
     },
@@ -3427,7 +3427,7 @@
       "source_location": "L166",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_resize",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".resize()"
     },
@@ -3438,7 +3438,7 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "src_domtextplane_domtextplane_destroy",
-      "community": 30,
+      "community": 8,
       "community_name": "DomTextPlane",
       "norm_label": ".destroy()"
     },
@@ -3460,8 +3460,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_effectcomposer_effectlike",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 75,
+      "community_name": "EffectComposer.ts",
       "norm_label": "effectlike"
     },
     {
@@ -3504,8 +3504,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_effectcomposer_effectcontext",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 75,
+      "community_name": "EffectComposer.ts",
       "norm_label": "effectcontext"
     },
     {
@@ -3515,8 +3515,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_effectcomposer_effectoptions",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "effectoptions"
     },
     {
@@ -3527,7 +3527,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effecttarget",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "effecttarget"
     },
     {
@@ -3538,7 +3538,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effecttarget_addeffect",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".addeffect()"
     },
     {
@@ -3549,7 +3549,7 @@
       "_origin": "ast",
       "id": "src_effectcomposer_effecttarget_removeeffect",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".removeeffect()"
     },
     {
@@ -3625,8 +3625,8 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "src_effectcomposer_effectcomposer_addeffect",
-      "community": 75,
-      "community_name": "EffectComposer.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": ".addeffect()"
     },
     {
@@ -3680,8 +3680,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectmanager",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 75,
+      "community_name": "EffectComposer.ts",
       "norm_label": "effectmanager.ts"
     },
     {
@@ -3725,7 +3725,7 @@
       "_origin": "ast",
       "id": "src_effectmanager_effectmanager_addeffect",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".addeffect()"
     },
     {
@@ -3746,8 +3746,8 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "src_effectmanager_effectmanager_removeeffect",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 31,
+      "community_name": "EffectManager",
       "norm_label": ".removeeffect()"
     },
     {
@@ -3768,7 +3768,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_effectmanager_effectmanager_update",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".update()"
     },
@@ -3813,7 +3813,7 @@
       "_origin": "ast",
       "id": "src_feedbackbuffer",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbackbuffer.ts"
     },
     {
@@ -3824,7 +3824,7 @@
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackcontext",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbackcontext"
     },
     {
@@ -3846,7 +3846,7 @@
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackinput",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbackinput"
     },
     {
@@ -3857,7 +3857,7 @@
       "_origin": "ast",
       "id": "src_feedbackbuffer_reserved_uniform_names",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "reserved_uniform_names"
     },
     {
@@ -3867,8 +3867,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": "feedbackbuffer"
     },
     {
@@ -3878,8 +3878,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_constructor",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".constructor()"
     },
     {
@@ -3889,8 +3889,8 @@
       "source_location": "L169",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_maketarget",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".maketarget()"
     },
     {
@@ -3900,8 +3900,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_cleartargets",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".cleartargets()"
     },
     {
@@ -3911,8 +3911,8 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_texture",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".texture()"
     },
     {
@@ -3922,8 +3922,8 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_uniforms",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".uniforms()"
     },
     {
@@ -3933,8 +3933,8 @@
       "source_location": "L214",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_size",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".size()"
     },
     {
@@ -3944,8 +3944,8 @@
       "source_location": "L218",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_movethreshold",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".movethreshold()"
     },
     {
@@ -3955,8 +3955,8 @@
       "source_location": "L225",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_movescale",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".movescale()"
     },
     {
@@ -3966,8 +3966,8 @@
       "source_location": "L232",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_moverelease",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".moverelease()"
     },
     {
@@ -3977,8 +3977,8 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_step",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".step()"
     },
     {
@@ -3988,8 +3988,8 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_attachgui",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": "._attachgui()"
     },
     {
@@ -3999,8 +3999,8 @@
       "source_location": "L278",
       "_origin": "ast",
       "id": "src_feedbackbuffer_feedbackbuffer_dispose",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 7,
+      "community_name": "DomPlane",
       "norm_label": ".dispose()"
     },
     {
@@ -4098,8 +4098,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_light_light",
-      "community": 11,
-      "community_name": "src/index.ts",
+      "community": 1,
+      "community_name": "constants.ts",
       "norm_label": "light"
     },
     {
@@ -4109,8 +4109,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_light_light_constructor",
-      "community": 11,
-      "community_name": "src/index.ts",
+      "community": 1,
+      "community_name": "constants.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -4121,7 +4121,7 @@
       "_origin": "ast",
       "id": "src_mousemotion",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "mousemotion.ts"
     },
     {
@@ -4132,7 +4132,7 @@
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "mousemotion"
     },
     {
@@ -4143,7 +4143,7 @@
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion_move",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".move()"
     },
     {
@@ -4154,7 +4154,7 @@
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion_update",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".update()"
     },
     {
@@ -4165,7 +4165,7 @@
       "_origin": "ast",
       "id": "src_mousemotion_mousemotion_decay",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": ".decay()"
     },
     {
@@ -4175,8 +4175,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_planecomposer",
-      "community": 11,
-      "community_name": "src/index.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "planecomposer.ts"
     },
     {
@@ -4417,8 +4417,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_pointercontroller_pointercontroller_setenabled",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": ".setenabled()"
     },
     {
@@ -4737,7 +4737,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "textrasterizer.ts"
     },
     {
@@ -4748,7 +4748,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_resolvedtextstyle",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "resolvedtextstyle"
     },
     {
@@ -4759,7 +4759,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_num",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "num()"
     },
     {
@@ -4770,7 +4770,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_buildfontspec",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "buildfontspec()"
     },
     {
@@ -4781,7 +4781,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_resolvetextstyle",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "resolvetextstyle()"
     },
     {
@@ -4792,7 +4792,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_layoutlinesdom",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "layoutlinesdom()"
     },
     {
@@ -4803,7 +4803,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_layoutlines",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "layoutlines()"
     },
     {
@@ -4814,7 +4814,7 @@
       "_origin": "ast",
       "id": "src_textrasterizer_rasterizetext",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "rasterizetext()"
     },
     {
@@ -4825,7 +4825,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "baseeffect.test.ts"
     },
     {
@@ -4836,7 +4836,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_makerenderer",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "makerenderer()"
     },
     {
@@ -4847,7 +4847,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_makefeedbackrenderer",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "makefeedbackrenderer()"
     },
     {
@@ -4858,7 +4858,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_renderermock",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "renderermock"
     },
     {
@@ -4869,7 +4869,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_asrenderer",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "asrenderer()"
     },
     {
@@ -4880,7 +4880,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_flush",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "flush()"
     },
     {
@@ -4891,7 +4891,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackinternals",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "feedbackinternals"
     },
     {
@@ -4902,7 +4902,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_internals",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "internals()"
     },
     {
@@ -4913,7 +4913,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "feedbackeffect"
     },
     {
@@ -4924,7 +4924,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect_constructor",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -4935,7 +4935,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect_fbtexture",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": ".fbtexture()"
     },
     {
@@ -4946,7 +4946,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_feedbackeffect_getconfig",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": ".getconfig()"
     },
     {
@@ -4956,8 +4956,8 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_testeffect",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 60,
+      "community_name": "StateEffect",
       "norm_label": "testeffect"
     },
     {
@@ -4967,8 +4967,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_testeffect_getconfig",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 60,
+      "community_name": "StateEffect",
       "norm_label": ".getconfig()"
     },
     {
@@ -4979,7 +4979,7 @@
       "_origin": "ast",
       "id": "src_tests_baseeffect_test_makegui",
       "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community_name": "BaseEffect.test.ts",
       "norm_label": "makegui()"
     },
     {
@@ -5100,7 +5100,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "core.test.ts"
     },
     {
@@ -5110,8 +5110,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": "mockwebgpurenderer"
     },
     {
@@ -5121,8 +5121,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_constructor",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".constructor()"
     },
     {
@@ -5132,8 +5132,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_init",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".init()"
     },
     {
@@ -5143,8 +5143,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_setsize",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setsize()"
     },
     {
@@ -5154,8 +5154,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_setpixelratio",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setpixelratio()"
     },
     {
@@ -5165,8 +5165,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_getpixelratio",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getpixelratio()"
     },
     {
@@ -5176,8 +5176,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_setrendertarget",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setrendertarget()"
     },
     {
@@ -5187,8 +5187,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_getrendertarget",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getrendertarget()"
     },
     {
@@ -5198,8 +5198,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_render",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".render()"
     },
     {
@@ -5209,8 +5209,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_tests_core_test_mockwebgpurenderer_dispose",
-      "community": 17,
-      "community_name": "Core.test.ts",
+      "community": 36,
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".dispose()"
     },
     {
@@ -5221,7 +5221,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_update",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "update()"
     },
     {
@@ -5232,7 +5232,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_dispose",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "dispose()"
     },
     {
@@ -5243,7 +5243,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_testeffect",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "testeffect"
     },
     {
@@ -5254,7 +5254,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_testeffect_getconfig",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -5265,7 +5265,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_constructor",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "constructor()"
     },
     {
@@ -5276,7 +5276,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_observe",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "observe()"
     },
     {
@@ -5287,7 +5287,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_unobserve",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "unobserve()"
     },
     {
@@ -5298,7 +5298,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_disconnect",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "disconnect()"
     },
     {
@@ -5309,7 +5309,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_maketextel",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "maketextel()"
     },
     {
@@ -5320,7 +5320,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_coreinternals",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "coreinternals"
     },
     {
@@ -5331,7 +5331,7 @@
       "_origin": "ast",
       "id": "src_tests_core_test_makeel",
       "community": 17,
-      "community_name": "Core.test.ts",
+      "community_name": "BaseEffectConfig",
       "norm_label": "makeel()"
     },
     {
@@ -5429,7 +5429,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_domplane_test",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "domplane.test.ts"
     },
@@ -5441,7 +5441,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": "mockwebgpurenderer"
     },
     {
@@ -5452,7 +5452,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_constructor",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".constructor()"
     },
     {
@@ -5463,7 +5463,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_init",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".init()"
     },
     {
@@ -5474,7 +5474,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setsize",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setsize()"
     },
     {
@@ -5485,7 +5485,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setpixelratio",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setpixelratio()"
     },
     {
@@ -5496,7 +5496,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getpixelratio",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getpixelratio()"
     },
     {
@@ -5507,7 +5507,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setrendertarget",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setrendertarget()"
     },
     {
@@ -5518,7 +5518,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getrendertarget",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getrendertarget()"
     },
     {
@@ -5529,7 +5529,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getclearcolor",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getclearcolor()"
     },
     {
@@ -5540,7 +5540,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_getclearalpha",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".getclearalpha()"
     },
     {
@@ -5551,7 +5551,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_setclearcolor",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".setclearcolor()"
     },
     {
@@ -5562,7 +5562,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_clear",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".clear()"
     },
     {
@@ -5573,7 +5573,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_render",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".render()"
     },
     {
@@ -5584,7 +5584,7 @@
       "_origin": "ast",
       "id": "src_tests_domplane_test_mockwebgpurenderer_dispose",
       "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community_name": "MockWebGPURenderer",
       "norm_label": ".dispose()"
     },
     {
@@ -5594,7 +5594,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "src_tests_domplane_test_update",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "update()"
     },
@@ -5605,7 +5605,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "src_tests_domplane_test_dispose",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "dispose()"
     },
@@ -5616,8 +5616,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_tests_domplane_test_testeffect",
-      "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community": 17,
+      "community_name": "BaseEffectConfig",
       "norm_label": "testeffect"
     },
     {
@@ -5627,8 +5627,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "src_tests_domplane_test_testeffect_getconfig",
-      "community": 32,
-      "community_name": "DomPlane.test.ts",
+      "community": 17,
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -5638,7 +5638,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "src_tests_domplane_test_makegui",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "makegui()"
     },
@@ -5649,7 +5649,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_tests_domplane_test_flush",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "flush()"
     },
@@ -5660,7 +5660,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_tests_domplane_test_constructor",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "constructor()"
     },
@@ -5671,7 +5671,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_tests_domplane_test_observe",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "observe()"
     },
@@ -5682,7 +5682,7 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "src_tests_domplane_test_unobserve",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "unobserve()"
     },
@@ -5693,7 +5693,7 @@
       "source_location": "L621",
       "_origin": "ast",
       "id": "src_tests_domplane_test_withcomposer",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "withcomposer"
     },
@@ -5704,7 +5704,7 @@
       "source_location": "L673",
       "_origin": "ast",
       "id": "src_tests_domplane_test_maketexel",
-      "community": 32,
+      "community": 46,
       "community_name": "DomPlane.test.ts",
       "norm_label": "maketexel()"
     },
@@ -5715,8 +5715,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_dompositioncalculator_test",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": "dompositioncalculator.test.ts"
     },
     {
@@ -5726,8 +5726,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_tests_dompositioncalculator_test_makeelement",
-      "community": 36,
-      "community_name": "DomPositionCalculator",
+      "community": 24,
+      "community_name": "Dom3DObject",
       "norm_label": "makeelement()"
     },
     {
@@ -6067,8 +6067,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_effectmanager_test",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.test.ts",
       "norm_label": "effectmanager.test.ts"
     },
     {
@@ -6078,8 +6078,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_makerenderer",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.test.ts",
       "norm_label": "makerenderer()"
     },
     {
@@ -6090,7 +6090,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_testeffect",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": "testeffect"
     },
     {
@@ -6101,7 +6101,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_testeffect_getconfig",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": ".getconfig()"
     },
     {
@@ -6112,7 +6112,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": "stateeffect"
     },
     {
@@ -6123,7 +6123,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_size",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": ".size()"
     },
     {
@@ -6134,7 +6134,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_time",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": ".time()"
     },
     {
@@ -6145,7 +6145,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_mouse",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": ".mouse()"
     },
     {
@@ -6156,7 +6156,7 @@
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_stateeffect_move",
       "community": 28,
-      "community_name": "StateEffect",
+      "community_name": "EffectManager.test.ts",
       "norm_label": ".move()"
     },
     {
@@ -6166,8 +6166,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_tests_effectmanager_test_makegui",
-      "community": 31,
-      "community_name": "EffectManager",
+      "community": 28,
+      "community_name": "EffectManager.test.ts",
       "norm_label": "makegui()"
     },
     {
@@ -6178,7 +6178,7 @@
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbackbuffer.test.ts"
     },
     {
@@ -6188,8 +6188,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": "stubrenderer"
     },
     {
@@ -6199,8 +6199,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_getrendertarget",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".getrendertarget()"
     },
     {
@@ -6210,8 +6210,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_setrendertarget",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".setrendertarget()"
     },
     {
@@ -6221,8 +6221,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_getclearcolor",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".getclearcolor()"
     },
     {
@@ -6232,8 +6232,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_getclearalpha",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".getclearalpha()"
     },
     {
@@ -6243,8 +6243,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_setclearcolor",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".setclearcolor()"
     },
     {
@@ -6254,8 +6254,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_clear",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".clear()"
     },
     {
@@ -6265,8 +6265,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_stubrenderer_render",
-      "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community": 56,
+      "community_name": "StubRenderer",
       "norm_label": ".render()"
     },
     {
@@ -6277,7 +6277,7 @@
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_passthrough",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "passthrough()"
     },
     {
@@ -6288,7 +6288,7 @@
       "_origin": "ast",
       "id": "src_tests_feedbackbuffer_test_asrenderer",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "asrenderer()"
     },
     {
@@ -6332,7 +6332,7 @@
       "_origin": "ast",
       "id": "src_tests_mousemotion_test",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "mousemotion.test.ts"
     },
     {
@@ -6343,7 +6343,7 @@
       "_origin": "ast",
       "id": "src_tests_mousemotion_test_at",
       "community": 26,
-      "community_name": "FeedbackBuffer",
+      "community_name": "BaseEffect.ts",
       "norm_label": "at()"
     },
     {
@@ -6353,8 +6353,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "planecomposer.test.ts"
     },
     {
@@ -6364,8 +6364,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_makerenderer",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "makerenderer()"
     },
     {
@@ -6375,8 +6375,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_makesourcemesh",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "makesourcemesh()"
     },
     {
@@ -6386,8 +6386,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_passthrough",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "passthrough()"
     },
     {
@@ -6397,8 +6397,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_tests_planecomposer_test_getdisplaymaterial",
-      "community": 74,
-      "community_name": "PlaneComposer.test.ts",
+      "community": 27,
+      "community_name": "PlaneComposer",
       "norm_label": "getdisplaymaterial()"
     },
     {
@@ -6408,8 +6408,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_tests_pointercontroller_test",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": "pointercontroller.test.ts"
     },
     {
@@ -6419,8 +6419,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_tests_pointercontroller_test_makecanvas",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": "makecanvas()"
     },
     {
@@ -6430,8 +6430,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_tests_pointercontroller_test_dispatchpointer",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": "dispatchpointer()"
     },
     {
@@ -6452,8 +6452,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_tests_pointercontroller_test_makeharness",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": "makeharness()"
     },
     {
@@ -6463,8 +6463,8 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "src_tests_pointercontroller_test_makeplanemock",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": "makeplanemock()"
     },
     {
@@ -6485,8 +6485,8 @@
       "source_location": "L234",
       "_origin": "ast",
       "id": "src_tests_pointercontroller_test_makeraycastharness",
-      "community": 5,
-      "community_name": "PointerController",
+      "community": 70,
+      "community_name": "PointerController.test.ts",
       "norm_label": "makeraycastharness()"
     },
     {
@@ -6508,7 +6508,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "textrasterizer.test.ts"
     },
     {
@@ -6519,7 +6519,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_measure10",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "measure10()"
     },
     {
@@ -6530,7 +6530,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_makestyle",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "makestyle()"
     },
     {
@@ -6541,7 +6541,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_mockctx",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "mockctx"
     },
     {
@@ -6552,7 +6552,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_makectx",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "makectx()"
     },
     {
@@ -6563,7 +6563,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_spyctx",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "spyctx()"
     },
     {
@@ -6574,7 +6574,7 @@
       "_origin": "ast",
       "id": "src_tests_textrasterizer_test_stubcomputed",
       "community": 8,
-      "community_name": "DomTextPlane.ts",
+      "community_name": "DomTextPlane",
       "norm_label": "stubcomputed()"
     },
     {
@@ -6969,8 +6969,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effects_baseeffect",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "BaseEffect.ts",
       "norm_label": "baseeffect.ts"
     },
     {
@@ -6980,8 +6980,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_effects_baseeffect_feedbacknodecontext",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbacknodecontext"
     },
     {
@@ -6991,8 +6991,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_effects_baseeffect_feedbackoptions",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 26,
+      "community_name": "BaseEffect.ts",
       "norm_label": "feedbackoptions"
     },
     {
@@ -7002,7 +7002,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffectconfig",
-      "community": 13,
+      "community": 17,
       "community_name": "BaseEffectConfig",
       "norm_label": "baseeffectconfig"
     },
@@ -7013,8 +7013,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "src_effects_baseeffect_placeholdertexture",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "BaseEffect.ts",
       "norm_label": "placeholdertexture"
     },
     {
@@ -7024,8 +7024,8 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "src_effects_baseeffect_sizescratch",
-      "community": 13,
-      "community_name": "BaseEffectConfig",
+      "community": 26,
+      "community_name": "BaseEffect.ts",
       "norm_label": "_sizescratch"
     },
     {
@@ -7035,7 +7035,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "baseeffect"
     },
@@ -7046,7 +7046,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_enabled",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".enabled()"
     },
@@ -7058,7 +7058,7 @@
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_register",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._register()"
     },
     {
@@ -7069,7 +7069,7 @@
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setrenderer",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._setrenderer()"
     },
     {
@@ -7080,7 +7080,7 @@
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_attachrenderer",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._attachrenderer()"
     },
     {
@@ -7091,7 +7091,7 @@
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setsize",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._setsize()"
     },
     {
@@ -7101,7 +7101,7 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setupfeedback",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._setupfeedback()"
     },
@@ -7112,7 +7112,7 @@
       "source_location": "L234",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_makefeedbacktarget",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._makefeedbacktarget()"
     },
@@ -7123,7 +7123,7 @@
       "source_location": "L250",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_buildfeedbacktargets",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._buildfeedbacktargets()"
     },
@@ -7134,7 +7134,7 @@
       "source_location": "L281",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_clearfeedbacktargets",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._clearfeedbacktargets()"
     },
@@ -7145,7 +7145,7 @@
       "source_location": "L304",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_renderfeedback",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._renderfeedback()"
     },
@@ -7156,7 +7156,7 @@
       "source_location": "L333",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setframestate",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._setframestate()"
     },
@@ -7167,7 +7167,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_updatemove",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": "._updatemove()"
     },
@@ -7178,7 +7178,7 @@
       "source_location": "L356",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_update",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".update()"
     },
@@ -7189,7 +7189,7 @@
       "source_location": "L358",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_resize",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".resize()"
     },
@@ -7201,7 +7201,7 @@
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setupgui",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": ".setupgui()"
     },
     {
@@ -7212,7 +7212,7 @@
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_attachgui",
       "community": 7,
-      "community_name": "BaseEffect",
+      "community_name": "DomPlane",
       "norm_label": "._attachgui()"
     },
     {
@@ -7222,8 +7222,8 @@
       "source_location": "L374",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_dispose",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 31,
+      "community_name": "EffectManager",
       "norm_label": ".dispose()"
     },
     {
@@ -7233,8 +7233,8 @@
       "source_location": "L389",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_disposefeedback",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 31,
+      "community_name": "EffectManager",
       "norm_label": "._disposefeedback()"
     },
     {
@@ -7244,7 +7244,7 @@
       "source_location": "L402",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_setuniform",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".setuniform()"
     },
@@ -7255,7 +7255,7 @@
       "source_location": "L406",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_getuniform",
-      "community": 7,
+      "community": 30,
       "community_name": "BaseEffect",
       "norm_label": ".getuniform()"
     },
@@ -7266,8 +7266,8 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "src_effects_baseeffect_baseeffect_getpass",
-      "community": 7,
-      "community_name": "BaseEffect",
+      "community": 31,
+      "community_name": "EffectManager",
       "norm_label": ".getpass()"
     },
     {
@@ -7618,8 +7618,8 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "src_effectslib_liquidswap_liquidswap_liquidswap_setupgui",
-      "community": 73,
-      "community_name": "gui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".setupgui()"
     },
     {
@@ -7799,14 +7799,564 @@
       "norm_label": "loadliquidswaptexture()"
     },
     {
+      "label": "fluidCompute.ts",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluidcompute.ts"
+    },
+    {
+      "label": "FluidStepParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidstepparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluidstepparams"
+    },
+    {
+      "label": "FluidComputeOptions",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcomputeoptions",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluidcomputeoptions"
+    },
+    {
+      "label": "SplatPoint",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L51",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_splatpoint",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "splatpoint"
+    },
+    {
+      "label": "MipmapAwareStorageTexture",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L69",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_mipmapawarestoragetexture",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "mipmapawarestoragetexture"
+    },
+    {
+      "label": "FluidCompute",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluidcompute"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L129",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_constructor",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": ".dyeTexture()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L139",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_dyetexture",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".dyetexture()"
+    },
+    {
+      "label": ".aspect()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L143",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_aspect",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".aspect()"
+    },
+    {
+      "label": ".build()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L156",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".build()"
+    },
+    {
+      "label": ".setOptions()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L211",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_setoptions",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".setoptions()"
+    },
+    {
+      "label": ".addSplat()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L221",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_addsplat",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".addsplat()"
+    },
+    {
+      "label": ".step()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L237",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_step",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".step()"
+    },
+    {
+      "label": ".dispose()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L268",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_dispose",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".dispose()"
+    },
+    {
+      "label": ".buildChain()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L281",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".buildchain()"
+    },
+    {
+      "label": ".getResolution()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L426",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_getresolution",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".getresolution()"
+    },
+    {
+      "label": ".effectiveIterations()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L436",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_effectiveiterations",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".effectiveiterations()"
+    },
+    {
+      "label": ".createTexture()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L441",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_createtexture",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".createtexture()"
+    },
+    {
+      "label": ".gridOf()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L462",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_gridof",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".gridof()"
+    },
+    {
+      "label": ".buildSplatUniforms()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L467",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_buildsplatuniforms",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".buildsplatuniforms()"
+    },
+    {
+      "label": ".release()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L482",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_fluidcompute_release",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": ".release()"
+    },
+    {
+      "label": "TODO: \u540c\u4e00 compute \u30d1\u30b9\u5185\u306e\u9023\u7d9a\u30c7\u30a3\u30b9\u30d1\u30c3\u30c1\u9593\u30d0\u30ea\u30a2\u304c\u5b9f\u6a5f\u3067\u52b9\u304b\u306a\u3044\u5834\u5408\u306f\u3001",
+      "file_type": "rationale",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L259",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidcompute_rationale_259",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "todo: \u540c\u4e00 compute \u30cf\u30b9\u5185\u306e\u9023\u7d9a\u30c6\u30a3\u30b9\u30cf\u30c3\u30c1\u9593\u30cf\u30ea\u30a2\u304b\u5b9f\u6a5f\u3066\u52b9\u304b\u306a\u3044\u5834\u5408\u306f\u3001"
+    },
+    {
+      "label": "fluidKernels.ts",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluidkernels.ts"
+    },
+    {
+      "label": "VORTICITY_FORCE_Y_SIGN",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L57",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_vorticity_force_y_sign",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "vorticity_force_y_sign"
+    },
+    {
+      "label": "SPLAT_VELOCITY_Y_SIGN",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L60",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_splat_velocity_y_sign",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "splat_velocity_y_sign"
+    },
+    {
+      "label": "WORKGROUP_SIZE",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L67",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_workgroup_size",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "workgroup_size"
+    },
+    {
+      "label": "FluidGrid",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L69",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluidgrid"
+    },
+    {
+      "label": "FluidUniformArray",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L74",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_fluiduniformarray",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "fluiduniformarray"
+    },
+    {
+      "label": "dispatchCount()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_dispatchcount",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "dispatchcount()"
+    },
+    {
+      "label": "texelCenter()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L90",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_texelcenter",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "texelcenter()"
+    },
+    {
+      "label": "tap()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L100",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_tap",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "tap()"
+    },
+    {
+      "label": "KernelCoords",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L109",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_kernelcoords",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "kernelcoords"
+    },
+    {
+      "label": "makeKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L123",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_makekernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "makekernel()"
+    },
+    {
+      "label": "clearKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L163",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_clearkernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "clearkernel()"
+    },
+    {
+      "label": "SplatKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L170",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_splatkernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "splatkernelparams"
+    },
+    {
+      "label": "splatKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L195",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_splatkernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "splatkernel()"
+    },
+    {
+      "label": "CurlKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L220",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_curlkernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "curlkernelparams"
+    },
+    {
+      "label": "curlKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L226",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_curlkernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "curlkernel()"
+    },
+    {
+      "label": "VorticityKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L239",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_vorticitykernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "vorticitykernelparams"
+    },
+    {
+      "label": "vorticityKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L248",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_vorticitykernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "vorticitykernel()"
+    },
+    {
+      "label": "DivergenceKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L276",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_divergencekernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "divergencekernelparams"
+    },
+    {
+      "label": "divergenceKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L287",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_divergencekernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "divergencekernel()"
+    },
+    {
+      "label": "PressureClearKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L318",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_pressureclearkernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "pressureclearkernelparams"
+    },
+    {
+      "label": "pressureClearKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L326",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_pressureclearkernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "pressureclearkernel()"
+    },
+    {
+      "label": "PressureJacobiKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L334",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_pressurejacobikernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "pressurejacobikernelparams"
+    },
+    {
+      "label": "pressureJacobiKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L342",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_pressurejacobikernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "pressurejacobikernel()"
+    },
+    {
+      "label": "GradientSubtractKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L357",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_gradientsubtractkernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "gradientsubtractkernelparams"
+    },
+    {
+      "label": "gradientSubtractKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L364",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_gradientsubtractkernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "gradientsubtractkernel()"
+    },
+    {
+      "label": "AdvectionKernelParams",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L384",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_advectionkernelparams",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "advectionkernelparams"
+    },
+    {
+      "label": "advectionKernel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L405",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_fluidkernels_advectionkernel",
+      "community": 0,
+      "community_name": "fluidKernels.ts",
+      "norm_label": "advectionkernel()"
+    },
+    {
       "label": "mouse/index.ts",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/index.ts",
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_mouse_index",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "mouse/index.ts"
     },
     {
@@ -7816,107 +8366,195 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "mouseeffect.ts"
     },
     {
       "label": "MouseEffectOptions",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L7",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffectoptions",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "mouseeffectoptions"
+    },
+    {
+      "label": "placeholderDye",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_placeholderdye",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "placeholderdye"
+    },
+    {
+      "label": "hsvToRGB()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L71",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_hsvtorgb",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "hsvtorgb()"
     },
     {
       "label": "MouseEffect",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L12",
+      "source_location": "L89",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "mouseeffect"
     },
     {
       "label": ".constructor()",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L18",
+      "source_location": "L145",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect_constructor",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".constructor()"
+    },
+    {
+      "label": "._generateColor()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L179",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_generatecolor",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._generatecolor()"
+    },
+    {
+      "label": "._updateScreenTexel()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L188",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_updatescreentexel",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._updatescreentexel()"
+    },
+    {
+      "label": "._attachRenderer()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L203",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_attachrenderer",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._attachrenderer()"
+    },
+    {
+      "label": "._computeOptions()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L236",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_computeoptions",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._computeoptions()"
+    },
+    {
+      "label": "._syncDyeTexture()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L245",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_syncdyetexture",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._syncdyetexture()"
+    },
+    {
+      "label": "._rebuildFluid()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L251",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._rebuildfluid()"
+    },
+    {
+      "label": "._applyUnsupportedGUI()",
+      "file_type": "code",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L263",
+      "_origin": "ast",
+      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_applyunsupportedgui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
+      "norm_label": "._applyunsupportedgui()"
     },
     {
       "label": ".getConfig()",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L27",
+      "source_location": "L270",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect_getconfig",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 17,
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
-    },
-    {
-      "label": ".glowAt()",
-      "file_type": "code",
-      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L42",
-      "_origin": "ast",
-      "id": "src_effectslib_mouse_mouseeffect_mouseeffect_glowat",
-      "community": 70,
-      "community_name": "MouseEffect",
-      "norm_label": ".glowat()"
     },
     {
       "label": ".update()",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L52",
+      "source_location": "L313",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect_update",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".update()"
     },
     {
       "label": ".resize()",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L55",
+      "source_location": "L390",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect_resize",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".resize()"
     },
     {
       "label": ".setupGUI()",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L58",
+      "source_location": "L394",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect_setupgui",
-      "community": 73,
-      "community_name": "gui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".setupgui()"
     },
     {
       "label": ".dispose()",
       "file_type": "code",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L63",
+      "source_location": "L428",
       "_origin": "ast",
       "id": "src_effectslib_mouse_mouseeffect_mouseeffect_dispose",
-      "community": 70,
-      "community_name": "MouseEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".dispose()"
     },
     {
@@ -7927,7 +8565,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_index",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mouseflow/index.ts"
     },
     {
@@ -7938,7 +8576,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mousefloweffect.ts"
     },
     {
@@ -7949,7 +8587,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffectoptions",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mousefloweffectoptions"
     },
     {
@@ -7960,7 +8598,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": "mousefloweffect"
     },
     {
@@ -7971,7 +8609,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_constructor",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".constructor()"
     },
     {
@@ -7981,8 +8619,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_getconfig",
-      "community": 54,
-      "community_name": "effects-lib.ts",
+      "community": 17,
+      "community_name": "BaseEffectConfig",
       "norm_label": ".getconfig()"
     },
     {
@@ -7993,7 +8631,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_update",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".update()"
     },
     {
@@ -8004,7 +8642,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_setupgui",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".setupgui()"
     },
     {
@@ -8015,7 +8653,7 @@
       "_origin": "ast",
       "id": "src_effectslib_mouseflow_mousefloweffect_mousefloweffect_dispose",
       "community": 54,
-      "community_name": "effects-lib.ts",
+      "community_name": "MouseFlowEffect",
       "norm_label": ".dispose()"
     },
     {
@@ -8278,8 +8916,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "src_effectslib_pixeltrail_pixeltraileffect_pixeltraileffect_setupgui",
-      "community": 73,
-      "community_name": "gui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".setupgui()"
     },
     {
@@ -8300,8 +8938,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_ripple_index",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "ripple/index.ts"
     },
     {
@@ -8311,8 +8949,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "packing.ts"
     },
     {
@@ -8322,8 +8960,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing_packstate",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "packstate"
     },
     {
@@ -8333,8 +8971,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing_unpackh",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "unpackh"
     },
     {
@@ -8344,8 +8982,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_effectslib_ripple_packing_unpackhprev",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "unpackhprev"
     },
     {
@@ -8355,8 +8993,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleapply",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippleapply.ts"
     },
     {
@@ -8366,8 +9004,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleapply_rippleapplyoptions",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippleapplyoptions"
     },
     {
@@ -8377,8 +9015,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleapply_rippleapplynode",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippleapplynode()"
     },
     {
@@ -8388,8 +9026,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippleposteffect.ts"
     },
     {
@@ -8399,8 +9037,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffectoptions",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippleposteffectoptions"
     },
     {
@@ -8410,8 +9048,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_placeholdertexture",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "placeholdertexture"
     },
     {
@@ -8421,8 +9059,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippleposteffect"
     },
     {
@@ -8432,8 +9070,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_constructor",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -8443,8 +9081,8 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_buildsimnode",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".buildsimnode()"
     },
     {
@@ -8454,8 +9092,8 @@
       "source_location": "L165",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_maketarget",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".maketarget()"
     },
     {
@@ -8465,8 +9103,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_buildtargets",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".buildtargets()"
     },
     {
@@ -8476,8 +9114,8 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_cleartargets",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".cleartargets()"
     },
     {
@@ -8487,8 +9125,8 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_setrenderer",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "._setrenderer()"
     },
     {
@@ -8498,8 +9136,8 @@
       "source_location": "L221",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_getconfig",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".getconfig()"
     },
     {
@@ -8509,8 +9147,8 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_update",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".update()"
     },
     {
@@ -8520,8 +9158,8 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_setupgui",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".setupgui()"
     },
     {
@@ -8531,8 +9169,8 @@
       "source_location": "L323",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_resize",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".resize()"
     },
     {
@@ -8542,8 +9180,8 @@
       "source_location": "L327",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippleposteffect_rippleposteffect_dispose",
-      "community": 56,
-      "community_name": "RipplePostEffect",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".dispose()"
     },
     {
@@ -8553,8 +9191,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippletexture",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippletexture.ts"
     },
     {
@@ -8564,8 +9202,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_effectslib_ripple_rippletexture_rippletexture",
-      "community": 0,
-      "community_name": "ripple/index.ts",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": "rippletexture()"
     },
     {
@@ -8576,7 +9214,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_index",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursor/index.ts"
     },
     {
@@ -8587,7 +9225,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursoreffect.ts"
     },
     {
@@ -8598,7 +9236,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffectoptions",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursoreffectoptions"
     },
     {
@@ -8609,7 +9247,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursoreffect"
     },
     {
@@ -8620,7 +9258,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_constructor",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": ".constructor()"
     },
     {
@@ -8631,7 +9269,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_getconfig",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": ".getconfig()"
     },
     {
@@ -8642,7 +9280,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_update",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": ".update()"
     },
     {
@@ -8653,7 +9291,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_writeuniforms",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "._writeuniforms()"
     },
     {
@@ -8664,7 +9302,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_resetpoints",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "._resetpoints()"
     },
     {
@@ -8675,7 +9313,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_resize",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": ".resize()"
     },
     {
@@ -8685,8 +9323,8 @@
       "source_location": "L200",
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_setupgui",
-      "community": 73,
-      "community_name": "gui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".setupgui()"
     },
     {
@@ -8697,7 +9335,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursoreffect_smoothcursoreffect_dispose",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": ".dispose()"
     },
     {
@@ -8708,7 +9346,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursornode.ts"
     },
     {
@@ -8719,7 +9357,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode_smoothcursornodeuniforms",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursornodeuniforms"
     },
     {
@@ -8730,7 +9368,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode_segdist",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "segdist"
     },
     {
@@ -8741,7 +9379,7 @@
       "_origin": "ast",
       "id": "src_effectslib_smoothcursor_smoothcursornode_smoothcursornode",
       "community": 29,
-      "community_name": "SmoothCursorEffect",
+      "community_name": "effects-lib.ts",
       "norm_label": "smoothcursornode()"
     },
     {
@@ -9290,8 +9928,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_effectslib_stickerpeel_stickerpeel_stickerpeel_setupgui",
-      "community": 73,
-      "community_name": "gui",
+      "community": 29,
+      "community_name": "effects-lib.ts",
       "norm_label": ".setupgui()"
     },
     {
@@ -9444,8 +10082,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_types_planenodecontext",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 11,
+      "community_name": "src/index.ts",
       "norm_label": "planenodecontext"
     },
     {
@@ -9466,8 +10104,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "src_types_textstyleoverrides",
-      "community": 46,
-      "community_name": "text-padding.ts",
+      "community": 11,
+      "community_name": "src/index.ts",
       "norm_label": "textstyleoverrides"
     },
     {
@@ -12974,7 +13612,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L222",
+      "source_location": "L226",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -12985,7 +13623,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L91",
+      "source_location": "L92",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -12996,7 +13634,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L101",
+      "source_location": "L102",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13007,7 +13645,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L221",
+      "source_location": "L225",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13018,7 +13656,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13029,7 +13667,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L197",
+      "source_location": "L201",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13041,7 +13679,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13053,7 +13691,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13065,7 +13703,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13077,7 +13715,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13089,7 +13727,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13101,7 +13739,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13113,7 +13751,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13125,7 +13763,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13137,7 +13775,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13149,7 +13787,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L15",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13161,7 +13799,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L15",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13173,7 +13811,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13185,7 +13823,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13197,7 +13835,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13209,7 +13847,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13221,7 +13859,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13233,7 +13871,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13245,7 +13883,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13257,7 +13895,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13269,7 +13907,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13281,7 +13919,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13293,7 +13931,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L13",
+      "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib",
@@ -13305,7 +13943,7 @@
       "context": "field",
       "confidence": "EXTRACTED",
       "source_file": "example/src/effects-lib.ts",
-      "source_location": "L98",
+      "source_location": "L99",
       "weight": 1.0,
       "_origin": "ast",
       "source": "example_src_effects_lib_effectdef",
@@ -13354,7 +13992,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L59",
+      "source_location": "L395",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect_setupgui",
@@ -25410,7 +26048,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L5",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect",
@@ -25422,7 +26060,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L27",
+      "source_location": "L270",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect_getconfig",
@@ -25821,7 +26459,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L5",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect",
@@ -25833,7 +26471,7 @@
       "context": "type",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L12",
+      "source_location": "L89",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -26902,11 +27540,1235 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L44",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcomputeoptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidstepparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L69",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_mipmapawarestoragetexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L51",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_splatpoint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_advectionkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_clearkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_curlkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_divergencekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_fluiduniformarray",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_gradientsubtractkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_pressureclearkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_pressurejacobikernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_splat_velocity_y_sign",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_splatkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_vorticitykernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L259",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_rationale_259",
+      "target": "src_effectslib_mouse_fluidcompute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L36",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect",
+      "target": "src_effectslib_mouse_fluidcompute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L221",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_addsplat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L143",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_aspect",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L156",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L467",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_buildsplatuniforms",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L129",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L441",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_createtexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L268",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_dispose",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L139",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_dyetexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L436",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_effectiveiterations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L426",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_getresolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L462",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_gridof",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L482",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_release",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L211",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_setoptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L237",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_step",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L101",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "target": "src_effectslib_mouse_fluidkernels_fluiduniformarray",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L36",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L108",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L192",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L178",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_buildsplatuniforms",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L180",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_createtexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L163",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_effectiveiterations",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L161",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_getresolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L191",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_gridof",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L177",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_release",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L191",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "target": "src_effectslib_mouse_fluidkernels_clearkernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L213",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_setoptions",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L269",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_dispose",
+      "target": "src_effectslib_mouse_fluidcompute_fluidcompute_release",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L391",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_advectionkernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L334",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_curlkernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L350",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_divergencekernel"
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L381",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_gradientsubtractkernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L355",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_pressureclearkernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L369",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_pressurejacobikernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L305",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_splatkernel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L338",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_buildchain",
+      "target": "src_effectslib_mouse_fluidkernels_vorticitykernel"
+    },
+    {
+      "relation": "references",
+      "context": "return_type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L426",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_getresolution",
+      "target": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L441",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_createtexture",
+      "target": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "return_type",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidCompute.ts",
+      "source_location": "L462",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidcompute_fluidcompute_gridof",
+      "target": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L405",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_advectionkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L384",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_advectionkernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L163",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_clearkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L226",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_curlkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L220",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_curlkernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_dispatchcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L287",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_divergencekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L276",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_divergencekernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L69",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_fluidgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_fluiduniformarray",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L364",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_gradientsubtractkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L357",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_gradientsubtractkernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L109",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_kernelcoords",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L123",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L326",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_pressureclearkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L318",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_pressureclearkernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L342",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_pressurejacobikernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L334",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_pressurejacobikernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_splat_velocity_y_sign",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L195",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_splatkernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L170",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_splatkernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L100",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L90",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_texelcenter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_vorticity_force_y_sign",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L248",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_vorticitykernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L239",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_vorticitykernelparams",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels",
+      "target": "src_effectslib_mouse_fluidkernels_workgroup_size",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L152",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_makekernel",
+      "target": "src_effectslib_mouse_fluidkernels_dispatchcount",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L146",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_makekernel",
+      "target": "src_effectslib_mouse_fluidkernels_texelcenter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L102",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_tap",
+      "target": "src_effectslib_mouse_fluidkernels_texelcenter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L230",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_curlkernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L291",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_divergencekernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L369",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_gradientsubtractkernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L330",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_pressureclearkernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L347",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_pressurejacobikernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L199",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_splatkernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L253",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_vorticitykernel",
+      "target": "src_effectslib_mouse_fluidkernels_tap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L410",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_advectionkernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L164",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_clearkernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L229",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_curlkernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L290",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_divergencekernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L368",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_gradientsubtractkernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L329",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_pressureclearkernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L346",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_pressurejacobikernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L198",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_splatkernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/fluidKernels.ts",
+      "source_location": "L252",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_fluidkernels_vorticitykernel",
+      "target": "src_effectslib_mouse_fluidkernels_makekernel",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "re_exports",
       "context": "export",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/index.ts",
-      "source_location": "L1",
+      "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_index",
@@ -26918,7 +28780,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/index.ts",
-      "source_location": "L1",
+      "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_index",
@@ -26930,7 +28792,7 @@
       "context": "re-export",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/index.ts",
-      "source_location": "L1",
+      "source_location": "L8",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_index",
@@ -26941,7 +28803,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L12",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_hsvtorgb",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L89",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect",
@@ -26952,7 +28825,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L7",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect",
@@ -26960,11 +28833,22 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_placeholderdye",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L5",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect",
@@ -26972,10 +28856,55 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L181",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_generatecolor",
+      "target": "src_effectslib_mouse_mouseeffect_hsvtorgb",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L18",
+      "source_location": "L263",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_applyunsupportedgui",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L203",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_attachrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L236",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_computeoptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L145",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -26986,7 +28915,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L63",
+      "source_location": "L428",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -26997,7 +28926,18 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L27",
+      "source_location": "L179",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_generatecolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L270",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -27008,18 +28948,18 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L42",
+      "source_location": "L251",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
-      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_glowat",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
       "confidence_score": 1.0
     },
     {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L55",
+      "source_location": "L390",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -27030,7 +28970,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L58",
+      "source_location": "L394",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -27041,7 +28981,18 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L52",
+      "source_location": "L245",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_syncdyetexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L313",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
@@ -27049,15 +29000,170 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L188",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_updatescreentexel",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/effectsLib/mouse/mouseEffect.ts",
-      "source_location": "L31",
+      "source_location": "L166",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_getconfig",
-      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_glowat",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_constructor",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_generatecolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L328",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_update",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_generatecolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L229",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_attachrenderer",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_updatescreentexel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L256",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_updatescreentexel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L217",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_attachrenderer",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_applyunsupportedgui",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L226",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_attachrenderer",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_computeoptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L228",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_attachrenderer",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_syncdyetexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L253",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_computeoptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L255",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_syncdyetexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L386",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_update",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_syncdyetexture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L391",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_resize",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L399",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_setupgui",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_rebuildfluid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/effectsLib/mouse/mouseEffect.ts",
+      "source_location": "L423",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_effectslib_mouse_mouseeffect_mouseeffect_setupgui",
+      "target": "src_effectslib_mouse_mouseeffect_mouseeffect_applyunsupportedgui",
       "confidence_score": 1.0
     },
     {
@@ -32724,5 +34830,5 @@
       "source_file": "docs/guide/post-effects.md"
     }
   ],
-  "built_at_commit": "dcd4bf45ece4fe450c6e2c650633c8c7eef2b834"
+  "built_at_commit": "d7ac2ad6d44982448304e486b0c91368d46c554e"
 }

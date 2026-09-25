@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three/webgpu';
 import { PlaneComposer } from '../PlaneComposer';
 import type { EffectContext } from '../EffectComposer';
+import { vec4 } from 'three/tsl';
 
 function makeRenderer(): THREE.WebGPURenderer {
   let current: THREE.RenderTarget | null = null;
@@ -71,13 +72,23 @@ describe('PlaneComposer', () => {
     composer.dispose();
   });
 
-  it('displayMaterial は premultipliedAlpha:true で合成する（CR-03）', () => {
+  it('乗算済み RT の色を NodeMaterial の出力処理で再乗算せず合成する', () => {
     const sourceMesh = makeSourceMesh();
     const composer = new PlaneComposer(makeRenderer(), sourceMesh, 100, 50);
 
     const displayMaterial = getDisplayMaterial(composer);
-    expect(displayMaterial.premultipliedAlpha).toBe(true);
+    // 実際の NodeMaterial.setupOutput を通して追加の alpha 乗算ノードが
+    // 入らないことを検証する。material のフラグだけの検証では見逃していた回帰。
+    const input = vec4(0.4, 0.2, 0.1, 0.5);
+    expect(displayMaterial.setupOutput({} as THREE.NodeBuilder, input)).toBe(input);
     expect(displayMaterial.transparent).toBe(true);
+    expect(displayMaterial.blending).toBe(THREE.CustomBlending);
+    expect(displayMaterial.blendEquation).toBe(THREE.AddEquation);
+    expect(displayMaterial.blendSrc).toBe(THREE.OneFactor);
+    expect(displayMaterial.blendDst).toBe(THREE.OneMinusSrcAlphaFactor);
+    expect(displayMaterial.blendEquationAlpha).toBe(THREE.AddEquation);
+    expect(displayMaterial.blendSrcAlpha).toBe(THREE.OneFactor);
+    expect(displayMaterial.blendDstAlpha).toBe(THREE.OneMinusSrcAlphaFactor);
     composer.dispose();
   });
 
