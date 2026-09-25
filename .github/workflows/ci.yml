@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: three ${{ matrix.three }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # peerDependencies の three の範囲（>=0.181.0 <0.183.0）の両端を検証する。
+        # 範囲を広げるときはここに版を足し、全ジョブが通ることを確認してから package.json を変える。
+        include:
+          - three: 0.181.2
+            types: 0.181.0
+          - three: 0.182.0
+            types: 0.182.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install three ${{ matrix.three }}
+        run: npm install --no-save three@${{ matrix.three }} @types/three@${{ matrix.types }}
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: GPU regression (WebGPU / WebGL 2)
+        run: npm run test:gpu
+        env:
+          GPU_REGRESSION_REQUIRE_WEBGPU: '1'
