@@ -3,175 +3,272 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>NAGI 凪 — Digital Studio</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23efece4'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%231b1916' stroke-width='1.5'/%3E%3C/svg%3E"
-    />
+    <title>HALATION — 光の残響展 / An exhibition on the afterimage of light</title>
     <meta
       name="description"
-      content="domSyncGL で構築した、和の余白とミニマリズムを基調にしたデジタルスタジオのサンプルサイト。"
+      content="架空の展覧会「HALATION — 光の残響展」。光が去ったあとに残る滲みと残像をテーマにした 5 つの作品を、domSyncGL の WebGPU / WebGL 2 描画で構成したサンプルサイト。"
+    />
+    <meta name="theme-color" content="#07070a" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2307070a'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffd9a0'/%3E%3Crect x='3' y='15.4' width='26' height='1.2' fill='%23ff7a2e'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;500&family=Zen+Old+Mincho:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Zen+Old+Mincho:wght@400;500&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body>
-    <!-- WebGPU canvas mount。scrollSync が absolute 化して viewport に追従させる -->
-    <div id="gl"></div>
+  <body class="is-loading">
+    <a class="skip-link" href="#main">本文へスキップ</a>
 
-    <!-- カスタムカーソル -->
-    <div class="cursor" aria-hidden="true"></div>
+    <!-- WebGPU / WebGL 2 の canvas。装飾なので支援技術からは外す（情報はすべて DOM にある） -->
+    <div id="gl" aria-hidden="true"></div>
 
-    <!-- プリローダー -->
-    <div class="loader">
-      <div class="loader__inner">
-        <span class="loader__mark" aria-hidden="true">凪</span>
-        <span class="loader__count">000</span>
-      </div>
+    <!-- カスタムカーソル（精密ポインタかつ動きの抑制なしの時だけ main.ts が有効化） -->
+    <div class="cursor" aria-hidden="true">
+      <span class="cursor__dot"></span>
+      <span class="cursor__ring"><span class="cursor__label"></span></span>
     </div>
 
-    <!-- ナビ -->
+    <!-- ローダー。背景の黒と光漏れは GL の仕上げパスが描き、DOM は数字と文字だけ持つ -->
+    <div class="loader" role="status" aria-live="polite">
+      <p class="loader__brand"><span>HALATION</span><span lang="ja">光の残響展</span></p>
+      <p class="loader__count"><span class="js-loader-count">000</span><span class="loader__pct">%</span></p>
+      <p class="loader__note">
+        <span class="visually-hidden">読み込み中。</span>Calibrating the afterimage
+        <span lang="ja">— 残像を調律しています</span>
+      </p>
+    </div>
+
     <header class="nav">
-      <a class="nav__logo" href="#">NAGI<span class="nav__kanji">凪</span></a>
-      <nav class="nav__menu">
-        <a href="#work">Work</a>
-        <a href="#studio">Studio</a>
-        <a href="#contact">Contact</a>
+      <a class="nav__brand" href="#top" aria-label="HALATION 光の残響展 トップへ">
+        <span class="nav__mark" aria-hidden="true"></span>HALATION
+      </a>
+      <p class="nav__chapter" aria-hidden="true">
+        <span class="nav__chapter-no js-chapter-no">00</span>
+        <span class="nav__bar"><span class="nav__bar-fill js-progress"></span></span>
+        <span class="nav__chapter-name js-chapter-name">Prologue</span>
+      </p>
+      <nav class="nav__menu" aria-label="章">
+        <ol>
+          <li><a href="#manifesto"><span aria-hidden="true">01</span>Manifesto</a></li>
+          <li><a href="#exhibits"><span aria-hidden="true">02</span>Exhibits</a></li>
+          <li><a href="#process"><span aria-hidden="true">03</span>Process</a></li>
+          <li><a href="#figures"><span aria-hidden="true">04</span>Figures</a></li>
+          <li><a href="#visit"><span aria-hidden="true">05</span>Visit</a></li>
+        </ol>
       </nav>
-      <span class="nav__time">東京 — Est. MMXXVI</span>
     </header>
 
-    <main>
-      <!-- ヒーロー -->
-      <section class="hero">
-        <p class="hero__eyebrow" data-reveal>Digital Studio — 凪</p>
-        <h1 class="hero__title">
-          <span class="line" data-reveal>Calm</span>
-          <span class="line" data-reveal>surfaces,</span>
-          <span class="line" data-reveal><em>quietly</em> aligned.</span>
+    <main id="main">
+      <!-- 00 Prologue — ヒーロー -->
+      <section class="hero" id="top" data-chapter="00" data-name="Prologue" aria-labelledby="hero-title">
+        <div class="hero__top" data-intro>
+          <p class="label">An exhibition on the afterimage of light</p>
+          <p class="label hero__dates"><time datetime="2026-11-07">2026.11.07</time> — <time datetime="2027-02-14">2027.02.14</time></p>
+        </div>
+
+        <h1 class="hero__title" id="hero-title">
+          <!-- 文字は DomTextPlane で GL に焼かれ、ここは透明になる（読み上げ・選択はそのまま） -->
+          <span class="hero__title-en js-hero-title">HALATION</span>
+          <span class="hero__title-ja" data-intro lang="ja">光の残響展</span>
         </h1>
-        <div class="hero__meta">
-          <p data-reveal>
-            私たちは、DOM と光をひとつの面に静かに重ねるデジタルスタジオです。
-            余白と精度のあいだに、記憶に残る静けさを設計します。
+
+        <div class="hero__foot">
+          <p class="hero__lede" data-intro>
+            強い光はフィルムの奥で跳ね返り、輪郭の外側に赤い滲みを残す。
+            写真家が<em>ハレーション</em>と呼んだその滲みを手がかりに、
+            光が去ったあとに残るものを 5 つの部屋で辿る。
           </p>
-          <span class="hero__scroll" data-reveal>Scroll <span aria-hidden="true">↓</span></span>
+          <p class="hero__scroll label" data-intro aria-hidden="true">
+            <span class="hero__scroll-line"></span>Scroll to enter
+          </p>
         </div>
       </section>
 
-      <!-- マーキー -->
-      <div class="marquee" aria-hidden="true">
-        <div class="marquee__track">
-          <span>Creative Development</span><span class="marquee__dot">凪</span>
-          <span>WebGPU</span><span class="marquee__dot">凪</span>
-          <span>Art Direction</span><span class="marquee__dot">凪</span>
-          <span>Motion</span><span class="marquee__dot">凪</span>
-          <span>Creative Development</span><span class="marquee__dot">凪</span>
-          <span>WebGPU</span><span class="marquee__dot">凪</span>
-          <span>Art Direction</span><span class="marquee__dot">凪</span>
-          <span>Motion</span><span class="marquee__dot">凪</span>
+      <!-- 01 Manifesto -->
+      <section class="manifesto" id="manifesto" data-chapter="01" data-name="Manifesto" aria-labelledby="manifesto-title">
+        <header class="chapter-head" data-reveal>
+          <span class="label">01 — Manifesto</span>
+          <h2 class="chapter-head__title" id="manifesto-title">宣言</h2>
+        </header>
+        <div class="manifesto__body">
+          <div class="manifesto__flare js-flare" aria-hidden="true"></div>
+          <p class="manifesto__text js-manifesto" lang="en">
+            Light never leaves at once. It lingers in the emulsion, in the retina, in the
+            room after the lamp is out. This exhibition gathers five works that live in
+            that interval — the brief, glowing debt every bright thing leaves behind.
+          </p>
+          <p class="manifesto__ja" data-reveal>
+            光は一度には去らない。乳剤の奥に、網膜に、灯りを消したあとの部屋に、しばらく留まる。
+            本展は、その短い間に生まれる 5 つの作品を集めた。明るいものが必ず残していく、
+            淡く光る負債について。
+          </p>
+        </div>
+      </section>
+
+      <!-- 02 Exhibits — 縦スクロールを横移動に変換する固定ギャラリー -->
+      <section class="exhibits js-gallery" id="exhibits" data-chapter="02" data-name="Exhibits" aria-labelledby="exhibits-title">
+        <div class="exhibits__pin">
+          <header class="chapter-head exhibits__head" data-reveal>
+            <span class="label">02 — Exhibits</span>
+            <h2 class="chapter-head__title" id="exhibits-title">五つの残像 <span class="chapter-head__en">Five rooms, five afterimages</span></h2>
+          </header>
+
+          <ol class="exhibits__track js-track">
+            <li class="exhibit" data-cursor="Look">
+              <article aria-labelledby="ex1-title">
+                <div class="exhibit__art js-exhibit-art" data-art="caustic" role="img" aria-label="水底に揺れる金色の光の網目。青緑の暗がりの上で、焦線がゆっくりと形を変える。"></div>
+                <div class="exhibit__meta">
+                  <span class="exhibit__no label">E—01 · Room A</span>
+                  <h3 class="exhibit__title" id="ex1-title">Caustic Floor <span lang="ja">水底の焦線</span></h3>
+                  <p class="exhibit__desc">水面で屈折した光が床に描く網目を、水を使わずに再演する。立ち止まると、網目は足元へ寄ってくる。</p>
+                  <p class="exhibit__spec label">Real-time light / 11 min loop</p>
+                </div>
+              </article>
+            </li>
+            <li class="exhibit" data-cursor="Look">
+              <article aria-labelledby="ex2-title">
+                <div class="exhibit__art js-exhibit-art" data-art="aurora" role="img" aria-label="夜空に垂れる極光の緞帳。緑と青、裾に橙が混ざり、ゆっくり揺れる。"></div>
+                <div class="exhibit__meta">
+                  <span class="exhibit__no label">E—02 · Room B</span>
+                  <h3 class="exhibit__title" id="ex2-title">Aurora Curtain <span lang="ja">極光の緞帳</span></h3>
+                  <p class="exhibit__desc">高緯度の夜に一度だけ見た光を、記憶の解像度のまま吊るす。近づくほど、裾がそよぐ。</p>
+                  <p class="exhibit__spec label">Projection on scrim / 7.2 m</p>
+                </div>
+              </article>
+            </li>
+            <li class="exhibit" data-cursor="Look">
+              <article aria-labelledby="ex3-title">
+                <div class="exhibit__art js-exhibit-art" data-art="moire" role="img" aria-label="二組の同心円が重なって生まれる干渉縞。橙と水色の細い線がうねる。"></div>
+                <div class="exhibit__meta">
+                  <span class="exhibit__no label">E—03 · Room C</span>
+                  <h3 class="exhibit__title" id="ex3-title">Moiré Interference <span lang="ja">干渉縞</span></h3>
+                  <p class="exhibit__desc">二つの光源が互いを打ち消し、強め合う。見る人の位置が、三つ目の光源になる。</p>
+                  <p class="exhibit__spec label">Two lamps, one viewer</p>
+                </div>
+              </article>
+            </li>
+            <li class="exhibit" data-cursor="Look">
+              <article aria-labelledby="ex4-title">
+                <div class="exhibit__art js-exhibit-art" data-art="ink" role="img" aria-label="暗い水の中でほどける、光を含んだ朱色のインク。輪郭が金色に光る。"></div>
+                <div class="exhibit__meta">
+                  <span class="exhibit__no label">E—04 · Room D</span>
+                  <h3 class="exhibit__title" id="ex4-title">Ink in Water <span lang="ja">光の墨</span></h3>
+                  <p class="exhibit__desc">一滴の光が水に落ち、ほどけ、二度と同じ形に戻らない。残像だけが形を覚えている。</p>
+                  <p class="exhibit__spec label">Generative / never repeats</p>
+                </div>
+              </article>
+            </li>
+            <li class="exhibit" data-cursor="Look">
+              <article aria-labelledby="ex5-title">
+                <div class="exhibit__art js-exhibit-art" data-art="prism" role="img" aria-label="多面体の結晶の断面。面ごとに虹色に分光し、斜めに光の帯が通り過ぎる。"></div>
+                <div class="exhibit__meta">
+                  <span class="exhibit__no label">E—05 · Room E</span>
+                  <h3 class="exhibit__title" id="ex5-title">Prismatic Crystal <span lang="ja">分光する結晶</span></h3>
+                  <p class="exhibit__desc">白い光をほどくと、色は面の数だけ現れる。最後の部屋は、光の内訳を見せる。</p>
+                  <p class="exhibit__spec label">Faceted glass, 1 lamp</p>
+                </div>
+              </article>
+            </li>
+          </ol>
+
+          <div class="exhibits__progress" aria-hidden="true">
+            <span class="label js-gallery-count">01 / 05</span>
+            <span class="exhibits__rail"><span class="exhibits__rail-fill js-gallery-fill"></span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 Process — liquidSwap で制作段階を切り替える -->
+      <section class="process" id="process" data-chapter="03" data-name="Process" aria-labelledby="process-title">
+        <header class="chapter-head" data-reveal>
+          <span class="label">03 — Process</span>
+          <h2 class="chapter-head__title" id="process-title">光を設計する <span class="chapter-head__en">From sketch to afterimage</span></h2>
+        </header>
+        <div class="process__grid">
+          <div class="process__visual js-process-visual" data-cursor="Swap" role="img" aria-label="制作段階の図版。下のボタンで段階を切り替えられる。"></div>
+          <div class="process__side">
+            <div class="process__stages" role="group" aria-label="制作段階">
+              <button type="button" class="stage js-stage" aria-pressed="true" data-stage="0">
+                <span class="label">i</span>Sketch<span lang="ja">構図</span>
+              </button>
+              <button type="button" class="stage js-stage" aria-pressed="false" data-stage="1">
+                <span class="label">ii</span>Light test<span lang="ja">試光</span>
+              </button>
+              <button type="button" class="stage js-stage" aria-pressed="false" data-stage="2">
+                <span class="label">iii</span>Final<span lang="ja">完成</span>
+              </button>
+            </div>
+            <p class="process__caption js-stage-caption" aria-live="polite">
+              部屋の寸法と光源の位置を、鉛筆で何度も引き直す。残像の長さはこの段階で決まる。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 Figures — 数字は DomTextPlane で GL に焼き、光の帯を通す -->
+      <section class="figures" id="figures" data-chapter="04" data-name="Figures" aria-labelledby="figures-title">
+        <header class="chapter-head" data-reveal>
+          <span class="label">04 — Figures</span>
+          <h2 class="chapter-head__title" id="figures-title">数字で見る本展</h2>
+        </header>
+        <dl class="figures__list">
+          <div class="figure">
+            <dt class="figure__label label">Works of light <span lang="ja">作品</span></dt>
+            <dd class="figure__num js-figure">05</dd>
+          </div>
+          <div class="figure">
+            <dt class="figure__label label">Lumens at peak <span lang="ja">最大光束</span></dt>
+            <dd class="figure__num js-figure">2400</dd>
+          </div>
+          <div class="figure">
+            <dt class="figure__label label">Days open <span lang="ja">会期</span></dt>
+            <dd class="figure__num js-figure">100</dd>
+          </div>
+          <div class="figure">
+            <dt class="figure__label label">Seconds of afterimage <span lang="ja">平均残像</span></dt>
+            <dd class="figure__num js-figure">1.6</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+
+    <!-- 05 Visit -->
+    <footer class="visit" id="visit" data-chapter="05" data-name="Visit" aria-labelledby="visit-title">
+      <div class="visit__head" data-reveal>
+        <span class="label">05 — Visit</span>
+        <h2 class="visually-hidden" id="visit-title">来場案内</h2>
+      </div>
+      <p class="visit__giant js-visit-title" data-cursor="Stir">Linger.</p>
+      <div class="visit__grid">
+        <dl class="visit__info" data-reveal>
+          <div><dt class="label">Dates</dt><dd><time datetime="2026-11-07">2026.11.07</time> — <time datetime="2027-02-14">2027.02.14</time></dd></div>
+          <div><dt class="label">Hours</dt><dd>17:00 — 23:00 <span lang="ja">日没後のみ開館</span></dd></div>
+          <div><dt class="label">Venue</dt><dd>Kagerou Hall, Harbor District <span lang="ja">陽炎ホール（架空）</span></dd></div>
+        </dl>
+        <div class="visit__cta" data-reveal>
+          <a class="btn" href="mailto:tickets@halation.example">
+            <span>Reserve a time slot</span><span class="btn__arrow" aria-hidden="true">↗</span>
+          </a>
+          <p class="visit__note">本サイトは <strong>dom-sync-gl</strong> のサンプルです。展覧会・会場・人物はすべて架空です。</p>
         </div>
       </div>
-
-      <!-- マニフェスト -->
-      <section class="manifesto" id="studio">
-        <span class="section-index" data-reveal>(01) — 間 / Manifesto</span>
-        <p class="manifesto__text" data-reveal>
-          信じているのは、速さではなく<em>静けさ</em>。
-          一枚の DOM とひとつの光が寸分なく重なったとき、画面はただの情報から
-          <em>呼吸</em>へと変わる。凪は、その<em>ズレのなさ</em>に手間をかける。
-        </p>
-      </section>
-
-      <!-- Works -->
-      <section class="works" id="work">
-        <div class="works__head">
-          <span class="section-index" data-reveal>(02) — Selected Work</span>
-          <h2 class="works__title" data-reveal>Recent<br />Works</h2>
-        </div>
-
-        <article class="work" data-reveal>
-          <div class="work__visual"></div>
-          <div class="work__body">
-            <span class="work__no">01</span>
-            <h3 class="work__title">朝霧 <em>Asagiri</em></h3>
-            <p class="work__tags">WebGPU · Brand Site</p>
-            <span class="work__year">2026</span>
-          </div>
-        </article>
-
-        <article class="work work--alt" data-reveal>
-          <div class="work__visual"></div>
-          <div class="work__body">
-            <span class="work__no">02</span>
-            <h3 class="work__title">名残 <em>Nagori</em></h3>
-            <p class="work__tags">Art Direction · Motion</p>
-            <span class="work__year">2025</span>
-          </div>
-        </article>
-
-        <article class="work" data-reveal>
-          <div class="work__visual"></div>
-          <div class="work__body">
-            <span class="work__no">03</span>
-            <h3 class="work__title">雫 <em>Shizuku</em></h3>
-            <p class="work__tags">Creative Dev · Campaign</p>
-            <span class="work__year">2025</span>
-          </div>
-        </article>
-
-        <article class="work work--alt" data-reveal>
-          <div class="work__visual"></div>
-          <div class="work__body">
-            <span class="work__no">04</span>
-            <h3 class="work__title">月影 <em>Tsukikage</em></h3>
-            <p class="work__tags">WebGPU · Editorial</p>
-            <span class="work__year">2024</span>
-          </div>
-        </article>
-      </section>
-
-      <!-- DomTextPlane — テキストレイヤーも WebGPU 管理下に置くデモ -->
-      <!--
-        本文の p には data-reveal を付けない。DOM 側の opacity は GL の板には効かないので、
-        reveal 中に DOM だけ透明・GL の文字は出たまま、という食い違いが起きるため。
-        テキストは 1 行で書く。DomTextPlane は textContent をそのままラスタライズし、
-        改行を段落区切りとして扱うので、インデントの改行が空行になってしまう。
-      -->
-      <section class="text-planes" id="text">
-        <span class="section-index" data-reveal>(03) — DomTextPlane</span>
-        <p class="text-plane-demo">この段落は DOM のまま WebGPU のテクスチャへ焼かれ、板として描かれています。</p>
-        <p class="text-plane-fontface-demo">loadFont() — hover me.</p>
-      </section>
-
-      <!-- ケイパビリティ -->
-      <section class="caps">
-        <span class="section-index" data-reveal>(04) — Capabilities</span>
-        <ul class="caps__list">
-          <li data-reveal><span>01</span> Creative Development</li>
-          <li data-reveal><span>02</span> WebGPU / Shader 表現</li>
-          <li data-reveal><span>03</span> Art Direction</li>
-          <li data-reveal><span>04</span> Motion &amp; Interaction</li>
-        </ul>
-      </section>
-
-      <!-- フッター CTA -->
-      <footer class="footer" id="contact">
-        <p class="footer__index" data-reveal>(05) — ご挨拶</p>
-        <a class="footer__cta" href="mailto:hello@nagi.studio" data-reveal>
-          Let’s make<br />something <em>still</em>.
-        </a>
-        <div class="footer__base">
-          <span>© MMXXVI NAGI STUDIO</span>
-          <span>Built with domSyncGL</span>
-          <a href="mailto:hello@nagi.studio">hello@nagi.studio</a>
-        </div>
-      </footer>
-    </main>
+      <div class="visit__base">
+        <span class="label">© 2026 HALATION (fictional)</span>
+        <nav aria-label="検証ページ">
+          <ul class="visit__links">
+            <li><a href="./effects-lib.html">Effects library</a></li>
+            <li><a href="./text-padding.html">Text padding</a></li>
+            <li><a href="./dom-test.html">DOM attach</a></li>
+            <li><a href="./pause-offscreen.html">Pause offscreen</a></li>
+          </ul>
+        </nav>
+        <span class="label">Built with domSyncGL</span>
+      </div>
+    </footer>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

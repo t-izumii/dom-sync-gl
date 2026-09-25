@@ -1,366 +1,373 @@
-import { DomSyncGL, THREE, TSL, loadFont } from "dom-sync-gl";
+/**
+ * HALATION — 光の残響展（dom-sync-gl のメインサンプル）の入口。
+ *
+ * ここはライブラリの初期化と各モジュールの配線だけを持つ。
+ *   - site/ui/*   DOM 側（イントロ・章・マニフェスト・ギャラリー・カーソル）
+ *   - site/gl/*   GL 側（章ごとの板と文字）
+ *   - site/tsl/*  TSL のノード（背景・作品・文字・フレア・ノイズ）
+ *   - site/FinishEffect.ts  全画面の仕上げ post effect（イントロ遷移を含む）
+ *
+ * rAF はこのファイルの 1 本だけ。毎フレーム
+ *   Lenis でスクロールを確定 → DOM の配置（ギャラリーの横送り等）と共有 uniform を更新
+ *   → app.tick() で板の位置を読んで描画
+ * の順に進むので、DOM と GL が同じフレームの値で揃う。
+ */
+import { DomSyncGL } from "dom-sync-gl";
 import Lenis from "lenis";
 import type Stats from "stats.js";
 import type GUI from "lil-gui";
 import "lenis/dist/lenis.css";
-import { heroColorNode, workColorNode } from "./shaders";
-import { FilmEffect, TextHoverEffect } from "./effects";
-import "./style.css";
+import "./site/style.css";
 
-const { uniform } = TSL;
+import {
+  COARSE,
+  DEBUG,
+  FINE_POINTER,
+  MAX_DPR,
+  OCTAVES,
+  damp,
+  reducedMotionQuery,
+} from "./site/env";
+import { shared } from "./site/uniforms";
+import { FinishEffect } from "./site/FinishEffect";
+import { Intro } from "./site/ui/intro";
+import { Chapters } from "./site/ui/chapters";
+import { Manifesto } from "./site/ui/manifesto";
+import { Gallery } from "./site/ui/gallery";
+import { Cursor } from "./site/ui/cursor";
+import type { Part } from "./site/gl/common";
+import { createBackground, createHeroTitle, type HeroTitle } from "./site/gl/hero";
+import { createExhibits } from "./site/gl/exhibits";
+import { CAPTIONS, createProcess } from "./site/gl/process";
+import { createFigures, createManifestoFlare, createVisitTitle } from "./site/gl/sections";
+
+const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector<T>(sel);
+const $$ = <T extends HTMLElement = HTMLElement>(sel: string) =>
+  Array.from(document.querySelectorAll<T>(sel));
+
+const reduced = () => reducedMotionQuery.matches;
+
+// ページ全体のリスナーはこの signal にまとめ、破棄時に一括で外す
+const lifetime = new AbortController();
+const { signal } = lifetime;
 
 // ============================================================================
-// 環境フラグ（パフォーマンス / アクセシビリティの分岐）
-// ============================================================================
-const REDUCE_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const FINE_POINTER = matchMedia("(pointer: fine)").matches;
-const COARSE = matchMedia("(pointer: coarse)").matches;
-const MAX_DPR = COARSE ? 1.5 : 2;
-
-const lerp = (cur: number, to: number, k: number) => cur + (to - cur) * k;
-
-// ============================================================================
-// 1. スムーズスクロール（Lenis）は layout の関心事。ライブラリは持たないのでここで初期化する。
-//    autoRaf は使わず、rAF は下の 1 本のループが所有する（順序を仕組みで保証）。
+// 1. スムーズスクロール（Lenis）。autoRaf は使わず、下の 1 本のループが駆動する
 // ============================================================================
 const lenis = new Lenis({
   autoRaf: false,
-  smoothWheel: !REDUCE_MOTION,
+  smoothWheel: !reduced(),
+  // タッチはネイティブのまま（pull-to-refresh や慣性を殺さない）
   syncTouch: false,
 });
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) lenis.stop();
-  else lenis.start();
-});
+// イントロが終わるまでスクロールを止める
+lenis.stop();
+let scrollLocked = true;
 
-// ============================================================================
-// 2. DomSyncGL
-//    autoRaf: false ＝ 内部 rAF を止め、下のループから app.tick() で駆動する。
-//    stats.js / lil-gui はライブラリが持たない。使うかどうか・生成・DOM 挿入・
-//    破棄はすべて呼び出し元（ここ）の責務で、インスタンスを渡すだけ。
-// ============================================================================
-let stats: Stats | undefined;
-let gui: GUI | undefined;
-if (import.meta.env?.DEV) {
-  const { default: StatsCtor } = await import("stats.js");
-  stats = new StatsCtor();
-  stats.showPanel(0);
-  document.body.appendChild(stats.dom);
-
-  const { default: GUICtor } = await import("lil-gui");
-  gui = new GUICtor({ title: "Effects" });
-}
-
-const app = new DomSyncGL("#gl", {
-  // trackStrength: スクロール速度 strength を演出に流し込むので有効化する。
-  //   （false のままだと strength は常に 0 で、DEV では警告が出る）
-  // overscan は既定の 'auto' に任せる。coarse pointer では URL バーの伸縮で viewport 高が
-  //   変わるため上下に余白を持たせ、fine pointer では 0（＝オーバーヘッドなし）になる。
-  scrollSync: { trackStrength: true },
-  maxPixelRatio: MAX_DPR,
-  autoRaf: false,
-  stats,
-  gui,
-});
-
-// WebGPU の device 取得は非同期なので、rAF ループ開始前に初期化完了を待つ。
-// await しなくても render() は init 完了まで no-op で安全だが、待ってから
-// 始めることで初回フレームから確実に描画される。
-await app.ready;
-
-// 1 本の rAF で「Lenis → DomSyncGL」の順に駆動する。
-// lenis.raf() でスクロールを確定させた後に app.tick() が読むので、
-// 背景固定・DOM 追従の両方が同一フレームで同期する（ジッターが出ない）。
-const raf = (time: number) => {
-  lenis.raf(time);
-  app.tick(time);
-  requestAnimationFrame(raf);
-};
-requestAnimationFrame(raf);
-
-const scrollSync = app.getScrollSync();
-
-// ============================================================================
-// 3. ヒーローのフルスクリーン背景 plane（viewport 固定）
-//    DOM は透明にして canvas を覗かせる構成なので、これがページ全体の地になる。
-//    uTime / uResolution / uMouseUV は DomPlane が自動更新する。uStrength だけ手動。
-// ============================================================================
-// uniform ノードは createPlane に渡す前に作って参照を握っておき、
-// 毎フレーム `.value` を書き換える（material.uniforms のような参照経路は無い）。
-const heroStrength = uniform(0);
-const heroPlane = app.createPlane(null, {
-  colorNode: heroColorNode,
-  uniforms: {
-    uStrength: heroStrength,
+document.addEventListener(
+  "visibilitychange",
+  () => {
+    if (document.hidden) lenis.stop();
+    else if (!scrollLocked) lenis.start();
   },
-});
-// 背景は常に最背面。works の板を必ず上に重ねたいので renderOrder と深度設定で制御する。
-heroPlane.getMesh().renderOrder = -10;
-heroPlane.material.depthTest = false;
-heroPlane.material.depthWrite = false;
+  { signal },
+);
+
+// ページ内リンクは Lenis で送り、着地先へフォーカスも移す（スキップリンク・ナビ共通）
+document.addEventListener(
+  "click",
+  (e) => {
+    const a = (e.target as Element | null)?.closest<HTMLAnchorElement>('a[href^="#"]');
+    if (!a || scrollLocked) return;
+    const id = a.getAttribute("href")!;
+    const target = id === "#top" || id === "#" ? $("#top") : $(id);
+    if (!target) return;
+    e.preventDefault();
+    lenis.scrollTo(target, { immediate: reduced(), duration: 1.6 });
+    if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+    history.replaceState(null, "", id);
+  },
+  { signal },
+);
 
 // ============================================================================
-// 4. Works — 各 .work__visual を DOM にロックした procedural な板にする
+// 2. DOM 側のモジュール（GL の有無に関係なく動く）
 // ============================================================================
-type WorkState = {
-  el: HTMLElement;
-  plane: ReturnType<DomSyncGL["createPlane"]>;
-  // 毎フレーム `.value` を書き換える uniform ノードへの参照
-  uHover: THREE.UniformNode<number>;
-  uReveal: THREE.UniformNode<number>;
-  uStrength: THREE.UniformNode<number>;
-  hover: number;
-  hoverTarget: number;
-  reveal: number;
-  revealTarget: number;
-};
+const chapters = new Chapters();
+const manifestoEl = $(".js-manifesto");
+const manifesto = manifestoEl ? new Manifesto(manifestoEl) : null;
+const pinQuery = matchMedia("(min-width: 901px)");
+const galleryEl = $(".js-gallery");
+const gallery = galleryEl ? new Gallery(galleryEl, () => pinQuery.matches && !reduced()) : null;
 
-// 水墨のトーン。各 work は [濃い墨, 淡いトーン] の単色ベースで諧調を作る。
-const palettes: [number, number][] = [
-  [0x2a2722, 0xd8d2c6], // 暖墨 → 生成り
-  [0x23282b, 0xccd0cb], // 青墨 → 霧
-  [0x2b2620, 0xd9cdb6], // 焦茶 → 砂色
-  [0x21282b, 0xc6cecd], // 鉄紺 → 淡藍
-  [0x2c2622, 0xd4c8b6], // 墨 → 白茶
-];
+const cursorEl = $(".cursor");
+const cursor = cursorEl && FINE_POINTER && !reduced() ? new Cursor(cursorEl, signal) : null;
 
-const works: WorkState[] = [];
-
-document.querySelectorAll<HTMLElement>(".work").forEach((workEl, i) => {
-  const visual = workEl.querySelector<HTMLElement>(".work__visual");
-  if (!visual) return;
-
-  const [a, b] = palettes[i % palettes.length];
-
-  // JS から毎フレーム更新する uniform ノード（参照を WorkState に保持する）
-  const uHover = uniform(0);
-  const uReveal = uniform(0);
-  const uStrength = uniform(0);
-
-  const plane = app.createPlane(visual, {
-    colorNode: workColorNode,
-    updateRectEveryFrame: true, // sticky/CSS で動いても追従させる
-    inViewRepeat: true,
-    inViewRootMargin: "0px",
-    uniforms: {
-      uHover,
-      uReveal,
-      uStrength,
-      uColorA: uniform(new THREE.Color(a)),
-      uColorB: uniform(new THREE.Color(b)),
-      uSeed: uniform(i * 1.37 + 0.21),
-    },
-    onInView: () => (state.revealTarget = 1),
-    onOutView: () => (state.revealTarget = 0),
-  });
-  // 背景シェーダーの上に必ず描く
-  plane.getMesh().renderOrder = i + 1;
-  plane.material.depthTest = false;
-  plane.material.depthWrite = false;
-
-  const state: WorkState = {
-    el: workEl,
-    plane,
-    uHover,
-    uReveal,
-    uStrength,
-    hover: 0,
-    hoverTarget: 0,
-    reveal: 0,
-    revealTarget: 0,
-  };
-
-  // ホバー量は DOM の pointer で取る（CSS の is-hover と 1 つの状態で揃うので）。
-  // uMouseUV は PointerController が raycast して毎フレーム更新するため、ここでは触らない。
-  workEl.addEventListener("pointerenter", () => {
-    state.hoverTarget = 1;
-    workEl.classList.add("is-hover");
-  });
-  workEl.addEventListener("pointerleave", () => {
-    state.hoverTarget = 0;
-    workEl.classList.remove("is-hover");
-  });
-
-  works.push(state);
-});
-
-// ============================================================================
-// 5. DomTextPlane デモ — テキストレイヤーも WebGL 管理下に置く
-// ============================================================================
-const textDemoEl = document.querySelector<HTMLElement>(".text-plane-demo");
-if (textDemoEl) {
-  const textPlane = app.createTextPlane(textDemoEl, {
-    updateRectEveryFrame: true,
-  });
-  if (import.meta.env?.DEV) {
-    (window as unknown as { textPlane: typeof textPlane }).textPlane = textPlane;
-  }
-}
-
-// フォント動的ロードのデモ — フォントの取得・登録は DomTextPlane の責務ではなく
-// 独立ユーティリティ loadFont() の責務。取得（loadFont の呼び出し）と利用（それを
-// 待ってから createTextPlane を呼ぶ箇所）を分離し、Promise を変数にキャッシュしておく。
-// こうすると同じフォントを複数箇所で使う場合も、loadFont() 自身の重複フェッチ防止に
-// 加えて、呼び出し側は毎回同じ FontFaceSource を組み立て直す必要がなく確実に同じ
-// ロード結果を共有できる。
-// CSS 側（.text-plane-fontface-demo）で font-family: "DemoSpaceMono" を指定してあり、
-// font-size は clamp() の fluid 値（＝常に getComputedStyle 由来）で解決される。
-// URL は差し替え可能（woff2/woff/ttf の直リンク or CSS の url()/format() 構文）。
-// 下記は Google Fonts が配布する Space Mono（latin サブセット）の woff2 直リンク。
-// gstatic の URL は再ビルドで v14 → v17 のようにバージョンが上がって古い URL が 404 に
-// なるので、切れたら fonts.googleapis.com/css2?family=Space+Mono の中身を見て貼り直す。
-// ネットワークに依存するため、オフライン確認時は任意のローカル woff2 に差し替えてよい。
-// loadFont() は失敗しても reject せず warn するだけなので、落ちてもページは壊れず
-// CSS の fallback（ui-monospace）で描画される。
-const demoSpaceMonoReady = loadFont({
-  family: "DemoSpaceMono",
-  url: "https://fonts.gstatic.com/s/spacemono/v17/i7dPIFZifjKcF5UAWdDRYEF8RXi4EwQ.woff2",
-  weight: "400",
-  style: "normal",
-});
-
-const fontFaceDemoEl = document.querySelector<HTMLElement>(".text-plane-fontface-demo");
-if (fontFaceDemoEl) {
-  demoSpaceMonoReady.then(() => {
-    const fontFacePlane = app.createTextPlane(fontFaceDemoEl, {
-      updateRectEveryFrame: true,
-    });
-
-    // 動作確認用ホバー post effect。plane.isHovered() は PointerController が
-    // 自動でヒットテストして更新するので、DOM 側の pointerenter/leave は不要。
-    const textHover = new TextHoverEffect();
-    fontFacePlane.addEffect(textHover);
-    let textHoverValue = 0;
-    app.addUpdateCallback(() => {
-      const target = fontFacePlane.isHovered() ? 1 : 0;
-      textHoverValue = lerp(textHoverValue, target, 0.15);
-      textHover.setHover(textHoverValue);
-    });
-  });
-}
-
-// ============================================================================
-// 6. 仕上げ post effect（色収差 + グレイン + ビネット）
-// ============================================================================
-const film = new FilmEffect();
-app.addEffect(film);
-const syncEffectSize = () => film.setResolution(window.innerWidth, window.innerHeight);
-syncEffectSize();
-app.addResizeCallback(syncEffectSize);
-
-// ============================================================================
-// 7. 毎フレーム更新
-// ============================================================================
-let strength = 0;
-const EPS = 0.0005;
-
-app.addUpdateCallback(() => {
-  // スクロール速度（0..1）を緩めて伝播
-  const target = scrollSync ? scrollSync.strength : 0;
-  strength = lerp(strength, target, 0.25);
-  if (strength < EPS) strength = 0;
-
-  heroStrength.value = strength;
-  film.setStrength(strength);
-
-  for (const w of works) {
-    w.hover = lerp(w.hover, w.hoverTarget, 0.12);
-    w.reveal = lerp(w.reveal, w.revealTarget, 0.08);
-    w.uHover.value = w.hover;
-    w.uReveal.value = w.reveal;
-    w.uStrength.value = strength;
-  }
-});
-
-// レイアウト確定後に板の rect を取り直す（フォント適用・プリローダー解除のズレ対策）
-const refreshLayout = () => window.dispatchEvent(new Event("resize"));
-if (document.fonts?.ready) document.fonts.ready.then(refreshLayout);
-
-// ============================================================================
-// 8. DOM スクロールリビール（テキスト類）
-// ============================================================================
-const io = new IntersectionObserver(
+// スクロールで現れる DOM の文字
+const revealIO = new IntersectionObserver(
   (entries) => {
     for (const e of entries) {
-      if (e.isIntersecting) {
-        e.target.classList.add("is-in");
-        io.unobserve(e.target);
-      }
+      if (!e.isIntersecting) continue;
+      e.target.classList.add("is-in");
+      revealIO.unobserve(e.target);
     }
   },
-  { rootMargin: "0px 0px -12% 0px" }
+  { rootMargin: "0px 0px -12% 0px" },
 );
-document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
+$$("[data-reveal]").forEach((el) => revealIO.observe(el));
+
+let hero: HeroTitle | null = null;
+const intro = new Intro($(".loader")!, {
+  reduced,
+  onReveal: () => {
+    document.body.classList.remove("is-loading");
+    document.body.classList.add("is-ready");
+    // 本文が見えるようになってから測り直す（visibility の切り替えでは寸法は変わらないが、
+    // フォント適用後の最終レイアウトをここで確定させる）
+    relayout();
+    hero?.reveal();
+  },
+  onDone: () => {
+    scrollLocked = false;
+    lenis.start();
+    $(".loader")?.setAttribute("aria-hidden", "true");
+  },
+});
+
+/** レイアウトに依存する計測をまとめてやり直す。ギャラリーの高さが他の位置を動かすので先に測る */
+function relayout() {
+  gallery?.measure();
+  manifesto?.measure();
+  chapters.measure();
+  lenis.resize();
+}
+
+let resizeTimer = 0;
+window.addEventListener(
+  "resize",
+  () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(relayout, 120);
+  },
+  { signal },
+);
+pinQuery.addEventListener("change", relayout, { signal });
+
+// 動きの抑制を途中で切り替えた時も、静的な構成へ移る
+reducedMotionQuery.addEventListener(
+  "change",
+  () => {
+    lenis.options.smoothWheel = !reduced();
+    relayout();
+  },
+  { signal },
+);
 
 // ============================================================================
-// 9. カスタムカーソル
+// 3. DomSyncGL
 // ============================================================================
-const cursor = document.querySelector<HTMLElement>(".cursor");
-if (cursor && FINE_POINTER && !REDUCE_MOTION) {
-  // 自前カーソルを使う時だけネイティブカーソルを隠す（CSS の body.custom-cursor）
-  document.body.classList.add("custom-cursor");
-  let cx = window.innerWidth / 2;
-  let cy = window.innerHeight / 2;
-  let tx = cx;
-  let ty = cy;
-  let cursorRaf = 0;
+async function createApp(): Promise<DomSyncGL | null> {
+  let stats: Stats | undefined;
+  let gui: GUI | undefined;
+  if (DEBUG) {
+    const { default: StatsCtor } = await import("stats.js");
+    stats = new StatsCtor();
+    stats.showPanel(0);
+    document.body.appendChild(stats.dom);
+    const { default: GUICtor } = await import("lil-gui");
+    gui = new GUICtor({ title: "HALATION debug" });
+  }
 
-  window.addEventListener(
-    "pointermove",
-    (e) => {
-      tx = e.clientX;
-      ty = e.clientY;
-    },
-    { passive: true }
+  let app: DomSyncGL | null = null;
+  try {
+    app = new DomSyncGL("#gl", {
+      // trackStrength: スクロール速度 strength を仕上げパスの色収差に使う
+      scrollSync: { trackStrength: true },
+      maxPixelRatio: MAX_DPR,
+      autoRaf: false,
+      stats,
+      gui,
+      // ?backend=webgl で WebGL 2 フォールバックを確認できる
+      forceWebGL: new URLSearchParams(location.search).get("backend") === "webgl",
+    });
+    await app.ready;
+    return app;
+  } catch (err) {
+    // WebGPU も WebGL 2 も使えない: DOM だけで読める構成に倒す
+    console.warn("[HALATION] GL を初期化できないため DOM のみで表示します。", err);
+    app?.destroy();
+    document.documentElement.classList.add("no-gl");
+    return null;
+  }
+}
+
+/** ページで使うフォントを先に読む（DomTextPlane と Canvas 2D の図版が正しい字形で焼けるように） */
+function loadFonts(): Promise<void> {
+  const fonts = document.fonts;
+  if (!fonts) return Promise.resolve();
+  const faces = [
+    '400 100px "Instrument Serif"',
+    'italic 400 100px "Instrument Serif"',
+    '500 16px "JetBrains Mono"',
+    '400 16px "Inter Tight"',
+    '400 16px "Zen Old Mincho"',
+  ];
+  const all = Promise.all(faces.map((f) => fonts.load(f))).then(() => fonts.ready);
+  // フォント配信が遅い・落ちている時も 4 秒で先へ進む（fallback の字形で焼く）
+  const timeout = new Promise((resolve) => window.setTimeout(resolve, 4000));
+  return Promise.race([all, timeout]).then(
+    () => undefined,
+    () => undefined,
   );
-  document.querySelectorAll("a, button, .work").forEach((el) => {
-    el.addEventListener("pointerenter", () => cursor.classList.add("is-active"));
-    el.addEventListener("pointerleave", () => cursor.classList.remove("is-active"));
-  });
-
-  const renderCursor = () => {
-    cx = lerp(cx, tx, 0.18);
-    cy = lerp(cy, ty, 0.18);
-    cursor.style.transform = `translate(${cx}px, ${cy}px) translate(-50%, -50%)`;
-    cursorRaf = requestAnimationFrame(renderCursor);
-  };
-  renderCursor();
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      cancelAnimationFrame(cursorRaf);
-      cursorRaf = 0;
-    } else if (!cursorRaf) {
-      renderCursor();
-    }
-  });
-} else if (cursor) {
-  cursor.remove();
 }
 
 // ============================================================================
-// 10. プリローダー
+// 4. 1 本の rAF ループ
 // ============================================================================
-const loader = document.querySelector<HTMLElement>(".loader");
-const counter = document.querySelector<HTMLElement>(".loader__count");
-if (loader && counter) {
-  let n = 0;
-  const tick = () => {
-    n = Math.min(100, n + Math.ceil((100 - n) * 0.06) + 1);
-    counter.textContent = String(n).padStart(3, "0");
-    if (n < 100) {
-      requestAnimationFrame(tick);
-    } else {
-      loader.classList.add("is-done");
-      document.body.classList.add("is-ready");
-      refreshLayout();
-      setTimeout(() => loader.remove(), 900);
-    }
-  };
-  requestAnimationFrame(tick);
+let app: DomSyncGL | null = null;
+let finish: FinishEffect | null = null;
+const parts: Part[] = [];
+let velocity = 0;
+let speed = 0;
+let last = performance.now();
+let rafId = 0;
+
+// 動きの抑制中は時計を止め、見栄えのよい瞬間（14 秒時点）で静止させる
+shared.uClock.value = 14;
+
+const frame = (time: number) => {
+  rafId = requestAnimationFrame(frame);
+  // タブ復帰時の巨大な dt をそのまま積まない
+  const dt = Math.min(0.05, Math.max(0, (time - last) / 1000));
+  last = time;
+  const still = reduced();
+
+  lenis.raf(time);
+  const scrollY = window.scrollY;
+  const vh = window.innerHeight;
+
+  // --- DOM（GL が板の位置を読む前に書く） ---
+  intro.update(dt);
+  gallery?.update(scrollY);
+  manifesto?.update(scrollY, vh, still);
+  chapters.update(scrollY, vh);
+  cursor?.update(dt);
+
+  // --- 共有 uniform ---
+  if (!still) shared.uClock.value += dt;
+  // 符号付き速度は Lenis、速さの大きさはライブラリの scrollSync.strength から取る
+  const vTarget = still ? 0 : Math.max(-1, Math.min(1, (lenis.velocity || 0) / 55));
+  velocity = damp(velocity, vTarget, 7, dt);
+  shared.uVelocity.value = velocity;
+  const strength = still ? 0 : (app?.getScrollSync()?.strength ?? 0);
+  speed = damp(speed, strength, 8, dt);
+  shared.uSpeed.value = speed;
+  if (app && app.isPointerActive() && !COARSE) {
+    const m = app.getMouse();
+    const p = shared.uPointer.value;
+    p.set(damp(p.x, m.x, 2.5, dt), damp(p.y, m.y, 2.5, dt));
+  }
+  for (const part of parts) part.update(dt);
+
+  // --- GL ---
+  app?.tick(time);
+};
+rafId = requestAnimationFrame(frame);
+
+// ============================================================================
+// 5. GL シーンの構築（フォントと GL の準備を待ってから）
+// ============================================================================
+const [readyApp] = await Promise.all([createApp(), loadFonts()]);
+app = readyApp;
+relayout();
+
+if (app) {
+  const gl = app;
+  const hoverable = FINE_POINTER;
+
+  parts.push(createBackground(gl, OCTAVES));
+
+  const heroEl = $(".js-hero-title");
+  if (heroEl) {
+    hero = createHeroTitle(gl, heroEl, reduced);
+    parts.push(hero);
+  }
+
+  const flareEl = $(".js-flare");
+  if (flareEl && manifesto) {
+    parts.push(createManifestoFlare(gl, flareEl, () => manifesto.progress));
+  }
+
+  parts.push(
+    createExhibits(gl, $$(".js-exhibit-art"), {
+      octaves: OCTAVES,
+      reduced,
+      hoverable,
+      // 湾曲は横方向だけなので縦は粗くてよいが、PlaneGeometry は縦横同数になる
+      segments: COARSE ? 12 : 24,
+    }),
+  );
+
+  const visual = $(".js-process-visual");
+  if (visual) {
+    parts.push(
+      createProcess(gl, visual, $$<HTMLButtonElement>(".js-stage"), $(".js-stage-caption"), {
+        reduced,
+        signal,
+      }),
+    );
+  }
+
+  parts.push(createFigures(gl, $$(".js-figure"), reduced));
+
+  const visitEl = $(".js-visit-title");
+  if (visitEl) {
+    parts.push(createVisitTitle(gl, visitEl, { reduced, interactive: hoverable && !reduced() }));
+  }
+
+  // 仕上げパスは最後に繋ぐ（チェーンの末尾 = 画面に出る直前）
+  finish = gl.addEffect(new FinishEffect());
+  intro.attach(finish);
+  // 1 フレーム描いてから DOM の黒をやめて GL の光漏れを透かす
+  requestAnimationFrame(() => requestAnimationFrame(() => intro.handOver()));
+
+  if (DEBUG) (window as unknown as { app: DomSyncGL }).app = gl;
 } else {
-  document.body.classList.add("is-ready");
+  // GL なし: 段階ボタンは文言と状態だけ切り替える
+  const buttons = $$<HTMLButtonElement>(".js-stage");
+  const caption = $(".js-stage-caption");
+  buttons.forEach((b, i) =>
+    b.addEventListener(
+      "click",
+      () => {
+        buttons.forEach((o, k) => o.setAttribute("aria-pressed", String(k === i)));
+        if (caption) caption.textContent = CAPTIONS[i];
+      },
+      { signal },
+    ),
+  );
 }
 
-if (import.meta.env?.DEV) {
-  (window as unknown as { app: DomSyncGL }).app = app;
-}
+intro.setAssetsReady();
+
+// ============================================================================
+// 6. 破棄（bfcache に載る遷移では壊さない）
+// ============================================================================
+window.addEventListener(
+  "pagehide",
+  (e) => {
+    if (e.persisted) return;
+    cancelAnimationFrame(rafId);
+    window.clearTimeout(resizeTimer);
+    lifetime.abort();
+    revealIO.disconnect();
+    cursor?.destroy();
+    for (const part of parts) part.destroy?.();
+    parts.length = 0;
+    lenis.destroy();
+    app?.destroy();
+    app = null;
+  },
+  { signal },
+);

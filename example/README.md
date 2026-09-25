@@ -1,33 +1,51 @@
-# OBSCURA — domSyncGL sample
+# HALATION — 光の残響展 / domSyncGL sample
 
-`dom-sync-gl` を使って作ったアワードクラスのデジタルスタジオ風サンプルサイト。
-ライブラリの主要機能をひと通り使った構成になっている。
+`dom-sync-gl` のメインサンプル。架空の展覧会「HALATION — 光の残響展」のサイトを、
+ほぼ黒の地にハレーションの橙〜淡金とシアンの対旋律だけで組んでいる。
+画像・動画アセットは持たず、見えている光はすべて TSL シェーダー・Canvas 2D の図版・
+DOM から焼いた文字でできている（展覧会・会場・人物はすべて架空）。
 
-## 使っている機能
+## 章と使っている機能
 
-| 機能 | 使いどころ |
-|---|---|
-| `DomSyncGL({ scrollSync: { trackStrength: true, overscan: 'auto' } })` | スクロール同期 + スクロール速度の取得 + モバイルの URL バー対策 |
-| `autoRaf: false` + `app.tick(time)` | Lenis と 1 本の rAF に統合（`lenis.raf()` → `app.tick()` の順） |
-| `stats` / `gui` オプション | stats.js / lil-gui を DEV のみ動的 import して注入 |
-| `createPlane(null, …)` | ヒーローのフルスクリーン背景シェーダー（viewport 固定）|
-| `createPlane('.work__visual', …)` | 各 Work を DOM 要素にロックした procedural な板に |
-| `createTextPlane('.text-plane-demo', …)` | DOM のテキストを WebGL の板として描画 |
-| `loadFont()` + `createTextPlane` | Web フォントを動的ロードしてから板を作る |
-| `plane.addEffect(new TextHoverEffect())` | 板単位の post effect（`plane.isHovered()` の raycast 経路） |
-| `onInView` / `onOutView` | 画面内に入ったら下からワイプして出現 |
-| `addEffect(new FilmEffect())` | 色収差 + グレイン + ビネットの仕上げ post effect |
-| `addUpdateCallback` / `addResizeCallback` | 毎フレ uniform 更新・解像度同期 |
+| 章 | 内容 | 主なライブラリ機能 |
+|---|---|---|
+| ローダー / イントロ | 百分率カウンタ、黒地に育つ光漏れ、ノイズ境界で溶けて本編へ移るハレーションのバースト | `addEffect(new FinishEffect())`（`BaseEffect` 継承）の uniform を `setUniform` で駆動 |
+| 00 Prologue | 全画面の「光の場」（ドメインワープした fbm の霧・アナモルフィックのストリーク・芯の外側の赤い滲み）。見出し HALATION はポインタで屈折し RGB が分かれる | `createPlane(null, …)` / `createTextPlane` + 独自 `colorNode`（`uTexture` `uMouseUV`）/ `isHovered()` |
+| 01 Manifesto | 読み進めた語から点灯する本文（DOM、CSS 変数で制御）と、その位置に灯る横一文字のフレア | DOM ロックした `createPlane` + 加算合成（`material.blending`） |
+| 02 Exhibits | 縦スクロールを横移動に変換する固定ギャラリー。5 作品（Caustic / Aurora / Moiré / Ink / Prism）それぞれの作品シェーダー、斜めのワイプで出現、ホバーでレンズ、スクロール速度で板がしなる | `updateRectEveryFrame` / `positionNode` + `segments` / `onInView`（`inViewRootMargin: '0px'`）/ `uMouseUV` |
+| 03 Process | 制作段階（Sketch → Light test → Final）を液体ガラス越しに切り替え。図版は Canvas 2D で生成 | effectsLib の `LiquidSwap`（`planeOptions()`）|
+| 04 Figures | 数字を GL に焼き、光の帯を通す | `createTextPlane` + `refreshStyleOnResize` |
+| 05 Visit | 巨大な「Linger.」をポインタでかき混ぜる | `createTextPlane` + 板単位の `plane.addEffect(new MouseFlowEffect())`（effectsLib）|
+| 全体 | Lenis と 1 本の rAF、章ごとに移る光の色、スクロール速度で強まる色収差、グレイン・走査線・ビネット、章表示付きのナビ、カスタムカーソル | `autoRaf: false` + `tick()` / `scrollSync: { trackStrength: true }` の `strength` / `isPointerActive()` `getMouse()` |
 
-スムーズスクロールの Lenis はライブラリではなく example 側の依存。`main.ts` が
-`new Lenis({ autoRaf: false })` を生成し、1 本の rAF で `lenis.raf(time)` → `app.tick(time)`
-の順に駆動している（この順序でスクロール確定後の値を WebGL が読むのでズレない）。
+### 1 本のループ
 
-スクロール速度 (`scrollSync.strength`) を背景・Work・post effect の各 uniform に流し、
-速く動かすほど色収差と色味が強まるようにしている。
+`main.ts` の rAF が毎フレーム
 
-DOM は基本的に透明にして canvas を覗かせる構成。背景シェーダーをページ全体の地として使い、
-`renderOrder` で Work の板を必ず手前に重ねている。
+1. `lenis.raf(time)` でスクロールを確定し、
+2. DOM を書く（ギャラリーの横送り・語の点灯・章表示・カーソル）と同時に、共有 uniform
+   （`site/uniforms.ts`: 時計・符号付き速度・章の色など）を更新し、
+3. `app.tick(time)` で板の位置を読み直して描画する。
+
+ギャラリーの track の `transform` は `tick()` より前に書くので、`updateRectEveryFrame` の
+板は同じフレームの位置を読む。Lenis / DomSyncGL / カーソルのどれも独自の rAF を持たない。
+
+### 端末・設定による分岐
+
+- `prefers-reduced-motion: reduce`: スムーズスクロールを切り、ギャラリーを固定せず縦に並べ、
+  シェーダーの時計を止めて静止した一枚にする（途中の切り替えにも追従）。イントロは短いフェードだけ。
+- タッチ（`pointer: coarse`）: カスタムカーソルなし、fbm のオクターブ数と板の分割数を下げ、DPR 上限 1.5。
+- 幅 900px 以下: ギャラリーを縦並びに、ナビは章表示だけに。375px 幅まで横はみ出しなし。
+- GL を初期化できない環境: `html.no-gl` で DOM と CSS のグラデーションだけで読める構成に倒す
+  （文字の板を作らないので DOM の文字がそのまま見える）。
+- `?debug` で stats.js / lil-gui、`?backend=webgl` で WebGL 2 フォールバックを強制。
+
+### ライブラリの既知の問題への回避策
+
+板単位の effect チェーン（`plane.addEffect`）を通した板が上下反転して表示される
+（WebGPU / WebGL 2 の両方で再現。原因は未特定だが、`PlaneComposer` の表示用マテリアルが RT を
+plane の UV のまま読んでいることが疑わしい）。Visit の見出しでは
+`site/FlipYEffect.ts` をチェーン末尾に足して打ち消している。ライブラリ側で直したら外す。
 
 ## 起動
 
@@ -44,7 +62,7 @@ npm run example:build    # example/dist へ静的ビルド
 
 ## 検証ページ
 
-`index.html`（OBSCURA サイト）のほかに、個別機能の動作確認ページがある。
+`index.html`（HALATION）のほかに、個別機能の動作確認ページがある。
 いずれも `vite.config.ts` の `rollupOptions.input` に入口として登録済み。
 
 | パス | 何を確認するか |
@@ -78,14 +96,21 @@ npm run example:build    # example/dist へ静的ビルド
 
 ```
 example/
-├─ index.html        マークアップ
-├─ vite.config.ts    root + dom-sync-gl alias
-├─ tsconfig.json     alias と同じ解決を tsc / エディタにも与える
+├─ index.html              HALATION のマークアップ
+├─ vite.config.ts          root + dom-sync-gl alias + マルチページ入口
+├─ tsconfig.json           alias と同じ解決を tsc / エディタにも与える
 └─ src/
-   ├─ main.ts        ライブラリの初期化・配線
-   ├─ shaders.ts     hero / work / textHover / film の GLSL
-   ├─ effects.ts     FilmEffect / TextHoverEffect (BaseEffect 継承)
-   └─ style.css      スタイル
+   ├─ main.ts              ライブラリの初期化・1 本の rAF・各モジュールの配線
+   └─ site/
+      ├─ env.ts            環境フラグ（動きの抑制・ポインタ・DPR・オクターブ数）と補間関数
+      ├─ uniforms.ts       全マテリアルで共有する uniform（時計・速度・章の色）
+      ├─ FinishEffect.ts   仕上げ post effect（色収差・走査線・グレイン・イントロ遷移）
+      ├─ FlipYEffect.ts    板単位 effect の上下反転の回避策
+      ├─ textures.ts       Process の図版（Canvas 2D）
+      ├─ style.css         スタイル
+      ├─ tsl/              TSL ノード（noise / background / exhibits / type / flare）
+      ├─ gl/               章ごとの GL パーツ（hero / exhibits / process / sections）
+      └─ ui/               DOM 側（intro / chapters / manifesto / gallery / cursor）
 ```
 
 `tsconfig.json` の `paths` は `vite.config.ts` の alias と同じく `dom-sync-gl` を `../src` に
