@@ -63,8 +63,9 @@ export class EffectManager {
 
     effect._attachRenderer(this.renderer);
     effect._setRenderer?.(this.renderer);
-    effect._register(this.internalComposer);
+    // getConfig() からも実サイズを読めるよう、register より先にサイズを渡す（DomPlane と同じ順序）。
     effect._setSize(width, height);
+    effect._register(this.internalComposer);
     effect.resize?.(width, height);
 
     if (this.gui && effect.setupGUI) {

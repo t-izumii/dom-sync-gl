@@ -268,18 +268,10 @@ export class DomSyncGL {
     if (this.destroyed) {
       throw new Error('[DomSyncGL] createPlane(): cannot be used on a destroyed instance.');
     }
-    let element: HTMLElement | null = null;
-
-    if (selector !== null && selector !== undefined) {
-      element =
-        typeof selector === 'string'
-          ? (document.querySelector(selector) as HTMLElement)
-          : selector;
-
-      if (!element) {
-        throw new Error(`Element not found: ${selector}`);
-      }
-    }
+    const element =
+      selector === null || selector === undefined
+        ? null
+        : this.resolveElement(selector, 'createPlane');
 
     const domPlane = new DomPlane(
       element,
@@ -313,13 +305,7 @@ export class DomSyncGL {
     if (this.destroyed) {
       throw new Error('[DomSyncGL] createTextPlane(): cannot be used on a destroyed instance.');
     }
-    const element =
-      typeof selector === 'string'
-        ? (document.querySelector(selector) as HTMLElement | null)
-        : selector;
-    if (!element) {
-      throw new Error(`Element not found: ${selector}`);
-    }
+    const element = this.resolveElement(selector, 'createTextPlane');
 
     const plane = new DomTextPlane(
       element,
@@ -338,6 +324,17 @@ export class DomSyncGL {
     this.domPlaneByMesh.set(mesh, plane);
     plane._setOnDestroy(() => this.unregisterPlane(plane));
     return plane;
+  }
+
+  private resolveElement(selector: string | HTMLElement, caller: string): HTMLElement {
+    const element =
+      typeof selector === 'string'
+        ? document.querySelector<HTMLElement>(selector)
+        : selector;
+    if (!element) {
+      throw new Error(`[DomSyncGL] ${caller}(): Element not found: ${selector}`);
+    }
+    return element;
   }
 
   // 生成時に登録する解除 callback の実体。destroy() 経由で呼ばれ、二重管理を避ける。
@@ -366,17 +363,10 @@ export class DomSyncGL {
     if (this.destroyed) {
       throw new Error('[DomSyncGL] create3DObject(): cannot be used on a destroyed instance.');
     }
-    let element: HTMLElement | null = null;
-
-    if (selector !== null && selector !== undefined) {
-      element =
-        typeof selector === 'string'
-          ? (document.querySelector(selector) as HTMLElement | null)
-          : selector;
-      if (!element) {
-        throw new Error(`Element not found: ${selector}`);
-      }
-    }
+    const element =
+      selector === null || selector === undefined
+        ? null
+        : this.resolveElement(selector, 'create3DObject');
 
     const dom3DObject = new Dom3DObject(
       element,

@@ -141,12 +141,12 @@ export class ScrollSync {
     }
 
     this.container.style.width = `${this._viewportWidth}px`;
-    this.container.style.top = `${this._overscan === 0 ? 0 : -this._overscan}px`;
+    this.container.style.top = `${this.baseTop()}px`;
     this.container.style.height = `${this._viewportHeight + 2 * this._overscan}px`;
 
     this._logicalRect = new DOMRect(
       0,
-      this._overscan === 0 ? 0 : -this._overscan,
+      this.baseTop(),
       this._viewportWidth,
       this._viewportHeight + 2 * this._overscan,
     );
@@ -157,6 +157,11 @@ export class ScrollSync {
     this._lastRawX = NaN;
     this._lastRawY = NaN;
     this.applyTransform(window.scrollX, ScrollSync.computeEffectiveScrollY());
+  }
+
+  // translate モードで container を置く viewport 上の top。0 のとき -0 を避ける。
+  private baseTop(): number {
+    return this._overscan === 0 ? 0 : -this._overscan;
   }
 
   update(scrollX: number, scrollY: number): void {
@@ -195,6 +200,10 @@ export class ScrollSync {
         }
       }
     }
+
+    // 末尾でクランプした分だけ container はスクロールに追従せず上へずれる。
+    // plane/object は logicalRect を canvas の viewport 位置として使うため、ずれを反映する。
+    this._logicalRect.y = this.baseTop() - (scrollY - effectiveY);
 
     if (scrollX === this._lastAppliedX && effectiveY === this._lastAppliedY) return;
     this._lastAppliedX = scrollX;

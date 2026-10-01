@@ -55,7 +55,10 @@ async function loadSingleFontFace(src: FontFaceSource): Promise<void> {
     descriptors.style = src.style;
   }
   // 単一 URL でも CSS source 構文（url(...)）でもよいよう url() で包む。
-  const source = /^\s*(url|local)\(/i.test(src.url) ? src.url : `url(${src.url})`;
+  // 空白・括弧・引用符を含む URL でも壊れないよう、引用符付きの文字列として渡す。
+  const source = /^\s*(url|local)\(/i.test(src.url)
+    ? src.url
+    : `url(${JSON.stringify(src.url)})`;
   const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
   const face = new FontFace(src.family, source, descriptors);
   await face.load();
