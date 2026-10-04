@@ -20,7 +20,6 @@ export function rippleTexture(options: {
   uDamping?: UniformNode<number>;
   uSplatRadius?: UniformNode<number>;
   uSplatStrength?: UniformNode<number>;
-  drawUniforms?: Record<string, UniformNode<number>>;
   guiLabel?: string;
 } = {}): AddFeedbackOptions {
   const guiLabel = options.guiLabel ?? '波紋 (Ripple / feedback)';
