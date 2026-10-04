@@ -38,6 +38,9 @@ export class TrailTexture {
   private trail: TrailPoint[] = [];
   private force = 0;
   private _disposed = false;
+  // canvas が黒一色でアップロード済みか。静止中に消去と再アップロードを
+  // 毎フレーム繰り返さないための目印。
+  private _blank = true;
 
   constructor(options: TrailTextureOptions = {}) {
     this.size = Math.max(8, Math.floor(options.size ?? 128));
@@ -96,8 +99,6 @@ export class TrailTexture {
   update(dt: number): void {
     if (this._disposed) return;
 
-    this.clearCanvas();
-
     const ageMs = dt * 1000;
     const alive: TrailPoint[] = [];
     for (const point of this.trail) {
@@ -105,12 +106,17 @@ export class TrailTexture {
       if (point.age <= this.maxAge) alive.push(point);
     }
     this.trail = alive;
-    if (this.trail.length === 0) this.force = 0;
+    if (this.trail.length === 0) {
+      this.force = 0;
+      if (this._blank) return;
+    }
 
+    this.clearCanvas();
     for (const point of this.trail) {
       this.drawTouch(point);
     }
     this.texture.needsUpdate = true;
+    this._blank = this.trail.length === 0;
   }
 
   clear(): void {
@@ -119,6 +125,7 @@ export class TrailTexture {
     this.force = 0;
     this.clearCanvas();
     this.texture.needsUpdate = true;
+    this._blank = true;
   }
 
   dispose(): void {

@@ -179,8 +179,13 @@ export class RipplePostEffect extends BaseEffect {
   private buildTargets(aspect: number): void {
     if (!this.renderer) return;
 
-    this._gridW = Math.max(16, Math.round(this.resolution));
-    this._gridH = Math.max(16, Math.round(this.resolution / aspect));
+    const gridW = Math.max(16, Math.round(this.resolution));
+    const gridH = Math.max(16, Math.round(this.resolution / aspect));
+    // 作り直すと波がすべて消える。URL バーの伸縮のようにグリッドが変わらない
+    // リサイズや、登録時の _setRenderer() → resize() の二重呼び出しでは保つ。
+    if (this.read && gridW === this._gridW && gridH === this._gridH) return;
+    this._gridW = gridW;
+    this._gridH = gridH;
 
     this.read?.dispose();
     this.write?.dispose();

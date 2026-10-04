@@ -373,6 +373,43 @@ describe('ScrollSync', () => {
     });
   });
 
+  describe('ページ末尾のクランプ', () => {
+    // offsetParent の高さ 3000、viewport 800、overscan 50 → maxY = 3000 - 800 - 50 = 2150。
+    const setup = () => {
+      Object.defineProperty(container, 'offsetParent', {
+        value: document.body,
+        configurable: true,
+      });
+      Object.defineProperty(document.body, 'offsetHeight', {
+        value: 3000,
+        configurable: true,
+      });
+      return new ScrollSync(container, { overscan: 50 });
+    };
+
+    afterEach(() => {
+      Reflect.deleteProperty(document.body, 'offsetHeight');
+    });
+
+    it('クランプしない範囲では logicalRect.y は overscan 位置のまま', () => {
+      const sync = setup();
+      sync.update(0, 2000);
+      expect(container.style.transform).toBe('translate3d(0px, 2000px, 0)');
+      expect(sync.logicalRect.y).toBe(-50);
+    });
+
+    it('クランプした分だけ logicalRect.y を上へずらし、canvas の実位置と一致させる', () => {
+      const sync = setup();
+      sync.update(0, 2200);
+      expect(container.style.transform).toBe('translate3d(0px, 2150px, 0)');
+      // container は 50px ぶん追従しないので、viewport 上の top は -50 - 50 = -100。
+      expect(sync.logicalRect.y).toBe(-100);
+
+      sync.update(0, 2100);
+      expect(sync.logicalRect.y).toBe(-50);
+    });
+  });
+
   describe("attach: 'dom'", () => {
     // jsdom は getBoundingClientRect が 0 を返すので、container の box を mock する。
     const mockBCR = (rect: DOMRect) => {

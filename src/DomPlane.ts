@@ -516,7 +516,6 @@ export class DomPlane {
     effect._attachRenderer(this.renderer, true);
     effect._setRenderer?.(this.renderer);
     effect._register(composer);
-    effect._setSize(rect.width, rect.height);
     effect.resize?.(rect.width, rect.height);
     if (this.gui && effect.setupGUI) {
       const folder = effect.setupGUI(this.gui);

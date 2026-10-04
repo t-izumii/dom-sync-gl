@@ -43,7 +43,7 @@ describe("loadFont", () => {
 
     expect(created).toHaveLength(1);
     expect(created[0].family).toBe("Single");
-    expect(created[0].source).toBe("url(/single.woff2)");
+    expect(created[0].source).toBe('url("/single.woff2")');
     expect(loadMock).toHaveBeenCalledTimes(1);
     expect(addMock).toHaveBeenCalledTimes(1);
   });
@@ -76,10 +76,28 @@ describe("loadFont", () => {
 
     expect(created).toHaveLength(1);
     expect(created[0].family).toBe("Custom");
-    expect(created[0].source).toBe("url(/custom.woff2)");
+    expect(created[0].source).toBe('url("/custom.woff2")');
     expect(created[0].descriptors).toMatchObject({ weight: "700", style: "italic" });
     expect(loadMock).toHaveBeenCalledTimes(1);
     expect(addMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("空白や括弧を含む URL も引用符で包んで渡す", async () => {
+    const created: string[] = [];
+    class MockFontFace {
+      load = vi.fn().mockResolvedValue(undefined);
+      constructor(_family: string, source: string) {
+        created.push(source);
+      }
+    }
+    vi.stubGlobal("FontFace", MockFontFace);
+    Object.defineProperty(document, "fonts", {
+      value: { add: vi.fn(), status: "loading", ready: Promise.resolve(), load: vi.fn() },
+      configurable: true,
+    });
+
+    await loadFont([{ family: "A", url: '/fonts/My Font (1)".woff2' }]);
+    expect(created[0]).toBe('url("/fonts/My Font (1)\\".woff2")');
   });
 
   it("url() / local() 構文の文字列はそのまま渡す", async () => {

@@ -136,7 +136,10 @@ export class MouseEffect extends BaseEffect {
   private readonly _pointerColor = new THREE.Color();
   private _colorTimer = 0;
 
-  private readonly _pendingClicks: Array<{ x: number; y: number }> = [];
+  // 押された回数だけ数え、位置は update() で owner から受け取るマウス UV を使う。
+  // clientX / innerWidth で正規化すると、overscan で viewport より大きい canvas や
+  // plane に付けた場合に座標系がずれるため。
+  private _pendingClicks = 0;
   private readonly _abort = new AbortController();
 
   private readonly _tmpColor = new THREE.Color();
@@ -167,10 +170,8 @@ export class MouseEffect extends BaseEffect {
 
     window.addEventListener(
       'pointerdown',
-      (e) => {
-        const w = window.innerWidth || 1;
-        const h = window.innerHeight || 1;
-        this._pendingClicks.push({ x: e.clientX / w, y: e.clientY / h });
+      () => {
+        this._pendingClicks++;
       },
       { signal: this._abort.signal },
     );
@@ -337,11 +338,13 @@ export class MouseEffect extends BaseEffect {
     let splatRadius = this.radius / 100;
     if (aspect > 1) splatRadius *= aspect;
 
-    for (const click of this._pendingClicks) {
+    const m = mouse ?? this._prevMouse;
+
+    for (let i = 0; i < this._pendingClicks; i++) {
       this._generateColor(this._tmpColor).multiplyScalar(10);
       fluid.addSplat({
-        x: click.x,
-        y: click.y,
+        x: m.x,
+        y: m.y,
         dx: 10 * (Math.random() - 0.5),
         dy: 30 * (Math.random() - 0.5),
         r: this._tmpColor.r,
@@ -349,12 +352,13 @@ export class MouseEffect extends BaseEffect {
         b: this._tmpColor.b,
         radius: splatRadius,
       });
-      this._prevMouse.set(click.x, click.y);
-      this._hasPrevMouse = true;
     }
-    this._pendingClicks.length = 0;
-
-    const m = mouse ?? this._prevMouse;
+    if (this._pendingClicks > 0) {
+      // タップで位置が飛んだぶんを、下の移動の splat で速度として足さない。
+      this._prevMouse.copy(m);
+      this._hasPrevMouse = true;
+      this._pendingClicks = 0;
+    }
     if (this._hasPrevMouse) {
       let dx = m.x - this._prevMouse.x;
       let dy = m.y - this._prevMouse.y;
@@ -395,7 +399,7 @@ export class MouseEffect extends BaseEffect {
     this._lastTime = time;
     this._prevMouse.copy(mouse);
     this._hasPrevMouse = true;
-    this._pendingClicks.length = 0;
+    this._pendingClicks = 0;
   }
 
   setupGUI(gui: GUI): GUI {
@@ -436,7 +440,7 @@ export class MouseEffect extends BaseEffect {
     this._localDisposed = true;
     this._computeReady = false;
     this._abort.abort();
-    this._pendingClicks.length = 0;
+    this._pendingClicks = 0;
     // BaseEffect._dispose() は _disposeFeedback() で glRenderer を null にしてから
     // ここへ来るため、renderer には依存しない（FluidCompute が自前保持している）。
     this.fluid?.dispose();

@@ -124,9 +124,6 @@ export class EffectComposer implements EffectTarget, EffectLike {
       stencilBuffer: false,
     };
 
-    this.targetA = new THREE.RenderTarget(w, h, rtOptions);
-    this.targetB = new THREE.RenderTarget(w, h, rtOptions);
-
     // WebGPURenderer は init() 完了まで capabilities を提供しない場合があるため、
     // 取得できないときは WebGPU の標準サンプル数 4 を上限として扱う。
     const caps = (
@@ -140,6 +137,17 @@ export class EffectComposer implements EffectTarget, EffectLike {
         samples: effectiveSamples,
       });
     }
+
+    // depth が要るのは scene を描く target だけ。fullscreen pass しか書かない
+    // target には確保せず VRAM を節約する（targetA は MSAA 無効時に scene を描く）。
+    this.targetA = new THREE.RenderTarget(w, h, {
+      ...rtOptions,
+      depthBuffer: this.sceneTarget === null,
+    });
+    this.targetB = new THREE.RenderTarget(w, h, {
+      ...rtOptions,
+      depthBuffer: false,
+    });
 
     this.quad = new THREE.QuadMesh();
   }

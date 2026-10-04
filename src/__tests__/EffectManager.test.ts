@@ -432,6 +432,21 @@ describe('EffectManager', () => {
     expect(effect.size).toEqual({ width: 100, height: 50 });
   });
 
+  it('addEffect: getConfig() の時点で追加時のサイズを読める', () => {
+    const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
+    let seen: { width: number; height: number } | null = null;
+    class SizeAwareEffect extends StateEffect {
+      protected getConfig(): BaseEffectConfig {
+        seen = this.size;
+        return super.getConfig();
+      }
+    }
+
+    manager.addEffect(new SizeAwareEffect(), 100, 50);
+
+    expect(seen).toEqual({ width: 100, height: 50 });
+  });
+
   it('resize: 登録済み effect の width/height が更新される', () => {
     const manager = new EffectManager({ renderer: makeRenderer(), gui: null });
     const effect = new StateEffect();

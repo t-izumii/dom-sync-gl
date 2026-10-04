@@ -264,6 +264,18 @@ export class FluidSim {
     this._aspect = size.x / size.y || 1;
     this.uTexelSize.value.set(1 / simRes.width, 1 / simRes.height);
 
+    // 作り直すと流体がすべて消える。解像度が変わらないリサイズや、登録時の
+    // _setRenderer() → resize() の二重呼び出しでは、確保済みのバッファを使い続ける。
+    const velocity = this.velocity;
+    const dye = this.dye;
+    if (
+      velocity && dye &&
+      velocity.read.width === simRes.width && velocity.read.height === simRes.height &&
+      dye.read.width === dyeRes.width && dye.read.height === dyeRes.height
+    ) {
+      return;
+    }
+
     this.disposeFramebuffers();
     this.velocity = this.makeDoubleFBO(simRes.width, simRes.height);
     this.dye = this.makeDoubleFBO(dyeRes.width, dyeRes.height);

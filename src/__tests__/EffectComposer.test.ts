@@ -281,6 +281,22 @@ describe('EffectComposer', () => {
     composer.dispose();
   });
 
+  it.each([
+    [0, true],
+    [4, false],
+  ])('samples=%i のとき depth を持つのは scene を描く target だけ', (samples, targetADepth) => {
+    const composer = new EffectComposer(makeRenderer(4), 100, 100, samples);
+    const internals = composer as unknown as {
+      targetA: THREE.RenderTarget;
+      targetB: THREE.RenderTarget;
+      sceneTarget: THREE.RenderTarget | null;
+    };
+    expect(internals.targetA.depthBuffer).toBe(targetADepth);
+    expect(internals.targetB.depthBuffer).toBe(false);
+    if (internals.sceneTarget) expect(internals.sceneTarget.depthBuffer).toBe(true);
+    composer.dispose();
+  });
+
   it('samples は renderer.capabilities.maxSamples で clamp される（CR-17）', () => {
     const composer = new EffectComposer(makeRenderer(4), 100, 100, 8);
     const sceneTarget = (
