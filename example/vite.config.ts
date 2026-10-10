@@ -25,6 +25,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(__dirname, "index.html"),
+        portfolio: resolve(__dirname, "portfolio.html"),
         "dom-test": resolve(__dirname, "dom-test.html"),
         "pause-offscreen": resolve(__dirname, "pause-offscreen.html"),
         "effects-lib": resolve(__dirname, "effects-lib.html"),
