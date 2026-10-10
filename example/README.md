@@ -121,3 +121,8 @@ example/
 `tsconfig.json` の `paths` は `vite.config.ts` の alias と同じく `dom-sync-gl` を `../src` に
 向けている。これが無いとエディタが publish 済みの `dist/index.d.ts` を見にいってしまい、
 `src` の最新 API が「存在しない」と誤判定される。
+
+## 独立ポートフォリオサンプル
+
+`/portfolio.html` に Tetsuya Izumi のポートフォリオを追加しています。
+既存の HALATION は引き続き `/` です。起動・構成・検証は [PORTFOLIO.md](./PORTFOLIO.md) を参照してください。

@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module">
+import * as THREE from 'three';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+const exporter = new GLTFExporter();
+window.makeModel = async kind => {
+  const group = new THREE.Group(); group.name = kind;
+  const material = new THREE.MeshStandardMaterial({ color: '#e6e8db', metalness:1, roughness:.23 });
+  if(kind === 'fold') {
+    const geometry = new THREE.TorusKnotGeometry(1,.31,256,32,2,3);
+    const p=geometry.attributes.position,n=geometry.attributes.normal;
+    for(let i=0;i<p.count;i++) { const v=new THREE.Vector3().fromBufferAttribute(p,i); v.addScaledVector(new THREE.Vector3().fromBufferAttribute(n,i),.006*Math.sin(v.y*95+v.x*55)); p.setXYZ(i,v.x,v.y,v.z); }
+    geometry.computeVertexNormals(); group.add(new THREE.Mesh(geometry,material));
+  } else if(kind === 'echo') {
+    const geometry=new THREE.TorusGeometry(1,.025,12,128);
+    for(let i=0;i<23;i++) { const mesh=new THREE.Mesh(geometry,material); mesh.name='ring-'+i; mesh.scale.setScalar(1-i*.013);mesh.position.z=(i-11)*.039;group.add(mesh); }
+  } else {
+    const geometry=new THREE.BoxGeometry(1,1,1,1,8,1);
+    for(let i=0;i<39;i++) { const mesh=new THREE.Mesh(geometry,material);mesh.name='slat-'+i;mesh.scale.set(.043,1.65+.38*Math.sin(i*.19),1.15);mesh.position.set((i-19)*.07,.1*Math.sin(i*.22),.26*Math.sin(i*.13));group.add(mesh); }
+  }
+  const data = await exporter.parseAsync(group,{binary:true});
+  const bytes=new Uint8Array(data);let str='';for(const byte of bytes)str+=String.fromCharCode(byte);
+  return btoa(str);
+};
+window.modelReady = true;
+</script></body></html>

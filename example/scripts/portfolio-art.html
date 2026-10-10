@@ -1,0 +1,53 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#151617}canvas{display:block}</style></head><body>
+<script type="module">
+import * as THREE from '/node_modules/three/build/three.module.js';
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(1800,1200); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.5;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.append(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#151617');
+const camera = new THREE.PerspectiveCamera(34, 1.5, .1, 100);
+camera.position.set(0, .7, 8); camera.lookAt(0,0,0);
+const room = new THREE.Scene(); room.background = new THREE.Color('#08090a');
+const panel = (x,y,z,sx,sy,color,intensity=4) => {
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(sx,sy),new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(intensity),side:THREE.DoubleSide}));
+ m.position.set(x,y,z); m.lookAt(0,0,0); room.add(m);
+};
+panel(-3,3,1,2,7,'#e7e8df',6);panel(3,2,1,1.2,8,'#b1b4af',5);
+panel(0,4,-1,6,2,'#f8e5d0',6);panel(-3,-1,2,3,2,'#ee4227',3);
+panel(1,0,-4,1,6,'#ffffff',5);
+const pmrem=new THREE.PMREMGenerator(renderer); const env=pmrem.fromScene(room,.04); scene.environment=env.texture;
+const ambient=new THREE.AmbientLight('#aab1ba', .4);scene.add(ambient);
+const key=new THREE.DirectionalLight('#fce8cc',4);key.position.set(-3,5,4); key.castShadow=true; key.shadow.mapSize.set(2048,2048); key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=5;key.shadow.camera.bottom=-5;scene.add(key);
+const fill=new THREE.PointLight('#fd462c',35,20); fill.position.set(-4,1,2);scene.add(fill);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#191919',roughness:.87}));floor.rotation.x=-Math.PI/2;floor.position.y=-1.7;floor.receiveShadow=true;scene.add(floor);
+let object;
+function material(color,roughness=.23,metalness=1){return new THREE.MeshStandardMaterial({color,roughness,metalness,envMapIntensity:1.4});}
+window.renderArt = (kind) => {
+ if(object){scene.remove(object);object.traverse(o=>{o.geometry?.dispose();if(o.material)o.material.dispose()});}
+ object=new THREE.Group();scene.add(object);
+ if(kind==='fold'){
+  const geometry=new THREE.TorusKnotGeometry(1.13,.34,480,72,2,3);
+  const p=geometry.attributes.position,n=geometry.attributes.normal;
+  for(let i=0;i<p.count;i++){const v=new THREE.Vector3().fromBufferAttribute(p,i);const d=.012*Math.sin(v.y*100+v.x*50);v.addScaledVector(new THREE.Vector3().fromBufferAttribute(n,i),d);p.setXYZ(i,v.x,v.y,v.z);}
+  geometry.computeVertexNormals();const mesh=new THREE.Mesh(geometry,material('#bbbeb8',.34));mesh.rotation.set(.25,-.35,.4);mesh.castShadow=true;object.add(mesh);
+  scene.background.set('#151617');floor.material.color.set('#010101');camera.position.set(0,.4,8.8);camera.lookAt(0,-.1,0);
+ } else if(kind==='echo'){
+  for(let i=0;i<23;i++){
+   const mesh=new THREE.Mesh(new THREE.TorusGeometry(1.22-(i/23)*.45,.024,12,150),material(i%5===0?'#ee492d':'#afc6d1',.2));
+   mesh.position.z=(i-11)*.052;mesh.rotation.set(.85,.42,0);object.add(mesh);
+  }
+  object.rotation.z=-.45;scene.background.set('#b7c3c7');floor.material.color.set('#9caaaf');camera.position.set(.4,.6,7.1);camera.lookAt(0,0,0);
+ } else {
+  for(let i=0;i<39;i++){
+   const h=1.65+.4*Math.sin(i*.19);const mesh=new THREE.Mesh(new THREE.BoxGeometry(.045,h,1.15),material('#db4529',.46,.7));
+   mesh.position.set((i-19)*.07,.1*Math.sin(i*.22),.26*Math.sin(i*.13));mesh.rotation.y=.22*Math.sin(i*.16);mesh.castShadow=true;object.add(mesh);
+  }
+  object.rotation.set(.3,-.5,-.15);scene.background.set('#e1d9ca');floor.material.color.set('#c5bba9');camera.position.set(.3,.6,8.4);camera.lookAt(0,-.1,0);
+ }
+ renderer.render(scene,camera);
+ return renderer.domElement.toDataURL('image/png');
+};
+window.artReady=true;
+</script></body></html>
