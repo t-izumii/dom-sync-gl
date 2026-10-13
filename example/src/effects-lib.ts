@@ -1,12 +1,12 @@
 /**
- * src/effectsLib/ の 9 エフェクトを 1 つずつ動作テストするページ。
+ * src/effectsLib/ の 12 エフェクトを 1 つずつ動作テストするページ。
  *
  * `?effect=<name>` クエリで対象を切り替える（既定: pixelTrail）。
  * 画像アセットに依存せずオフラインで動くよう、plane / カーソル用のテクスチャは
  * すべて Canvas 2D で描いたグラデーションから生成する。
  *
- * - post 系（pixelTrail / smoothCursor / mouseFlow / mouse / ditherCursor /
- *   splashCursor / ripple）: 全画面グラデーション plane を敷き、
+ * - post 系（pixelTrail / smoothCursor / mouseFlow / glassCursor / fluidWater /
+ *   waterRipple / mouse / ditherCursor / splashCursor / ripple）: 全画面グラデーション plane を敷き、
  *   app.addEffect() のみで駆動
  * - plane 系（rippleFeedback / liquidSwap / stickerPeel）: `.demo-image` に
  *   同期した plane を作り、colorNode / positionNode を配線
@@ -16,6 +16,9 @@ import GUI from "lil-gui";
 import { PixelTrailEffect } from "../../src/effectsLib/pixelTrail";
 import { SmoothCursorEffect } from "../../src/effectsLib/smoothCursor";
 import { MouseFlowEffect } from "../../src/effectsLib/mouseFlow";
+import { GlassCursorEffect } from "../../src/effectsLib/glassCursor";
+import { FluidWaterEffect } from "../../src/effectsLib/fluidWater";
+import { WaterRippleEffect } from "../../src/effectsLib/waterRipple";
 import { MouseEffect } from "../../src/effectsLib/mouse";
 import { DitherCursorEffect } from "../../src/effectsLib/ditherCursor";
 import { SplashCursorEffect } from "../../src/effectsLib/splashCursor";
@@ -116,6 +119,24 @@ const EFFECTS: Record<string, EffectDef> = {
     hint: "マウスの軌跡に沿って画面が流体的に歪む",
     setup: (app) => {
       app.addEffect(new MouseFlowEffect());
+    },
+  },
+  glassCursor: {
+    hint: "マウスに遅れてガラス板が付いてくる。縁で背景の格子が屈折する",
+    setup: (app) => {
+      app.addEffect(new GlassCursorEffect());
+    },
+  },
+  fluidWater: {
+    hint: "マウスでかき混ぜた流体越しに背景が屈折し、流れの縁が光る",
+    setup: (app) => {
+      app.addEffect(new FluidWaterEffect());
+    },
+  },
+  waterRipple: {
+    hint: "マウスの軌跡から波紋が広がり、背景が屈折する",
+    setup: (app) => {
+      app.addEffect(new WaterRippleEffect());
     },
   },
   mouse: {

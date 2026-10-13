@@ -6,6 +6,9 @@ import { MouseFlowEffect } from '../../src/effectsLib/mouseFlow/mouseFlowEffect'
 import { DitherCursorEffect } from '../../src/effectsLib/ditherCursor/ditherCursorEffect';
 import { SmoothCursorEffect } from '../../src/effectsLib/smoothCursor/smoothCursorEffect';
 import { PixelTrailEffect } from '../../src/effectsLib/pixelTrail/pixelTrailEffect';
+import { GlassCursorEffect } from '../../src/effectsLib/glassCursor/glassCursorEffect';
+import { FluidWaterEffect } from '../../src/effectsLib/fluidWater/fluidWaterEffect';
+import { WaterRippleEffect } from '../../src/effectsLib/waterRipple/waterRippleEffect';
 
 const output = document.querySelector('#results')!;
 output.textContent = '';
@@ -120,6 +123,8 @@ async function runBackend(forceWebGL: boolean) {
       () => new MouseEffect({ simResolution: 32, dyeResolution: 64, pressureIterations: 3 }),
       () => new MouseFlowEffect(), () => new DitherCursorEffect(),
       () => new SmoothCursorEffect(), () => new PixelTrailEffect({ textureSize: 64 }),
+      () => new GlassCursorEffect(), () => new FluidWaterEffect({ pixelBudget: 2 ** 12 }),
+      () => new WaterRippleEffect({ resolution: 0.25 }),
     ]) {
       const effect = make();
       await check(effect.constructor.name, async () => {
