@@ -1,0 +1,63 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - paragraph [ref=e5]: "effect: paperCrumple"
+    - paragraph [ref=e6]: 中央の画像を押している間だけ紙のように丸まる。離すと広がって戻る
+    - navigation "エフェクト切替" [ref=e7]:
+      - list [ref=e8]:
+        - listitem [ref=e9]:
+          - link "pixelTrail" [ref=e10] [cursor=pointer]:
+            - /url: "?effect=pixelTrail"
+        - listitem [ref=e11]:
+          - link "mouseFlow" [ref=e12] [cursor=pointer]:
+            - /url: "?effect=mouseFlow"
+        - listitem [ref=e13]:
+          - link "glassCursor" [ref=e14] [cursor=pointer]:
+            - /url: "?effect=glassCursor"
+        - listitem [ref=e15]:
+          - link "fluidWater" [ref=e16] [cursor=pointer]:
+            - /url: "?effect=fluidWater"
+        - listitem [ref=e17]:
+          - link "waterRipple" [ref=e18] [cursor=pointer]:
+            - /url: "?effect=waterRipple"
+        - listitem [ref=e19]:
+          - link "ripple" [ref=e20] [cursor=pointer]:
+            - /url: "?effect=ripple"
+        - listitem [ref=e21]:
+          - link "rippleFeedback" [ref=e22] [cursor=pointer]:
+            - /url: "?effect=rippleFeedback"
+        - listitem [ref=e23]:
+          - link "liquidSwap" [ref=e24] [cursor=pointer]:
+            - /url: "?effect=liquidSwap"
+        - listitem [ref=e25]:
+          - link "stickerPeel" [ref=e26] [cursor=pointer]:
+            - /url: "?effect=stickerPeel"
+        - listitem [ref=e27]:
+          - link "paperCrumple" [ref=e28] [cursor=pointer]:
+            - /url: "?effect=paperCrumple"
+  - generic [ref=e30]:
+    - 'button "▾ Effects: paperCrumple" [expanded] [ref=e31] [cursor=pointer]'
+    - generic [ref=e33]:
+      - button "▾ 紙くしゃ (Paper crumple)" [expanded] [ref=e34] [cursor=pointer]
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]: 丸まり具合
+          - textbox "丸まり具合" [ref=e41]: "0"
+        - generic [ref=e42]:
+          - generic [ref=e43]: 丸める時間（秒）
+          - textbox "丸める時間（秒）" [ref=e47]: "0.9"
+        - generic [ref=e48]:
+          - generic [ref=e49]: 戻る時間（秒）
+          - textbox "戻る時間（秒）" [ref=e53]: "0.7"
+        - generic [ref=e54]:
+          - generic [ref=e55]: 持ち上げる高さ
+          - textbox "持ち上げる高さ" [ref=e59]: "0.06"
+        - generic [ref=e60]:
+          - generic [ref=e61]: 残る皺の強さ
+          - textbox "残る皺の強さ" [ref=e65]: "0.15"
+        - generic [ref=e66]:
+          - generic [ref=e67]: 影の濃さ
+          - textbox "影の濃さ" [ref=e71]: "0.35"
+        - generic [ref=e72]:
+          - generic [ref=e73]: 影のぼかし
+          - textbox "影のぼかし" [ref=e77]: "6"
+        - button "平らに戻す" [ref=e80] [cursor=pointer]

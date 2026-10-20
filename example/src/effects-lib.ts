@@ -8,7 +8,7 @@
  * - post 系（pixelTrail / smoothCursor / mouseFlow / glassCursor / fluidWater /
  *   waterRipple / mouse / ditherCursor / splashCursor / ripple）: 全画面グラデーション plane を敷き、
  *   app.addEffect() のみで駆動
- * - plane 系（rippleFeedback / liquidSwap / stickerPeel）: `.demo-image` に
+ * - plane 系（rippleFeedback / liquidSwap / stickerPeel / paperCrumple）: `.demo-image` に
  *   同期した plane を作り、colorNode / positionNode を配線
  */
 import { DomSyncGL, THREE, TSL } from "dom-sync-gl";
@@ -29,6 +29,7 @@ import {
 } from "../../src/effectsLib/ripple";
 import { LiquidSwap } from "../../src/effectsLib/liquidSwap";
 import { StickerPeel } from "../../src/effectsLib/stickerPeel";
+import { PaperCrumple } from "../../src/effectsLib/paperCrumple";
 
 /* ==----------------------------------------------------
  * Canvas 2D テクスチャ生成（外部画像なしでオフライン動作を保つ）
@@ -209,6 +210,16 @@ const EFFECTS: Record<string, EffectDef> = {
       const plane = app.createPlane(".js-demo-image", peel.planeOptions());
       peel.applyTo(plane);
       peel.setTexture(makeGradientTexture("#b8452f", "#e8c95a", "PEEL"));
+    },
+  },
+  paperCrumple: {
+    hint: "中央の画像を押している間だけ紙のように丸まる。離すと広がって戻る",
+    needsDemoImage: true,
+    setup: (app) => {
+      const paper = new PaperCrumple();
+      const plane = app.createPlane(".js-demo-image", paper.planeOptions());
+      paper.applyTo(plane, app);
+      plane.setTexture(makeGradientTexture("#2f5fb8", "#e8c95a", "PAPER"), true);
     },
   },
 };
